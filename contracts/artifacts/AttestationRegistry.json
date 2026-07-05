@@ -1,0 +1,81 @@
+{
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "paymentHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "payer",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amountUsdc",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "enum AttestationRegistry.IdentityStatus",
+          "name": "identityStatus",
+          "type": "uint8"
+        },
+        {
+          "indexed": false,
+          "internalType": "enum AttestationRegistry.Decision",
+          "name": "decision",
+          "type": "uint8"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "Attested",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "paymentHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "payer",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amountUsdc",
+          "type": "uint256"
+        },
+        {
+          "internalType": "enum AttestationRegistry.IdentityStatus",
+          "name": "identityStatus",
+          "type": "uint8"
+        },
+        {
+          "internalType": "enum AttestationRegistry.Decision",
+          "name": "decision",
+          "type": "uint8"
+        }
+      ],
+      "name": "attest",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "6080604052348015600e575f5ffd5b506103678061001c5f395ff3fe608060405234801561000f575f5ffd5b5060043610610029575f3560e01c8063ccbd87081461002d575b5f5ffd5b610047600480360381019061004291906101af565b610049565b005b8373ffffffffffffffffffffffffffffffffffffffff16857f14b2d784a58cc595f7f95fc880ac20c24b350081899699c2a98b50ab4a5814108585854260405161009694939291906102ee565b60405180910390a35050505050565b5f5ffd5b5f819050919050565b6100bb816100a9565b81146100c5575f5ffd5b50565b5f813590506100d6816100b2565b92915050565b5f73ffffffffffffffffffffffffffffffffffffffff82169050919050565b5f610105826100dc565b9050919050565b610115816100fb565b811461011f575f5ffd5b50565b5f813590506101308161010c565b92915050565b5f819050919050565b61014881610136565b8114610152575f5ffd5b50565b5f813590506101638161013f565b92915050565b60038110610175575f5ffd5b50565b5f8135905061018681610169565b92915050565b60028110610198575f5ffd5b50565b5f813590506101a98161018c565b92915050565b5f5f5f5f5f60a086880312156101c8576101c76100a5565b5b5f6101d5888289016100c8565b95505060206101e688828901610122565b94505060406101f788828901610155565b935050606061020888828901610178565b92505060806102198882890161019b565b9150509295509295909350565b61022f81610136565b82525050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52602160045260245ffd5b6003811061027357610272610235565b5b50565b5f81905061028382610262565b919050565b5f61029282610276565b9050919050565b6102a281610288565b82525050565b600281106102b9576102b8610235565b5b50565b5f8190506102c9826102a8565b919050565b5f6102d8826102bc565b9050919050565b6102e8816102ce565b82525050565b5f6080820190506103015f830187610226565b61030e6020830186610299565b61031b60408301856102df565b6103286060830184610226565b9594505050505056fea26469706673582212203db87d4a0d932608c465c28ac745e0ff99473a5f5bc1cc66e09bd2be09dc606464736f6c63430008230033"
+}

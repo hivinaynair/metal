@@ -1,0 +1,19 @@
+export type { MandatePayload, SignedMandate } from "./types"
+
+// AP2 is Metal's agent authorization primitive — a signed delegation from an
+// institution (delegator) to an agent, scoping what the agent may spend.
+// This EIP-712 domain name identifies AP2 mandates for signature verification.
+export const MANDATE_EIP712_DOMAIN = {
+  name: "AP2Mandate",
+  version: "1",
+} as const
+
+export const MANDATE_EIP712_TYPES = {
+  MandatePayload: [
+    { name: "agent", type: "address" },
+    { name: "delegator", type: "address" },
+    { name: "maxAmountUsdc", type: "uint256" },
+    { name: "expiry", type: "uint256" },
+    { name: "nonce", type: "uint256" },
+  ],
+} as const

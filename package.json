@@ -14,6 +14,7 @@
     "@workspace/typescript-config": "workspace:*",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.8.0",
+    "solc": "^0.8.35",
     "turbo": "^2.9.18",
     "typescript": "^5",
     "viem": "^2.54.3"

@@ -1,0 +1,21 @@
+{
+  "name": "@workspace/shared",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    "./identity": "./src/identity.ts",
+    "./mandate": "./src/mandate.ts",
+    "./abis": "./src/abis.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "viem": "^2"
+  }
+}
