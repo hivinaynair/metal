@@ -16,13 +16,17 @@ Metal's thesis is that identity, authorization, policy, and attestation should b
 
 ## Solution
 
-Build and deploy three artifacts in the same Turborepo:
+Build and deploy five artifacts in the same Turborepo:
 
-1. **Compliance Console** (`apps/web`) — a multi-tenant-framed UI showing an activity feed of agent transactions (real + illustrative), transaction detail with a full payment lifecycle stepper, and a policy enforcement console. Deployed to Vercel, zero setup to view.
+1. **Smart Contracts** (Base Sepolia) — two contracts deployed to Base Sepolia: `IdentityRegistry` (implements ERC-8004 — agent identity as an on-chain registry) and `AttestationRegistry` (tamper-evident settlement audit trail). These stand in for Metal's native chain primitives.
 
-2. **Custom Facilitator** (`apps/facilitator`) — a standalone Hono app (API routes only, no UI) implementing the x402 facilitator protocol with Metal-aligned additions: identity-gating via ERC-8004, AP2 mandate verification (EIP-712, off-chain signed), amount-threshold policy enforcement, and on-chain attestation via a deployed `AttestationRegistry` contract on Base Sepolia (mirrored to Postgres for console querying). Deployed separately to Vercel.
+2. **`packages/shared`** — shared TypeScript package (`@workspace/shared`) containing the ERC-8004 `lookupIdentity()` utility (viem `readContract` against our deployed registry) and AP2 mandate types. Imported by both `apps/facilitator` and `apps/web`.
 
-3. **Technical Demo** — a working x402-gated API route in `apps/web` backed by the custom facilitator above, all on Base Sepolia. Includes a live-trigger button in the console, a real verifiable tx hash, and distinct buyer/seller wallets.
+3. **Custom Facilitator** (`apps/facilitator`) — standalone Hono app (API only) implementing the x402 facilitator protocol with Metal's primitive stack wired in: ERC-8004 identity-gating, AP2 mandate verification (EIP-712), amount-threshold policy enforcement, and on-chain attestation write on every settlement. Deployed separately to Vercel.
+
+4. **Compliance Console** (`apps/web`) — Next.js app with an x402-gated route backed by the custom facilitator, a live-trigger button, and a compliance feed showing real attestation data from the on-chain registry. Deployed to Vercel.
+
+5. **`demo/mandate.json`** — pre-signed AP2 mandate (generated once by `scripts/sign-mandate.ts`) committing the demo institution wallet's authorization for the demo agent wallet. Checked into the repo so the demo is reproducible without re-signing.
 
 ---
 
@@ -74,7 +78,8 @@ Build and deploy three artifacts in the same Turborepo:
 - `apps/web` — existing Next.js app; hosts the compliance console UI and the x402-gated `/api/settlement-risk-report` route.
 - `apps/facilitator` — new Hono app (API routes only, no UI); implements the x402 facilitator protocol with identity-gating, attestation logging, and policy enforcement. Deployed as a separate Vercel project.
 - `packages/ui` — existing component library (Table, Badge, Sheet, Card, Tabs, Alert, Skeleton, Separator, Spinner, Empty); used by `apps/web` only.
-- `packages/shared` — new package (`@workspace/shared`); contains the ERC-8004 lookup utility and any other logic shared between `apps/web` and `apps/facilitator`. Follows the existing workspace package convention.
+- `packages/shared` — new package (`@workspace/shared`); contains the ERC-8004 lookup utility and AP2 mandate types shared between `apps/web` and `apps/facilitator`. Follows the existing workspace package convention.
+- `contracts/` — Solidity source for `IdentityRegistry` and `AttestationRegistry`. Deploy scripts live in `scripts/`. No Hardhat/Foundry — compile with `solc` or `viem`'s `deployContract` with pre-compiled bytecode.
 
 ### Wallet Management
 - Three wallets, all generated via `viem`'s `generatePrivateKey()`: buyer (`PAYER_PRIVATE_KEY` — already exists), seller/payTo (`RECIPIENT_PRIVATE_KEY` / `PAY_TO_ADDRESS` — already exists), facilitator gas wallet (new — add `FACILITATOR_PRIVATE_KEY` to env).
@@ -88,7 +93,7 @@ Build and deploy three artifacts in the same Turborepo:
 ### Custom Facilitator (`apps/facilitator`) — Tier 1
 Standalone Hono app with `GET /api/supported`, `POST /api/verify`, `POST /api/settle`. Wraps `@x402/core` and `@x402/evm/exact/facilitator` primitives. Adds identity-gating (ERC-8004), attestation logging (Drizzle/Postgres), and amount-threshold policy hook. Deployed separately to Vercel.
 
-**Build order: `packages/shared` (ERC-8004 lookup) → `apps/facilitator` (Hono + Drizzle) → wire `apps/web` to the deployed facilitator URL.**
+**Build order: contracts (deploy + register) → `packages/shared` (ERC-8004 lookup + AP2 types) → `apps/facilitator` (Hono + Drizzle) → wire `apps/web` to the deployed facilitator URL.**
 
 ### ERC-8004 Identity Registry — Tier 1
 
@@ -116,7 +121,7 @@ ERC-8004 ("Trustless Agents") is a real EIP defining identity, reputation, and v
 - No access control for the demo; facilitator calls it directly using the gas wallet.
 - ~30 lines of Solidity. Deploy with a viem `deployContract` script.
 
-**Postgres table** (`settlement_attestations`): `id`, `created_at`, `payment_tx_hash`, `attestation_tx_hash`, `payer_address`, `amount_usdc`, `identity_status` (enum: `verified | not_found | flagged`), `facilitator_decision` (enum: `approved | rejected`), `policy_flags` (jsonb). Managed by Drizzle Kit.
+**Postgres table** (`settlement_attestations`): `id`, `created_at`, `payment_tx_hash`, `attestation_tx_hash`, `payer_address`, `amount_usdc`, `identity_status` (enum: `verified | not_found | flagged`), `facilitator_decision` (enum: `approved | rejected`), `mandate_delegator` (text, nullable), `mandate_valid` (boolean), `policy_flags` (jsonb). Managed by Drizzle Kit.
 
 **Write path (facilitator `/settle`):** settle on-chain → call `AttestationRegistry.attest()` → store both tx hashes in Postgres.
 
@@ -131,7 +136,6 @@ ERC-8004 ("Trustless Agents") is a real EIP defining identity, reputation, and v
 - `/feed` (or `/`) — Activity feed as the primary view. Tier 1.
 - `/feed/[id]` detail opens as a Sheet overlay, not a separate route.
 - `/policy` — Policy console. Tier 2.
-- Multi-tenant framing via an org-switcher component in the header — illustrative only, no real auth.
 
 
 ### AP2 Mandate Verification — Tier 1
