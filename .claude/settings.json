@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun run:*)",
+      "Bash(npm show:*)",
+      "Bash(npx --yes @x402/core --version)",
+      "Bash(npm pack:*)",
+      "Bash(grep -r \"HTTPFacilitatorClient\" /Users/vinay/bare-metal/node_modules/.bun/@x402+next@2.17.0*/node_modules/@x402/next/dist/ --include=\"*.js\" -l)",
+      "Bash(grep -r ExactEvmScheme /Users/vinay/bare-metal/node_modules/@x402/evm/dist/ --include=*.js -l)",
+      "Bash(ls /Users/vinay/bare-metal/node_modules/.bun/@x402+next@2.17.0*/node_modules/@x402/next/dist/cjs/)",
+      "Bash(grep -r \"x402ResourceServer\\\\|withX402\" /Users/vinay/bare-metal/node_modules/.bun/@x402+next@2.17.0*/node_modules/@x402/next/dist/cjs/ --include=\"*.js\" -l)",
+      "Bash(grep -r \"x402ResourceServer\\\\|withX402\\\\|exports\\\\.\" /Users/vinay/bare-metal/node_modules/.bun/@x402+next@2.17.0*/node_modules/@x402/next/dist/cjs/index.cjs)",
+      "Bash(ls -1 /Users/vinay/bare-metal/packages/ui/src/components/*.tsx)",
+      "Bash(npm view:*)",
+      "Bash(xargs -I {} basename {})",
+      "Bash(cat /Users/vinay/bare-metal/packages/*/package.json)",
+      "Bash(grep -E ^s*\"\"name\"\")",
+      "Bash(grep -r \"drizzle\\\\|database\\\\|db\\\\|prisma\" /Users/vinay/bare-metal/package.json /Users/vinay/bare-metal/apps/web/package.json /Users/vinay/bare-metal/packages/*/package.json)",
+      "WebFetch(domain:metalntwx.com)",
+      "WebFetch(domain:eips.ethereum.org)"
+    ],
+    "additionalDirectories": [
+      "/Users/vinay/bare-metal"
+    ]
+  }
+}

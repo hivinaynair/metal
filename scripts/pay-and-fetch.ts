@@ -2,8 +2,8 @@ import { wrapFetchWithPaymentFromConfig, decodePaymentResponseHeader } from "@x4
 import { ExactEvmScheme } from "@x402/evm";
 import { privateKeyToAccount } from "viem/accounts";
 
-const privateKey = process.env.TESTNET_PRIVATE_KEY;
-if (!privateKey) throw new Error("TESTNET_PRIVATE_KEY not set in env");
+const privateKey = process.env.PAYER_PRIVATE_KEY;
+if (!privateKey) throw new Error("PAYER_PRIVATE_KEY not set in env");
 
 const account = privateKeyToAccount(privateKey as `0x${string}`);
 
