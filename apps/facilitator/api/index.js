@@ -11551,6 +11551,11 @@ var init_call = __esm(() => {
   requestOptionsIds = new WeakMap;
 });
 
+// ../../node_modules/.bun/hono@4.12.27/node_modules/hono/dist/adapter/vercel/handler.js
+var handle = (app) => (req) => {
+  return app.fetch(req);
+};
+
 // ../../node_modules/.bun/hono@4.12.27/node_modules/hono/dist/compose.js
 var compose = (middleware, onError, onNotFound) => {
   return (context, next) => {
@@ -30302,7 +30307,9 @@ app2.route("/mandates", mandates_default);
 var app_default = app2;
 
 // src/vercel.ts
-var vercel_default = app_default.fetch;
+var config = { runtime: "nodejs" };
+var vercel_default = handle(app_default);
 export {
-  vercel_default as default
+  vercel_default as default,
+  config
 };
