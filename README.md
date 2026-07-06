@@ -83,6 +83,8 @@ APP_URL=                    # base URL used for ERC-8004 agentURI metadata
 # Facilitator
 FACILITATOR_URL=           # Deployed facilitator URL (or http://localhost:3001 for local)
 POLICY_MAX_AMOUNT_USDC=    # e.g. 10
+UPSTASH_REDIS_REST_URL=    # mandate store
+UPSTASH_REDIS_REST_TOKEN=  # mandate store
 
 # Optional private-key utilities
 PAYER_PRIVATE_KEY=         # Legacy payer scripts only
@@ -92,7 +94,14 @@ RECIPIENT_PRIVATE_KEY=     # Generate PAY_TO_ADDRESS if needed
 ### Deploy contracts
 
 ```bash
-bun scripts/deploy-contracts.ts      # deploys AttestationRegistry, writes address to .env.local
+bun --filter @workspace/scripts deploy-contracts  # deploys AttestationRegistry, writes address to .env.local
+```
+
+### Fund a gas wallet
+
+```bash
+bun --filter @workspace/scripts fund-wallet       # funds FACILITATOR_PRIVATE_KEY address with Base Sepolia ETH
+bun --filter @workspace/scripts fund-wallet 0x... # or pass an address explicitly
 ```
 
 ### Register the agent
@@ -104,8 +113,8 @@ bun --filter agent dev               # first run registers the CDP wallet in ERC
 ### Sign the AP2 mandate
 
 ```bash
-AGENT_ADDRESS=<agent-wallet> bun scripts/sign-mandate.ts
-bun scripts/register-mandate.ts      # prefers demo/agentkit-mandate.json, or set MANDATE_PATH
+AGENT_ADDRESS=<agent-wallet> bun --filter @workspace/scripts sign-mandate
+bun --filter @workspace/scripts register-mandate  # prefers demo/agentkit-mandate.json, or set MANDATE_PATH
 ```
 
 ### Run locally

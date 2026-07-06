@@ -31,7 +31,7 @@ export async function onAfterSettle({
 
   const amountUsdcAtomic = BigInt(paymentPayload.accepted.amount)
   const paymentHash = keccak256(result.transaction as `0x${string}`)
-  const identityStatus = getMandate(payer) ? IdentityStatus.Verified : IdentityStatus.NotFound
+  const identityStatus = (await getMandate(payer)) ? IdentityStatus.Verified : IdentityStatus.NotFound
 
   try {
     await walletClient.writeContract({

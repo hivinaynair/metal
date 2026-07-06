@@ -20,7 +20,7 @@ export async function onBeforeVerify(
   if (!payer) return // non-EIP-3009 scheme — let base verify handle it
 
   // 1. Mandate must be pre-registered
-  const mandateEntry = deps.getMandate(payer)
+  const mandateEntry = await deps.getMandate(payer)
   if (!mandateEntry) return { abort: true, reason: "mandate_not_registered" }
 
   const { mandate, agentId } = mandateEntry

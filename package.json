@@ -3,11 +3,14 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "build": "bun --env-file=.env.local turbo run build",
-    "dev": "bun --env-file=.env.local turbo run dev",
+    "build": "turbo run build",
+    "dev": "turbo run dev",
     "lint": "turbo run lint",
     "format": "turbo run format",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "scripts:balance": "bun scripts/balance.ts",
+    "scripts:deploy-contracts": "bun --env-file=scripts/.env.local scripts/deploy-contracts.ts",
+    "scripts:fund-wallet": "bun --env-file=scripts/.env.local scripts/fund-wallet.ts"
   },
   "devDependencies": {
     "@workspace/eslint-config": "workspace:*",
@@ -25,7 +28,8 @@
   },
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "scripts"
   ],
   "dependencies": {
     "@coinbase/cdp-sdk": "^1.51.2",

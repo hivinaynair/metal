@@ -4,8 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun --watch src/index.ts",
-    "build": "bun build api/index.ts --target=node --outfile=api/index.js --external @hono/node-server",
+    "dev": "bun --watch src/dev.ts",
+    "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -13,6 +13,7 @@
     "@workspace/shared": "workspace:*",
     "@x402/core": "^2.17.0",
     "@x402/evm": "^2.17.0",
+    "@upstash/redis": "^1.38.0",
     "hono": "^4.7.11",
     "viem": "^2"
   },

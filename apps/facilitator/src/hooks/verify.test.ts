@@ -42,7 +42,7 @@ function makeCtx(amountAtomic = DEFAULT_AMOUNT_ATOMIC) {
 /** Happy-path deps — every check passes */
 function happyDeps(overrides: Partial<VerifyDeps> = {}): VerifyDeps {
   return {
-    getMandate: () => ({ mandate: VALID_MANDATE, agentId: AGENT_ID }),
+    getMandate: async () => ({ mandate: VALID_MANDATE, agentId: AGENT_ID }),
     verifyMandateSignature: mock(async () => true),
     lookupIdentity: mock(async () => VALID_PROFILE),
     registryAddress: REGISTRY,
@@ -56,7 +56,7 @@ function happyDeps(overrides: Partial<VerifyDeps> = {}): VerifyDeps {
 describe("onBeforeVerify", () => {
   it("aborts when no mandate registered for payer", async () => {
     const result = await onBeforeVerify(makeCtx(), happyDeps({
-      getMandate: () => undefined,
+      getMandate: async () => undefined,
     }))
     expect(result).toEqual({ abort: true, reason: "mandate_not_registered" })
   })
@@ -74,7 +74,7 @@ describe("onBeforeVerify", () => {
       payload: { ...VALID_MANDATE.payload, expiry: 1n }, // Unix timestamp 1 = long past
     }
     const result = await onBeforeVerify(makeCtx(), happyDeps({
-      getMandate: () => ({ mandate: expired, agentId: AGENT_ID }),
+      getMandate: async () => ({ mandate: expired, agentId: AGENT_ID }),
     }))
     expect(result).toEqual({ abort: true, reason: "mandate_expired" })
   })

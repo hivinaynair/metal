@@ -52,7 +52,9 @@
       "Bash(pkill -f \"bun --watch src/index\")",
       "Bash(pkill -f \"node --watch\")",
       "Bash(ln -sf ../../.env.local /Users/vinay/bare-metal/apps/facilitator/.env.local)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(npx awal@2.12.0 status)",
+      "Bash(npx awal@2.12.0 balance --chain base)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",

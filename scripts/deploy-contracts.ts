@@ -1,13 +1,15 @@
 import { readFileSync } from "fs"
 import { resolve } from "path"
-import { getPublicClient, getWalletClient } from "./lib/clients"
-import { setEnvVar } from "./lib/env"
+import { createPublicClient, createWalletClient, http } from "viem"
+import { privateKeyToAccount } from "viem/accounts"
+import { baseSepolia } from "viem/chains"
 
 const facilitatorKey = process.env.FACILITATOR_PRIVATE_KEY
 if (!facilitatorKey) throw new Error("FACILITATOR_PRIVATE_KEY not set")
 
-const { account, client: walletClient } = getWalletClient(facilitatorKey as `0x${string}`)
-const publicClient = getPublicClient()
+const account = privateKeyToAccount(facilitatorKey as `0x${string}`)
+const walletClient = createWalletClient({ account, chain: baseSepolia, transport: http() })
+const publicClient = createPublicClient({ chain: baseSepolia, transport: http() })
 
 console.log(`Deploying from: ${account.address}`)
 
@@ -26,5 +28,5 @@ async function deploy(name: string): Promise<`0x${string}`> {
 
 const attestationAddr = await deploy("AttestationRegistry")
 
-setEnvVar("ATTESTATION_REGISTRY_ADDRESS", attestationAddr)
-console.log("✓ Address written to .env.local")
+console.log(`ATTESTATION_REGISTRY_ADDRESS=${attestationAddr}`)
+console.log("↳ Add the above line to scripts/.env.local")
