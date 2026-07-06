@@ -17,7 +17,12 @@
       "Bash(grep -E ^s*\"\"name\"\")",
       "Bash(grep -r \"drizzle\\\\|database\\\\|db\\\\|prisma\" /Users/vinay/bare-metal/package.json /Users/vinay/bare-metal/apps/web/package.json /Users/vinay/bare-metal/packages/*/package.json)",
       "WebFetch(domain:metalntwx.com)",
-      "WebFetch(domain:eips.ethereum.org)"
+      "WebFetch(domain:eips.ethereum.org)",
+      "Bash(bun -e \"import {ethers} from ''ethers''; const w = ethers.Wallet.createRandom\\(\\); console.log\\(''PRIVATE_KEY:'', w.privateKey\\); console.log\\(''ADDRESS:'', w.address\\);\")",
+      "Bash(bun test:*)",
+      "Bash(bun typecheck:*)",
+      "Bash(cat /Users/vinay/bare-metal/scripts/lib/*.ts)",
+      "Bash(cat /Users/vinay/bare-metal/contracts/*.sol)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal"
