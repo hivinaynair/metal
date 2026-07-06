@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "node --watch --experimental-strip-types src/index.ts",
+    "dev": "bun --watch src/index.ts",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
   },

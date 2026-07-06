@@ -1,7 +1,7 @@
 import { decodeEventLog } from "viem"
-import { getPublicClient, getWalletClient } from "./lib/clients"
-import { setEnvVar } from "./lib/env"
-import { ERC8004_ABI, ERC8004_ADDRESS } from "../packages/shared/src/abis"
+import { getPublicClient, getWalletClient } from "../lib/clients"
+import { setEnvVar } from "../lib/env"
+import { ERC8004_ABI, ERC8004_ADDRESS } from "../../packages/shared/src/abis"
 
 const payerKey = process.env.PAYER_PRIVATE_KEY
 const appUrl = process.env.APP_URL
@@ -40,10 +40,10 @@ if (transferLog) {
   const decoded = decodeEventLog({ abi: ERC8004_ABI, ...transferLog })
   agentId = (decoded.args as any).tokenId
 } else {
-  console.warn("⚠ could not parse agentId from receipt — AGENT_ID not written")
+  console.warn("Could not parse agentId from receipt — AGENT_ID not written")
 }
 
-console.log(`✓ Registered ${payer.address}`)
+console.log(`Registered ${payer.address}`)
 console.log(`  tx: https://sepolia.basescan.org/tx/${hash}`)
 
 if (agentId !== null) {

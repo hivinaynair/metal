@@ -14,13 +14,13 @@ export async function lookupIdentity(
         abi: ERC8004_ABI,
         functionName: "tokenURI",
         args: [agentId],
-      }) as Promise<string>,
+      } as any) as Promise<string>,
       client.readContract({
         address: registryAddress,
         abi: ERC8004_ABI,
         functionName: "getAgentWallet",
         args: [agentId],
-      }) as Promise<`0x${string}`>,
+      } as any) as Promise<`0x${string}`>,
     ])
     if (!agentURI) return null
     return { agentId, wallet, agentURI }

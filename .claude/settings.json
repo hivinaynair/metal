@@ -47,7 +47,11 @@
       "Bash(npx vercel:*)",
       "Bash(vercel whoami:*)",
       "Bash(vercel --yes)",
-      "Bash(vercel --yes --cwd apps/facilitator)"
+      "Bash(vercel --yes --cwd apps/facilitator)",
+      "Bash(pkill -f \"turbo dev\")",
+      "Bash(pkill -f \"bun --watch src/index\")",
+      "Bash(pkill -f \"node --watch\")",
+      "Bash(ln -sf ../../.env.local /Users/vinay/bare-metal/apps/facilitator/.env.local)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",

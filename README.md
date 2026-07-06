@@ -23,13 +23,15 @@ bare-metal/
 ├── contracts/              # AttestationRegistry (Solidity); identity uses live ERC-8004
 ├── apps/
 │   ├── web/                # Compliance console UI + x402-gated route (Next.js → Vercel)
+│   ├── agent/              # CDP/AgentKit wallet agent that can pay x402 resources
 │   └── facilitator/        # Custom x402 facilitator with Metal primitive stack (Hono → Vercel)
 ├── packages/
 │   ├── shared/             # ERC-8004 lookup + AP2 mandate types
 │   └── ui/                 # Component library
-├── scripts/                # Deploy contracts, register agent, sign mandate, pay-and-fetch
+├── scripts/                # Deploy contracts, sign/register mandate, wallet utilities
+│   └── legacy/             # Older private-key payer scripts kept for debugging
 └── demo/
-    └── mandate.json        # Pre-signed AP2 mandate for the demo agent wallet
+    └── mandate.json        # Pre-signed AP2 mandate for the private-key demo wallet
 ```
 
 ## How it Works
@@ -61,38 +63,49 @@ cp .env.example .env.local
 Required vars:
 
 ```
-# Wallets (generate new ones with: bun scripts/generate-wallet.ts VAR_NAME)
-PAYER_PRIVATE_KEY=         # Agent wallet — must hold Base Sepolia USDC
-RECIPIENT_PRIVATE_KEY=     # Seller/payTo wallet
-PAY_TO_ADDRESS=            # Address derived from RECIPIENT_PRIVATE_KEY
+# Wallets
+PAY_TO_ADDRESS=            # Seller/payTo wallet address
 FACILITATOR_PRIVATE_KEY=   # Gas wallet — must hold Base Sepolia ETH for gas
 DELEGATOR_PRIVATE_KEY=     # Institution wallet that signs AP2 mandates
+
+# AgentKit/CDP wallet agent
+ANTHROPIC_API_KEY=
+CDP_API_KEY_ID=
+CDP_API_KEY_SECRET=
+CDP_WALLET_SECRET=
 
 # Contracts (populated by deploy script)
 IDENTITY_REGISTRY_ADDRESS=  # live ERC-8004: 0x8004A818BFB912233c491871b3d84c89A494BD9e
 ATTESTATION_REGISTRY_ADDRESS=
-AGENT_ID=                   # ERC-8004 token ID returned by register-agent.ts
+AGENT_ID=                   # ERC-8004 token ID written by the agent on first run
 APP_URL=                    # base URL used for ERC-8004 agentURI metadata
 
 # Facilitator
 FACILITATOR_URL=           # Deployed facilitator URL (or http://localhost:3001 for local)
 POLICY_MAX_AMOUNT_USDC=    # e.g. 10
 
-# Database
-DATABASE_URL=              # Postgres connection string
+# Optional private-key utilities
+PAYER_PRIVATE_KEY=         # Legacy payer scripts only
+RECIPIENT_PRIVATE_KEY=     # Generate PAY_TO_ADDRESS if needed
 ```
 
 ### Deploy contracts
 
 ```bash
 bun scripts/deploy-contracts.ts      # deploys AttestationRegistry, writes address to .env.local
-bun scripts/register-agent.ts        # self-registers payer wallet in live ERC-8004 and writes AGENT_ID
+```
+
+### Register the agent
+
+```bash
+bun --filter agent dev               # first run registers the CDP wallet in ERC-8004 and prints next steps
 ```
 
 ### Sign the AP2 mandate
 
 ```bash
-bun scripts/sign-mandate.ts          # writes demo/mandate.json
+AGENT_ADDRESS=<agent-wallet> bun scripts/sign-mandate.ts
+bun scripts/register-mandate.ts      # prefers demo/agentkit-mandate.json, or set MANDATE_PATH
 ```
 
 ### Run locally
@@ -104,7 +117,7 @@ bun dev                              # starts all apps via Turborepo
 ### Test a real payment
 
 ```bash
-bun scripts/pay-and-fetch.ts         # fires a real x402 payment end-to-end
+bun --filter agent dev               # ask the agent to fetch the settlement risk report
 ```
 
 Both the USDC settlement tx and the attestation tx will be logged with Basescan links.
