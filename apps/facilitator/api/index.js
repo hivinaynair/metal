@@ -30306,10 +30306,10 @@ app2.post("/settle", async (c) => {
 app2.route("/mandates", mandates_default);
 var app_default = app2;
 
-// src/vercel.ts
+// api/index.ts
 var config = { runtime: "nodejs" };
-var vercel_default = handle(app_default);
+var api_default = handle(app_default);
 export {
-  vercel_default as default,
+  api_default as default,
   config
 };
