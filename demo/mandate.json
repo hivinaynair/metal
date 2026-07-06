@@ -1,0 +1,10 @@
+{
+  "payload": {
+    "agent": "0xe9F97E2F7c6DCB8FCdBCDFBA074334D22a6c3117",
+    "delegator": "0xAa870A9C6FEd34B8aC01Da17d675d748f238a420",
+    "maxAmountUsdc": 100,
+    "expiry": 9999999999,
+    "nonce": 0
+  },
+  "signature": "0x44c8561e7d2102913d710e6602bff7b81a06ab57f81761328d6d60d6d5ec95070cf73e7f3b452afda359fec26af2b7544c4e56c680640156b8a125993e30793b1b"
+}
