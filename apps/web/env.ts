@@ -3,15 +3,13 @@ import { z } from "zod";
 
 export const env = createEnv({
   server: {
-    PAYER_PRIVATE_KEY: z.string().startsWith("0x"),
-    RECIPIENT_PRIVATE_KEY: z.string().startsWith("0x"),
     PAY_TO_ADDRESS: z.string().startsWith("0x"),
+    FACILITATOR_URL: z.string().url(),
   },
   client: {},
   runtimeEnv: {
-    PAYER_PRIVATE_KEY: process.env.PAYER_PRIVATE_KEY,
-    RECIPIENT_PRIVATE_KEY: process.env.RECIPIENT_PRIVATE_KEY,
     PAY_TO_ADDRESS: process.env.PAY_TO_ADDRESS,
+    FACILITATOR_URL: process.env.FACILITATOR_URL,
   },
   emptyStringAsUndefined: true,
 });

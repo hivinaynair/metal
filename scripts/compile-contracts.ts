@@ -23,10 +23,6 @@ function compile(name: string) {
 
 mkdirSync(resolve(root, "contracts/artifacts"), { recursive: true })
 
-const identity = compile("IdentityRegistry")
-writeFileSync(resolve(root, "contracts/artifacts/IdentityRegistry.json"), JSON.stringify(identity, null, 2))
-console.log("✓ IdentityRegistry compiled")
-
 const attestation = compile("AttestationRegistry")
 writeFileSync(resolve(root, "contracts/artifacts/AttestationRegistry.json"), JSON.stringify(attestation, null, 2))
 console.log("✓ AttestationRegistry compiled")

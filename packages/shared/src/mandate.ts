@@ -1,4 +1,4 @@
-export type { MandatePayload, SignedMandate } from "./types"
+export type { MandatePayload, SignedMandate } from "./types.js"
 
 // AP2 is Metal's agent authorization primitive — a signed delegation from an
 // institution (delegator) to an agent, scoping what the agent may spend.

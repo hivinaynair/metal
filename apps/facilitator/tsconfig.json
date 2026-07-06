@@ -1,0 +1,12 @@
+{
+  "extends": "@workspace/typescript-config/base.json",
+  "include": ["src", "api"],
+  "exclude": ["src/**/*.test.ts"],
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "types": ["node"]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "facilitator",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "node --watch --experimental-strip-types src/index.ts",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "@workspace/shared": "workspace:*",
+    "@x402/core": "^2.17.0",
+    "@x402/evm": "^2.17.0",
+    "hono": "^4.7.11",
+    "viem": "^2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0"
+  }
+}

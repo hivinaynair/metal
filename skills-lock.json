@@ -1,6 +1,18 @@
 {
   "version": 1,
   "skills": {
+    "agentic-wallet": {
+      "source": "coinbase/agentic-wallet-skills",
+      "sourceType": "github",
+      "skillPath": "skills/agentic-wallet/SKILL.md",
+      "computedHash": "383ccbb6a80dcd43c52b32d25698a0523f1bd54c1b7572f3842241f6142a5d96"
+    },
+    "claude-handoff": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/in-progress/claude-handoff/SKILL.md",
+      "computedHash": "6bde27729c8a56b601b4137024a6a9e8056e214b45d2cfc64c69eec93d0b6f66"
+    },
     "to-issues": {
       "source": "mattpocock/skills",
       "sourceType": "github",

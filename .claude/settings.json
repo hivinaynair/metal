@@ -22,10 +22,37 @@
       "Bash(bun test:*)",
       "Bash(bun typecheck:*)",
       "Bash(cat /Users/vinay/bare-metal/scripts/lib/*.ts)",
-      "Bash(cat /Users/vinay/bare-metal/contracts/*.sol)"
+      "Bash(cat /Users/vinay/bare-metal/contracts/*.sol)",
+      "Bash(cat /Users/vinay/bare-metal/packages/shared/src/*.ts)",
+      "Bash(bun scripts/generate-wallet.ts DELEGATOR_PRIVATE_KEY)",
+      "Bash(bun --env-file=.env.local scripts/sign-mandate.ts)",
+      "Bash(bun scripts/sign-mandate.ts)",
+      "Bash(gh api:*)",
+      "Bash(grep -l \"HTTPFacilitatorClient\" /Users/vinay/bare-metal/node_modules/.bun/@x402+core@2.17.0/node_modules/@x402/core/dist/esm/*.mjs)",
+      "Bash(grep -l \"ExactEvmScheme\" /Users/vinay/bare-metal/node_modules/.bun/@x402+evm@2.17.0+1fb4c65d43e298b9/node_modules/@x402/evm/dist/esm/*.mjs)",
+      "Bash(bun scripts/deploy-contracts.ts)",
+      "WebFetch(domain:docs.cdp.coinbase.com)",
+      "Bash(bun -e \":*)",
+      "Bash(bun info:*)",
+      "Bash(node --experimental-strip-types apps/agent/src/index.ts)",
+      "Bash(openssl ecparam:*)",
+      "Bash(openssl pkcs8:*)",
+      "Bash(openssl base64:*)",
+      "Bash(openssl genpkey:*)",
+      "Bash(bun apps/agent/src/index.ts)",
+      "Bash(grep -r \"configureWithWallet\\\\|CdpEvmWalletProvider\" node_modules/@coinbase/agentkit/dist --include=*.js -l)",
+      "Skill(agentic-wallet)",
+      "Skill(agentic-wallet:*)",
+      "Bash(bun --env-file=.env.local -e \":*)",
+      "Bash(npx vercel:*)",
+      "Bash(vercel whoami:*)",
+      "Bash(vercel --yes)",
+      "Bash(vercel --yes --cwd apps/facilitator)"
     ],
     "additionalDirectories": [
-      "/Users/vinay/bare-metal"
+      "/Users/vinay/bare-metal",
+      "/Users/vinay/bare-metal/.plans",
+      "/Users/vinay/bare-metal/apps/web/app/api/agent"
     ]
   }
 }

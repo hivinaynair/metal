@@ -24,9 +24,7 @@ async function deploy(name: string): Promise<`0x${string}`> {
   return receipt.contractAddress
 }
 
-const identityAddr = await deploy("IdentityRegistry")
 const attestationAddr = await deploy("AttestationRegistry")
 
-setEnvVar("IDENTITY_REGISTRY_ADDRESS", identityAddr)
 setEnvVar("ATTESTATION_REGISTRY_ADDRESS", attestationAddr)
-console.log("✓ Addresses written to .env.local")
+console.log("✓ Address written to .env.local")

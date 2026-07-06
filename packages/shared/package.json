@@ -5,7 +5,9 @@
   "exports": {
     "./identity": "./src/identity.ts",
     "./mandate": "./src/mandate.ts",
-    "./abis": "./src/abis.ts"
+    "./abis": "./src/abis.ts",
+    "./types": "./src/types.ts",
+    "./chains": "./src/chains.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

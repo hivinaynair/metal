@@ -18,9 +18,9 @@ Metal's thesis is that identity, authorization, policy, and attestation should b
 
 Build and deploy five artifacts in the same Turborepo:
 
-1. **Smart Contracts** (Base Sepolia) — two contracts deployed to Base Sepolia: `IdentityRegistry` (implements ERC-8004 — agent identity as an on-chain registry) and `AttestationRegistry` (tamper-evident settlement audit trail). These stand in for Metal's native chain primitives.
+1. **On-chain primitives** (Base Sepolia) — use the live ERC-8004 identity registry at `0x8004A818BFB912233c491871b3d84c89A494BD9e` for agent identity, and deploy our own `AttestationRegistry` contract for the tamper-evident settlement audit trail. These stand in for Metal's native chain primitives.
 
-2. **`packages/shared`** — shared TypeScript package (`@workspace/shared`) containing the ERC-8004 `lookupIdentity()` utility (viem `readContract` against our deployed registry) and AP2 mandate types. Imported by both `apps/facilitator` and `apps/web`.
+2. **`packages/shared`** — shared TypeScript package (`@workspace/shared`) containing the ERC-8004 ABI, `lookupIdentity(agentId)` utility, attestation ABI, and AP2 mandate types. Imported by both `apps/facilitator` and `apps/web`.
 
 3. **Custom Facilitator** (`apps/facilitator`) — standalone Hono app (API only) implementing the x402 facilitator protocol with Metal's primitive stack wired in: ERC-8004 identity-gating, AP2 mandate verification (EIP-712), amount-threshold policy enforcement, and on-chain attestation write on every settlement. Deployed separately to Vercel.
 
@@ -61,14 +61,14 @@ Build and deploy five artifacts in the same Turborepo:
 
 ### Custom Facilitator (Technical Demo)
 16. As a developer reviewing the demo, I want a self-built facilitator (`/api/facilitator/verify`, `/settle`, `/supported`) that wraps `@x402/core`/`@x402/evm` primitives without hand-rolling signature verification, so cryptographic correctness is delegated to the official library.
-17. As a developer reviewing the demo, I want the `/verify` endpoint to call the ERC-8004 lookup on the payer address and flag or reject unregistered or high-Sybil-risk payers, so identity-gating is demonstrated at the settlement layer.
+17. As a developer reviewing the demo, I want the `/verify` endpoint to call the ERC-8004 lookup for the registered `agentId` and confirm it maps to the payer wallet, so identity-gating is demonstrated at the settlement layer.
 18. As a developer reviewing the demo, I want `/settle` to write a structured attestation record (timestamp, payer, amount, identity status, facilitator decision) to Postgres via Drizzle, so there is a real audit trail feeding the console's detail view.
 19. As a developer reviewing the demo, I want an amount-threshold policy hook in the facilitator that rejects transactions above a configured limit before settlement, so compliance-at-the-settlement-layer is demonstrated.
 20. As a developer reviewing the demo, I want the facilitator's gas wallet (a third distinct viem-generated keypair) to pay gas for broadcasting settlements and never hold or move USDC, so the wallet roles are clearly separated.
 
 ### ERC-8004 Lookup
-21. As a developer reviewing the demo, I want a shared ERC-8004 lookup utility using `viem`'s `readContract` against our deployed Identity Registry on Base Sepolia, so both the facilitator's identity-gating and the console's detail view use the same source of truth.
-22. As a compliance officer, I want the ERC-8004 lookup to return "not found" gracefully (not an error) when a payer has no registered identity, so the Sybil-risk point is illustrated clearly rather than crashing the flow.
+21. As a developer reviewing the demo, I want a shared ERC-8004 lookup utility using `viem`'s `readContract` against the live Base Sepolia ERC-8004 registry, so both the facilitator's identity-gating and the console's detail view use the same source of truth.
+22. As a compliance officer, I want the ERC-8004 lookup to return "not found" gracefully (not an error) when an `agentId` has no registered wallet or metadata URI, so the Sybil-risk point is illustrated clearly rather than crashing the flow.
 
 ---
 
@@ -79,7 +79,7 @@ Build and deploy five artifacts in the same Turborepo:
 - `apps/facilitator` — new Hono app (API routes only, no UI); implements the x402 facilitator protocol with identity-gating, attestation logging, and policy enforcement. Deployed as a separate Vercel project.
 - `packages/ui` — existing component library (Table, Badge, Sheet, Card, Tabs, Alert, Skeleton, Separator, Spinner, Empty); used by `apps/web` only.
 - `packages/shared` — new package (`@workspace/shared`); contains the ERC-8004 lookup utility and AP2 mandate types shared between `apps/web` and `apps/facilitator`. Follows the existing workspace package convention.
-- `contracts/` — Solidity source for `IdentityRegistry` and `AttestationRegistry`. Deploy scripts live in `scripts/`. No Hardhat/Foundry — compile with `solc` or `viem`'s `deployContract` with pre-compiled bytecode.
+- `contracts/` — Solidity source for `AttestationRegistry` only. Identity uses the live ERC-8004 registry on Base Sepolia, so no local `IdentityRegistry` contract or artifact is maintained. Deploy scripts live in `scripts/`. No Hardhat/Foundry — compile with `solc` and deploy with viem using pre-compiled bytecode.
 
 ### Wallet Management
 - Three wallets, all generated via `viem`'s `generatePrivateKey()`: buyer (`PAYER_PRIVATE_KEY` — already exists), seller/payTo (`RECIPIENT_PRIVATE_KEY` / `PAY_TO_ADDRESS` — already exists), facilitator gas wallet (new — add `FACILITATOR_PRIVATE_KEY` to env).
@@ -93,23 +93,24 @@ Build and deploy five artifacts in the same Turborepo:
 ### Custom Facilitator (`apps/facilitator`) — Tier 1
 Standalone Hono app with `GET /api/supported`, `POST /api/verify`, `POST /api/settle`. Wraps `@x402/core` and `@x402/evm/exact/facilitator` primitives. Adds identity-gating (ERC-8004), attestation logging (Drizzle/Postgres), and amount-threshold policy hook. Deployed separately to Vercel.
 
-**Build order: contracts (deploy + register) → `packages/shared` (ERC-8004 lookup + AP2 types) → `apps/facilitator` (Hono + Drizzle) → wire `apps/web` to the deployed facilitator URL.**
+**Build order: `packages/shared` ERC-8004 ABI/types → deploy `AttestationRegistry` → register the payer/agent wallet in live ERC-8004 → register mandate with facilitator → `apps/facilitator` (Hono + Drizzle) → wire `apps/web` to the deployed facilitator URL.**
 
 ### ERC-8004 Identity Registry — Tier 1
 
-ERC-8004 ("Trustless Agents") is a real EIP defining identity, reputation, and validation registries for agents. No official deployment exists on Base Sepolia yet — we deploy our own.
+ERC-8004 ("Trustless Agents") is a real EIP defining identity, reputation, and validation registries for agents. For this demo, use the live Base Sepolia registry at `0x8004A818BFB912233c491871b3d84c89A494BD9e` instead of deploying a custom approximation.
 
-**`IdentityRegistry` contract** (deploy to Base Sepolia):
-- Implements the ERC-8004 Identity Registry: maps `address → AgentProfile` (name, metadata URI, registered timestamp)
-- Two functions: `register(address agent, string name, string metadataUri) external` and `lookup(address agent) external view returns (AgentProfile memory)`
-- ~40 lines of Solidity. Deploy with a viem `deployContract` script.
-- After deploying, run `scripts/register-agent.ts` to register the demo payer wallet.
+**Live ERC-8004 registry**:
+- Address: `0x8004A818BFB912233c491871b3d84c89A494BD9e` on Base Sepolia.
+- Registration is self-service: `register(agentURI)` is called by the agent wallet itself, because ERC-8004 uses `msg.sender` as the registered wallet.
+- Registration returns an `agentId` ERC-721 token ID. Persist it as `AGENT_ID` in `.env.local`.
+- `agentURI` is deterministic for the demo: `${APP_URL}/api/agent/${payer.address}`.
+- Add `apps/web/app/api/agent/[address]/route.ts` to return static JSON metadata for that URI.
 
 **Lookup utility** (`packages/shared`):
-- `lookupIdentity(address: Hex): Promise<AgentProfile | null>` — uses viem `readContract`, never throws on "not found"
+- `lookupIdentity(agentId: bigint, registryAddress: Hex, client): Promise<AgentProfile | null>` — calls ERC-8004 `tokenURI(agentId)` and `getAgentWallet(agentId)`, never throws on "not found"
 - Imported by `apps/facilitator` (identity-gating in `/verify`) and `apps/web` (console detail view)
 
-**Console label:** *"ERC-8004 identity verified. Registry deployed to Base Sepolia as a stand-in for Metal's native identity primitive."*
+**Console label:** *"ERC-8004 identity verified via the live Base Sepolia registry. In production Metal, this identity primitive is native to the settlement layer."*
 
 ### Attestation Store — Tier 1
 
@@ -155,13 +156,13 @@ AP2 mandates are verified cryptographically in the facilitator — not illustrat
 
 **Flow:**
 1. Institution wallet signs a mandate for the agent wallet using `signTypedData` (viem). This is done once, offline, stored as a JSON file in the demo.
-2. The x402 client includes the signed mandate as a custom header (`X-AP2-Mandate`) on every payment request.
-3. Facilitator `/verify` extracts the header, calls viem `verifyTypedData`, checks `maxAmountUsdc >= payment amount` and `expiry > now`. Rejects if invalid.
-4. Attestation record stores `mandate_delegator` and `mandate_valid: boolean`.
+2. The agent registers the signed mandate with the facilitator once via `POST /mandates`, including the ERC-8004 `agentId`.
+3. Facilitator `/verify` looks up the mandate by payer address, calls viem `verifyTypedData`, checks `maxAmountUsdc >= payment amount` and `expiry > now`, then verifies that ERC-8004 `getAgentWallet(agentId)` matches the payer. Rejects if invalid.
+4. Attestation record stores `mandate_delegator`, `mandate_valid: boolean`, and the `agentId` used for identity verification.
 
 **Console:** mandate chain in the detail sheet shows the real delegator address and expiry — not hardcoded. Labeled *"AP2 mandate verified off-chain. In production Metal, mandates are enforced as a native authorization primitive."*
 
-**Script:** `scripts/sign-mandate.ts` — generates a signed mandate JSON for the demo agent wallet. Run once, commit the output as `demo/mandate.json`.
+**Scripts:** `scripts/sign-mandate.ts` generates a signed mandate JSON for the demo agent wallet. `scripts/register-mandate.ts` posts `demo/mandate.json` plus `AGENT_ID` to the facilitator before the demo run.
 
 ### Data Honesty
 - Real, live-settled rows: pinned, distinctly marked (monospace hash + `ledger` teal glyph).

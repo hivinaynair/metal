@@ -8,7 +8,7 @@ Metal's thesis: identity, authorization, policy, and attestation should be enfor
 
 | Primitive | Standard | Implementation |
 |---|---|---|
-| Identity | [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) | `IdentityRegistry` contract deployed to Base Sepolia |
+| Identity | [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) | Live Base Sepolia registry at `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
 | Authorization | AP2 mandate | EIP-712 signed mandate, verified in facilitator |
 | Policy | Amount threshold | Enforced server-side in `/api/verify` before settlement |
 | Attestation | Metal native | `AttestationRegistry` contract on Base Sepolia + Postgres read cache |
@@ -20,7 +20,7 @@ In production Metal, these would be native chain primitives. Here they run on Ba
 
 ```
 bare-metal/
-├── contracts/              # IdentityRegistry + AttestationRegistry (Solidity)
+├── contracts/              # AttestationRegistry (Solidity); identity uses live ERC-8004
 ├── apps/
 │   ├── web/                # Compliance console UI + x402-gated route (Next.js → Vercel)
 │   └── facilitator/        # Custom x402 facilitator with Metal primitive stack (Hono → Vercel)
@@ -36,7 +36,7 @@ bare-metal/
 
 1. **Agent makes a payment** to an x402-gated API (`/api/settlement-risk-report`)
 2. **Facilitator `/verify`** runs the full primitive stack:
-   - Looks up the agent in `IdentityRegistry` — rejects if not registered (ERC-8004)
+   - Looks up the agent in live ERC-8004 — rejects if not registered
    - Verifies the AP2 mandate signature — rejects if invalid, expired, or over-amount
    - Checks amount against policy threshold — rejects if over limit
 3. **Facilitator `/settle`** settles the USDC payment on-chain, then:
@@ -69,8 +69,10 @@ FACILITATOR_PRIVATE_KEY=   # Gas wallet — must hold Base Sepolia ETH for gas
 DELEGATOR_PRIVATE_KEY=     # Institution wallet that signs AP2 mandates
 
 # Contracts (populated by deploy script)
-IDENTITY_REGISTRY_ADDRESS=
+IDENTITY_REGISTRY_ADDRESS=  # live ERC-8004: 0x8004A818BFB912233c491871b3d84c89A494BD9e
 ATTESTATION_REGISTRY_ADDRESS=
+AGENT_ID=                   # ERC-8004 token ID returned by register-agent.ts
+APP_URL=                    # base URL used for ERC-8004 agentURI metadata
 
 # Facilitator
 FACILITATOR_URL=           # Deployed facilitator URL (or http://localhost:3001 for local)
@@ -83,8 +85,8 @@ DATABASE_URL=              # Postgres connection string
 ### Deploy contracts
 
 ```bash
-bun scripts/deploy-contracts.ts      # deploys both contracts, writes addresses to .env.local
-bun scripts/register-agent.ts        # registers payer wallet in IdentityRegistry
+bun scripts/deploy-contracts.ts      # deploys AttestationRegistry, writes address to .env.local
+bun scripts/register-agent.ts        # self-registers payer wallet in live ERC-8004 and writes AGENT_ID
 ```
 
 ### Sign the AP2 mandate

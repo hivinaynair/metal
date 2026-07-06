@@ -11,10 +11,9 @@ export enum Decision {
 }
 
 export interface AgentProfile {
-  name: string
-  metadataUri: string
-  registeredAt: bigint
-  exists: boolean
+  agentId: bigint
+  wallet: `0x${string}`
+  agentURI: string
 }
 
 export interface MandatePayload {

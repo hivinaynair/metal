@@ -1,40 +1,37 @@
-export const IDENTITY_REGISTRY_ABI = [
+// ERC-8004 agent identity registry — deployed at the same vanity address on all supported chains
+export const ERC8004_ADDRESS = "0x8004A818BFB912233c491871b3d84c89A494BD9e" as const
+
+export const ERC8004_ABI = [
+  // ERC-721 Transfer event — emitted on register(); tokenId is the agentId
+  {
+    name: "Transfer",
+    type: "event",
+    inputs: [
+      { name: "from", type: "address", indexed: true },
+      { name: "to", type: "address", indexed: true },
+      { name: "tokenId", type: "uint256", indexed: true },
+    ],
+  },
   {
     name: "register",
     type: "function",
     stateMutability: "nonpayable",
-    inputs: [
-      { name: "agent", type: "address" },
-      { name: "name", type: "string" },
-      { name: "metadataUri", type: "string" },
-    ],
-    outputs: [],
+    inputs: [{ name: "agentURI", type: "string" }],
+    outputs: [{ name: "agentId", type: "uint256" }],
   },
   {
-    name: "lookup",
+    name: "tokenURI",
     type: "function",
     stateMutability: "view",
-    inputs: [{ name: "agent", type: "address" }],
-    outputs: [
-      {
-        type: "tuple",
-        components: [
-          { name: "name", type: "string" },
-          { name: "metadataUri", type: "string" },
-          { name: "registeredAt", type: "uint256" },
-          { name: "exists", type: "bool" },
-        ],
-      },
-    ],
+    inputs: [{ name: "agentId", type: "uint256" }],
+    outputs: [{ name: "", type: "string" }],
   },
   {
-    name: "AgentRegistered",
-    type: "event",
-    inputs: [
-      { name: "agent", type: "address", indexed: true },
-      { name: "name", type: "string", indexed: false },
-      { name: "registeredAt", type: "uint256", indexed: false },
-    ],
+    name: "getAgentWallet",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "agentId", type: "uint256" }],
+    outputs: [{ name: "", type: "address" }],
   },
 ] as const
 

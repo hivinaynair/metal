@@ -4,7 +4,7 @@ import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { env } from "@/env";
 
-const facilitator = new HTTPFacilitatorClient({ url: "https://x402.org/facilitator" });
+const facilitator = new HTTPFacilitatorClient({ url: env.FACILITATOR_URL });
 const resourceServer = new x402ResourceServer(facilitator).register(
   "eip155:84532",
   new ExactEvmScheme(),

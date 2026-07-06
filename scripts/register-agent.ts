@@ -1,28 +1,52 @@
+import { decodeEventLog } from "viem"
 import { getPublicClient, getWalletClient } from "./lib/clients"
-import artifact from "../contracts/artifacts/IdentityRegistry.json"
+import { setEnvVar } from "./lib/env"
+import { ERC8004_ABI, ERC8004_ADDRESS } from "../packages/shared/src/abis"
 
-const facilitatorKey = process.env.FACILITATOR_PRIVATE_KEY
 const payerKey = process.env.PAYER_PRIVATE_KEY
-const registryAddress = process.env.IDENTITY_REGISTRY_ADDRESS
+const appUrl = process.env.APP_URL
 
-if (!facilitatorKey || !payerKey || !registryAddress) {
-  throw new Error("Missing: FACILITATOR_PRIVATE_KEY, PAYER_PRIVATE_KEY, or IDENTITY_REGISTRY_ADDRESS")
-}
+if (!payerKey) throw new Error("Missing: PAYER_PRIVATE_KEY")
+if (!appUrl) throw new Error("Missing: APP_URL")
 
-const { account: facilitator, client: walletClient } = getWalletClient(facilitatorKey as `0x${string}`)
-const { account: payer } = getWalletClient(payerKey as `0x${string}`)
+const { account: payer, client: walletClient } = getWalletClient(payerKey as `0x${string}`)
 const publicClient = getPublicClient()
 
+const agentURI = `${appUrl}/api/agent/${payer.address}`
 console.log(`Registering agent: ${payer.address}`)
+console.log(`  agentURI: ${agentURI}`)
 
-// Name and URI are intentional demo fixtures — not parameterized
 const hash = await walletClient.writeContract({
-  address: registryAddress as `0x${string}`,
-  abi: artifact.abi,
+  address: ERC8004_ADDRESS,
+  abi: ERC8004_ABI,
   functionName: "register",
-  args: [payer.address, "Demo Agent", "https://metal-demo.vercel.app/agent"],
+  args: [agentURI],
 })
 
-await publicClient.waitForTransactionReceipt({ hash })
+const receipt = await publicClient.waitForTransactionReceipt({ hash })
+
+// ERC-721 mints emit Transfer(from=0x0, to=registrant, tokenId=agentId)
+const transferLog = receipt.logs.find((log) => {
+  try {
+    const decoded = decodeEventLog({ abi: ERC8004_ABI, ...log })
+    return decoded.eventName === "Transfer"
+  } catch {
+    return false
+  }
+})
+
+let agentId: bigint | null = null
+if (transferLog) {
+  const decoded = decodeEventLog({ abi: ERC8004_ABI, ...transferLog })
+  agentId = (decoded.args as any).tokenId
+} else {
+  console.warn("⚠ could not parse agentId from receipt — AGENT_ID not written")
+}
+
 console.log(`✓ Registered ${payer.address}`)
-console.log(`  https://sepolia.basescan.org/tx/${hash}`)
+console.log(`  tx: https://sepolia.basescan.org/tx/${hash}`)
+
+if (agentId !== null) {
+  setEnvVar("AGENT_ID", agentId.toString())
+  console.log(`  agentId: ${agentId}`)
+}
