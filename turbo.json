@@ -4,7 +4,15 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "env": ["PAY_TO_ADDRESS", "FACILITATOR_URL"],
+      "env": [
+        "PAY_TO_ADDRESS",
+        "FACILITATOR_URL",
+        "FACILITATOR_PRIVATE_KEY",
+        "IDENTITY_REGISTRY_ADDRESS",
+        "ATTESTATION_REGISTRY_ADDRESS",
+        "UPSTASH_REDIS_REST_URL",
+        "UPSTASH_REDIS_REST_TOKEN"
+      ],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },

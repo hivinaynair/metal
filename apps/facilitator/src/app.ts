@@ -4,13 +4,13 @@ import { parsePaymentPayload, parsePaymentRequirements } from "@x402/core/schema
 import type { PaymentPayload, PaymentRequirements } from "@x402/core/types"
 import { ExactEvmScheme } from "@x402/evm/exact/facilitator"
 import { BASE_SEPOLIA_CAIP2 } from "@workspace/shared/chains"
-import { facilitatorSigner } from "./lib/clients.ts"
-import { verifyDeps } from "./lib/deps.ts"
-import { onBeforeVerify } from "./hooks/verify.ts"
-import { onBeforeSettle, onAfterSettle } from "./hooks/settle.ts"
-import mandatesRouter from "./routes/mandates.ts"
+import { facilitatorSigner } from "./lib/clients.js"
+import { verifyDeps } from "./lib/deps.js"
+import { onBeforeVerify } from "./hooks/verify.js"
+import { onBeforeSettle, onAfterSettle } from "./hooks/settle.js"
+import mandatesRouter from "./routes/mandates.js"
 import type { Context } from "hono"
-import { isRecord, parseBigIntField, readJsonObject } from "./lib/http.ts"
+import { isRecord, parseBigIntField, readJsonObject } from "./lib/http.js"
 
 interface ParsedPaymentRequirements {
   scheme: string

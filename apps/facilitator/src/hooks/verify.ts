@@ -1,6 +1,6 @@
 import { lookupIdentity } from "@workspace/shared/identity"
-import { getMandate } from "../lib/mandate-store.ts"
-import { verifyMandateSignature, getPayerAddress, USDC_ATOMIC_FACTOR } from "../lib/mandate.ts"
+import { getMandate } from "../lib/mandate-store.js"
+import { verifyMandateSignature, getPayerAddress, USDC_ATOMIC_FACTOR } from "../lib/mandate.js"
 import type { FacilitatorVerifyContext } from "@x402/core/facilitator"
 import type { PublicClient } from "viem"
 
@@ -42,7 +42,7 @@ export async function onBeforeVerify(
   }
 
   // 5. Agent must be registered in ERC-8004 and the profile's wallet must match the payer
-  const profile = await deps.lookupIdentity(agentId, deps.registryAddress, deps.client as any)
+  const profile = await deps.lookupIdentity(agentId, deps.registryAddress, deps.client)
   if (!profile || profile.wallet.toLowerCase() !== payer.toLowerCase()) {
     return { abort: true, reason: "identity_not_found" }
   }

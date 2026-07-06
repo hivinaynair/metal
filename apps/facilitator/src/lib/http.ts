@@ -20,6 +20,12 @@ export function parseBigIntField(value: unknown, field: string): bigint | string
   if (typeof value !== "string" && typeof value !== "number" && typeof value !== "bigint") {
     return `${field} must be an integer`
   }
+  if (typeof value === "number" && !Number.isSafeInteger(value)) {
+    return `${field} must be a safe integer or integer string`
+  }
+  if (typeof value === "string" && !/^\d+$/.test(value)) {
+    return `${field} must be a non-negative integer`
+  }
 
   try {
     const parsed = BigInt(value)

@@ -3,7 +3,6 @@
   "include": ["src", "api"],
   "exclude": ["src/**/*.test.ts"],
   "compilerOptions": {
-    "allowImportingTsExtensions": true,
     "noEmit": true,
     "declaration": false,
     "declarationMap": false,

@@ -11,7 +11,7 @@ Metal's thesis: identity, authorization, policy, and attestation should be enfor
 | Identity | [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) | Live Base Sepolia registry at `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
 | Authorization | AP2 mandate | EIP-712 signed mandate, verified in facilitator |
 | Policy | Amount threshold | Enforced server-side in `/api/verify` before settlement |
-| Attestation | Metal native | `AttestationRegistry` contract on Base Sepolia + Postgres read cache |
+| Attestation | Metal native | `AttestationRegistry` contract on Base Sepolia |
 | Settlement | [x402](https://x402.org) | `@x402/evm` exact scheme, Base Sepolia USDC |
 
 In production Metal, these would be native chain primitives. Here they run on Base Sepolia as a proxy.
@@ -43,7 +43,6 @@ bare-metal/
    - Checks amount against policy threshold — rejects if over limit
 3. **Facilitator `/settle`** settles the USDC payment on-chain, then:
    - Calls `AttestationRegistry.attest()` — tamper-evident on-chain record
-   - Mirrors to Postgres for fast console querying
 4. **Compliance console** shows the full trace — both tx hashes, identity status, mandate chain
 
 ## Setup
@@ -52,7 +51,6 @@ bare-metal/
 
 - [Bun](https://bun.sh) v1.3+
 - Base Sepolia ETH (for gas) and USDC in the payer wallet
-- Postgres database (Neon recommended)
 
 ### Environment
 

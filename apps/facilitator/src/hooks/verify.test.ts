@@ -1,9 +1,7 @@
-import { describe, it, expect, mock, beforeEach } from "bun:test"
-import { onBeforeVerify, type VerifyDeps } from "./verify.ts"
+import { describe, it, expect, mock } from "bun:test"
+import { onBeforeVerify, type VerifyDeps } from "./verify.js"
 import type { AgentProfile } from "@workspace/shared/types"
 import type { SignedMandate } from "@workspace/shared/mandate"
-
-// ── Fixtures ──────────────────────────────────────────────────────────────────
 
 const PAYER = "0xe9F97E2F7c6DCB8FCdBCDFBA074334D22a6c3117" as `0x${string}`
 const DELEGATOR = "0xAa870A9C6FEd34B8aC01Da17d675d748f238a420" as `0x${string}`
@@ -14,8 +12,8 @@ const VALID_MANDATE: SignedMandate = {
   payload: {
     agent: PAYER,
     delegator: DELEGATOR,
-    maxAmountUsdc: 100n,    // 100 USDC max spend
-    expiry: 9999999999n,    // far future
+    maxAmountUsdc: 100n,
+    expiry: 9999999999n,
     nonce: 0n,
   },
   signature: "0x44c8561e7d2102913d710e6602bff7b81a06ab57f81761328d6d60d6d5ec95070cf73e7f3b452afda359fec26af2b7544c4e56c680640156b8a125993e30793b1b",
@@ -27,11 +25,8 @@ const VALID_PROFILE: AgentProfile = {
   agentURI: "http://localhost:3000/api/agent/0xe9F97E2F7c6DCB8FCdBCDFBA074334D22a6c3117",
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+const DEFAULT_AMOUNT_ATOMIC = "10000"
 
-const DEFAULT_AMOUNT_ATOMIC = "10000" // 0.01 USDC — safely under 100 USDC mandate cap
-
-/** Builds a FacilitatorVerifyContext-shaped object with sensible defaults */
 function makeCtx(amountAtomic = DEFAULT_AMOUNT_ATOMIC) {
   return {
     paymentPayload: { payload: { from: PAYER }, accepted: { amount: amountAtomic } },
@@ -39,7 +34,6 @@ function makeCtx(amountAtomic = DEFAULT_AMOUNT_ATOMIC) {
   } as any
 }
 
-/** Happy-path deps — every check passes */
 function happyDeps(overrides: Partial<VerifyDeps> = {}): VerifyDeps {
   return {
     getMandate: async () => ({ mandate: VALID_MANDATE, agentId: AGENT_ID }),
@@ -50,8 +44,6 @@ function happyDeps(overrides: Partial<VerifyDeps> = {}): VerifyDeps {
     ...overrides,
   }
 }
-
-// ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("onBeforeVerify", () => {
   it("aborts when no mandate registered for payer", async () => {
@@ -71,7 +63,7 @@ describe("onBeforeVerify", () => {
   it("aborts when mandate is expired", async () => {
     const expired: SignedMandate = {
       ...VALID_MANDATE,
-      payload: { ...VALID_MANDATE.payload, expiry: 1n }, // Unix timestamp 1 = long past
+      payload: { ...VALID_MANDATE.payload, expiry: 1n },
     }
     const result = await onBeforeVerify(makeCtx(), happyDeps({
       getMandate: async () => ({ mandate: expired, agentId: AGENT_ID }),
@@ -80,7 +72,6 @@ describe("onBeforeVerify", () => {
   })
 
   it("aborts when payment amount exceeds mandate maxAmountUsdc", async () => {
-    // mandate allows 100 USDC = 100_000_000 atomic; send 101 USDC = 101_000_000
     const result = await onBeforeVerify(makeCtx("101000000"), happyDeps())
     expect(result).toEqual({ abort: true, reason: "mandate_amount_exceeded" })
   })

@@ -1,9 +1,9 @@
 import { Hono } from "hono"
 import { isAddress } from "viem"
 import type { SignedMandate } from "@workspace/shared/mandate"
-import { registerMandate } from "../lib/mandate-store.ts"
-import { verifyMandateSignature } from "../lib/mandate.ts"
-import { isRecord, parseBigIntField, readJsonObject } from "../lib/http.ts"
+import { registerMandate } from "../lib/mandate-store.js"
+import { verifyMandateSignature } from "../lib/mandate.js"
+import { isRecord, parseBigIntField, readJsonObject } from "../lib/http.js"
 
 const app = new Hono()
 

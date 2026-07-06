@@ -1,10 +1,10 @@
 import { keccak256 } from "viem"
 import { ATTESTATION_REGISTRY_ABI } from "@workspace/shared/abis"
 import { IdentityStatus, Decision } from "@workspace/shared/types"
-import { walletClient, account } from "../lib/clients.ts"
-import { getMandate } from "../lib/mandate-store.ts"
-import { getPayerAddress, USDC_ATOMIC_FACTOR } from "../lib/mandate.ts"
-import { env } from "../lib/env.ts"
+import { walletClient, account } from "../lib/clients.js"
+import { getMandate } from "../lib/mandate-store.js"
+import { getPayerAddress, USDC_ATOMIC_FACTOR } from "../lib/mandate.js"
+import { env } from "../lib/env.js"
 import type {
   FacilitatorSettleContext,
   FacilitatorSettleResultContext,
