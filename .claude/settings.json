@@ -51,7 +51,8 @@
       "Bash(pkill -f \"turbo dev\")",
       "Bash(pkill -f \"bun --watch src/index\")",
       "Bash(pkill -f \"node --watch\")",
-      "Bash(ln -sf ../../.env.local /Users/vinay/bare-metal/apps/facilitator/.env.local)"
+      "Bash(ln -sf ../../.env.local /Users/vinay/bare-metal/apps/facilitator/.env.local)",
+      "Bash(git push:*)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",

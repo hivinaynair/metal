@@ -30301,8 +30301,8 @@ app2.post("/settle", async (c) => {
 app2.route("/mandates", mandates_default);
 var app_default = app2;
 
-// api/index.ts
-var api_default = app_default.fetch;
+// src/vercel.ts
+var vercel_default = app_default.fetch;
 export {
-  api_default as default
+  vercel_default as default
 };

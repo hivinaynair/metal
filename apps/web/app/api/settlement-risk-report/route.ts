@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { withX402, x402ResourceServer } from "@x402/next";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
@@ -10,7 +10,7 @@ const resourceServer = new x402ResourceServer(facilitator).register(
   new ExactEvmScheme(),
 );
 
-const handler = async (_: NextRequest) => {
+const handler = async () => {
   return NextResponse.json({
     generatedAt: new Date().toISOString(),
     counterparty: "Acme Settlement Corp",
