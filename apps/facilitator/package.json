@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "bun --watch src/dev.ts",
+    "prebuild": "cd ../../packages/shared && rm -rf dist && tsc",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
   },

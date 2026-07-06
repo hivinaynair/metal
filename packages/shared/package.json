@@ -3,13 +3,29 @@
   "version": "0.0.1",
   "type": "module",
   "exports": {
-    "./identity": "./src/identity.ts",
-    "./mandate": "./src/mandate.ts",
-    "./abis": "./src/abis.ts",
-    "./types": "./src/types.ts",
-    "./chains": "./src/chains.ts"
+    "./identity": {
+      "types": "./src/identity.ts",
+      "default": "./dist/identity.js"
+    },
+    "./mandate": {
+      "types": "./src/mandate.ts",
+      "default": "./dist/mandate.js"
+    },
+    "./abis": {
+      "types": "./src/abis.ts",
+      "default": "./dist/abis.js"
+    },
+    "./types": {
+      "types": "./src/types.ts",
+      "default": "./dist/types.js"
+    },
+    "./chains": {
+      "types": "./src/chains.ts",
+      "default": "./dist/chains.js"
+    }
   },
   "scripts": {
+    "build": "rm -rf dist && tsc",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },
