@@ -175,6 +175,9 @@
       },
     },
   },
+  "patchedDependencies": {
+    "@coinbase/cdp-sdk@1.51.2": "patches/@coinbase%2Fcdp-sdk@1.51.2.patch",
+  },
   "packages": {
     "@across-protocol/app-sdk": ["@across-protocol/app-sdk@0.2.3", "", { "peerDependencies": { "viem": "^2.20.1" } }, "sha512-fxKYy0fKS5jbcq66gKtRYo1TWFvzeAYYPNBubrssCu7ECKFgOTT5dolPUj4Y+UwAJtVItFMvvkxO4OvMGbK7Dw=="],
 

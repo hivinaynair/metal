@@ -31,7 +31,7 @@ const gates = [
 ] as const
 
 // Packet stop positions (%) per step — 0=start (after agent), 1–6=gate centers
-const stops = [16, 31, 44, 57, 70, 83, 95]
+const stops = [17, 31, 44, 57, 70, 83, 95]
 
 interface SettlementSceneProps {
   agentLabel: string

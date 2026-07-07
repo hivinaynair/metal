@@ -81,7 +81,19 @@
       "Bash(grep -r FacilitatorSettleContext node_modules/@x402/core/dist --include=*.d.ts -A 10)",
       "Bash(grep -r \"authorization\\\\|nonce\\\\|validBefore\" /Users/vinay/bare-metal/node_modules/.bun/@x402+evm@*/node_modules/@x402/evm/dist/cjs/*.d.ts)",
       "Read(//private/etc/**)",
-      "Bash(open /tmp/settlement-pipeline.html)"
+      "Bash(open /tmp/settlement-pipeline.html)",
+      "Read(//Users/vinay/.agents/skills/deploy-to-vercel/**)",
+      "Bash(git -C /Users/vinay/bare-metal remote get-url origin)",
+      "Bash(vercel teams:*)",
+      "Bash(vercel link:*)",
+      "Bash(vercel deploy:*)",
+      "Bash(vercel inspect:*)",
+      "Bash(vercel logs:*)",
+      "Bash(vercel git:*)",
+      "Read(//Users/vinay/.config/vercel/**)",
+      "Read(//Users/vinay/**)",
+      "Bash(vercel ls:*)",
+      "Bash(grep -n \"from \"\".*.ts\"\"\" /Users/vinay/bare-metal/apps/agent/src/*.ts)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",
