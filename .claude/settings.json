@@ -59,7 +59,22 @@
       "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_gxsyCbu6Jmp4@ep-calm-snow-aobjmc7k-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" bun run db:generate)",
       "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_gxsyCbu6Jmp4@ep-calm-snow-aobjmc7k-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" bun run db:migrate)",
       "Bash(bun remove:*)",
-      "Bash(gh issue:*)"
+      "Bash(gh issue:*)",
+      "Bash(cat contracts/artifacts/*.json)",
+      "Bash(grep -r \"TODO\\\\|FIXME\\\\|XXX\" /Users/vinay/bare-metal/apps /Users/vinay/bare-metal/packages/shared --include=*.ts --include=*.tsx)",
+      "Bash(git -C .claude/worktrees/end-to-end-agent-demo diff --stat HEAD)",
+      "Bash(git -C .claude/worktrees/end-to-end-agent-demo diff HEAD packages/shared/src/db/schema.ts)",
+      "Bash(bun drizzle-kit:*)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_gxsyCbu6Jmp4@ep-calm-snow-aobjmc7k-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" bun drizzle-kit push)",
+      "Bash(grep -r \"createDb\\\\|DATABASE_URL\" /Users/vinay/bare-metal/apps/ --include=*.ts --include=*.tsx -l)",
+      "Bash(bun --filter @workspace/web typecheck)",
+      "Bash(bun --filter @workspace/facilitator typecheck)",
+      "Bash(git -C /Users/vinay/bare-metal log --oneline --all)",
+      "Bash(git -C /Users/vinay/bare-metal show 86a8fa2 --stat)",
+      "Bash(git -C /Users/vinay/bare-metal log --oneline --follow -- apps/agent/src/server.ts)",
+      "Bash(git -C /Users/vinay/bare-metal diff HEAD apps/web/app/api/trigger-payment/route.ts)",
+      "Bash(git -C /Users/vinay/bare-metal diff HEAD packages/shared/src/db/schema.ts)",
+      "Bash(git -C /Users/vinay/bare-metal diff HEAD apps/facilitator/src/hooks/settle.ts)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",
