@@ -7,7 +7,7 @@ import { keccak256 } from "viem"
 import { CdpClient } from "@coinbase/cdp-sdk"
 import { createDb, schema } from "@workspace/shared/db"
 import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
-import { buildTools } from "./tools.ts"
+import { buildTools } from "./tools.js"
 
 const PORT = Number(process.env.PORT ?? 3002)
 
