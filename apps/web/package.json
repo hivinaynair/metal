@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@coinbase/cdp-sdk": "^1.51.2",
+    "@splinetool/react-spline": "^4.1.0",
+    "@splinetool/runtime": "^1.12.98",
     "@t3-oss/env-nextjs": "^0.13.11",
     "@workspace/shared": "workspace:*",
     "@workspace/ui": "workspace:*",

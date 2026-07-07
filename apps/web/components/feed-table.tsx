@@ -1,7 +1,9 @@
 "use client"
 
 import { useState } from "react"
+import { CheckCircle2, ChevronRight, FileText, X } from "lucide-react"
 import { Badge } from "@workspace/ui/components/badge"
+import { Button } from "@workspace/ui/components/button"
 import {
   Table,
   TableBody,
@@ -10,8 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table"
-import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
-import { formatUsdc, truncateAddress } from "@/lib/format"
+import { formatUsdc } from "@/lib/format"
 import { DetailSheet } from "@/components/detail-sheet"
 import type { AttestationRow } from "@/lib/attestations"
 
@@ -25,6 +26,12 @@ const DECISION_APPROVED = 0
 
 type Filter = "all" | "approved" | "rejected"
 
+const filters: { id: Filter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "approved", label: "Approved" },
+  { id: "rejected", label: "Blocked" },
+]
+
 export function FeedTable({ rows, agentNames = {} }: FeedTableProps) {
   const [filter, setFilter] = useState<Filter>("all")
   const [selected, setSelected] = useState<AttestationRow | null>(null)
@@ -37,39 +44,48 @@ export function FeedTable({ rows, agentNames = {} }: FeedTableProps) {
 
   return (
     <>
-      <div className="flex gap-2 mb-4">
-        {(["all", "approved", "rejected"] as Filter[]).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-              filter === f
-                ? "bg-primary text-primary-foreground border-primary"
-                : "border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="metal-inset flex gap-0.5 p-0.5">
+          {filters.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={`rounded-[2px] px-3 py-1.5 text-[12.5px] font-medium transition-colors ${
+                filter === f.id
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <Button variant="outline" size="sm" className="ml-auto">
+          <FileText className="size-4" />
+          Export
+        </Button>
       </div>
 
-      <div className="rounded-lg border overflow-hidden">
+      <div className="overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Time</TableHead>
               <TableHead>Agent</TableHead>
-              <TableHead>Payer</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Identity</TableHead>
+              <TableHead>Resource</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="text-center">Identity</TableHead>
               <TableHead>Decision</TableHead>
-              <TableHead>Tx</TableHead>
+              <TableHead className="text-right">Proof</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground text-sm py-8">
+                <TableCell
+                  colSpan={7}
+                  className="py-8 text-center text-sm text-muted-foreground"
+                >
                   No transactions yet — run a demo to generate one.
                 </TableCell>
               </TableRow>
@@ -78,49 +94,54 @@ export function FeedTable({ rows, agentNames = {} }: FeedTableProps) {
               const approved = row.decision === DECISION_APPROVED
               const amountUsd = formatUsdc(row.amountUsdc)
               const agentName = agentNames[row.payer.toLowerCase()]
-              const timeStr = new Date(row.timestamp * 1000).toLocaleString(undefined, {
-                dateStyle: "short",
-                timeStyle: "short",
-              })
+              const timeStr = new Date(row.timestamp * 1000).toLocaleString(
+                undefined,
+                {
+                  dateStyle: "short",
+                  timeStyle: "short",
+                }
+              )
 
               return (
                 <TableRow
                   key={row.paymentHash}
-                  className="cursor-pointer hover:bg-muted/50 border-l-2 border-l-teal-500"
+                  className="cursor-pointer"
                   onClick={() => setSelected(row)}
                 >
-                  <TableCell className="text-xs text-muted-foreground font-mono whitespace-nowrap">
+                  <TableCell className="font-mono text-xs whitespace-nowrap text-muted-foreground">
                     {timeStr}
                   </TableCell>
                   <TableCell className="text-xs font-medium">
-                    {agentName ?? <span className="text-muted-foreground">unknown</span>}
+                    {agentName ?? (
+                      <span className="text-muted-foreground">unknown</span>
+                    )}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">
-                    {truncateAddress(row.payer)}
+                    /api/trigger-payment
                   </TableCell>
-                  <TableCell className="text-xs">${amountUsd}</TableCell>
-                  <TableCell>
-                    <Badge variant={row.identityStatus !== 0 ? "outline" : "destructive"} className="text-[10px]">
-                      {row.identityStatus !== 0 ? "verified" : "unknown"}
-                    </Badge>
+                  <TableCell className="text-right font-mono text-xs">
+                    ${amountUsd}
                   </TableCell>
-                  <TableCell>
-                    <Badge variant={approved ? "outline" : "destructive"} className="text-[10px]">
-                      {approved ? "approved" : "rejected"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {row.settlementTx && (
-                      <a
-                        href={row.settlementTxUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-xs text-primary hover:underline font-mono"
-                      >
-                        {row.settlementTx.slice(0, 8)}… ↗
-                      </a>
+                  <TableCell className="text-center">
+                    {row.identityStatus !== 0 ? (
+                      <CheckCircle2 className="mx-auto size-4 text-[var(--positive)]" />
+                    ) : (
+                      <X className="mx-auto size-4 text-destructive" />
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={approved ? "secondary" : "destructive"}
+                      className={
+                        approved ? "text-[var(--positive)]" : undefined
+                      }
+                    >
+                      <span className="size-1.5 rounded-full bg-current" />
+                      {approved ? "Approved" : "Blocked"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <ChevronRight className="ml-auto size-4 text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               )

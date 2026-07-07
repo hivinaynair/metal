@@ -8,7 +8,6 @@ import {
 } from "@workspace/ui/components/sheet"
 import { Badge } from "@workspace/ui/components/badge"
 import { Separator } from "@workspace/ui/components/separator"
-import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
 import { POLICY_MAX_AMOUNT_USDC } from "@/lib/demo-scenarios"
 import { formatUsdc, truncateAddress } from "@/lib/format"
 import { TracePanel } from "@/components/trace-panel"

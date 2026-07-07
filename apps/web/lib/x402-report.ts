@@ -16,6 +16,10 @@ class MandateFacilitatorClient {
     this.baseUrl = url.replace(/\/+$/, "")
   }
 
+  async getSupported() {
+    return this.inner.getSupported()
+  }
+
   private async call(path: "verify" | "settle", paymentPayload: unknown, paymentRequirements: unknown) {
     const headers: Record<string, string> = { "Content-Type": "application/json" }
     if (this.mandateJson) headers["X-AP2-Mandate"] = this.mandateJson
@@ -28,6 +32,13 @@ class MandateFacilitatorClient {
         paymentRequirements,
       }),
     })
+    const contentType = response.headers.get("content-type") ?? ""
+    if (!contentType.includes("application/json")) {
+      const text = await response.text()
+      throw new Error(
+        `Facilitator ${path} returned ${response.status} ${response.statusText}: ${text.slice(0, 240) || "empty response"}`
+      )
+    }
     return response.json()
   }
 
@@ -75,11 +86,19 @@ export function createRiskReportHandler(routeId: ReportRouteId) {
 
   // Return a per-request handler so each call uses the mandate from that request.
   return async (request: NextRequest) => {
-    const mandateJson = request.headers.get("X-AP2-Mandate") ?? undefined
-    const facilitator = new MandateFacilitatorClient(env.FACILITATOR_URL, mandateJson)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const server = new x402ResourceServer(facilitator as any).register("eip155:84532", new ExactEvmScheme())
-    const handler = withX402(innerHandler, routeConfig, server, undefined, undefined, false)
-    return handler(request)
+    try {
+      const mandateJson = request.headers.get("X-AP2-Mandate") ?? undefined
+      const facilitator = new MandateFacilitatorClient(env.FACILITATOR_URL, mandateJson)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const server = new x402ResourceServer(facilitator as any).register("eip155:84532", new ExactEvmScheme())
+      await server.initialize()
+      const handler = withX402(innerHandler, routeConfig, server, undefined, undefined, false)
+      return await handler(request)
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : String(error) },
+        { status: 500 }
+      )
+    }
   }
 }

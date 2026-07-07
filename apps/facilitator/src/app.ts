@@ -94,23 +94,31 @@ const app = new Hono()
 app.get("/supported", (c) => c.json(facilitator.getSupported()))
 
 app.post("/verify", async (c) => {
-  const body = await readPaymentBody(c)
-  if (body instanceof Response) return body
-  const mandateJson = c.req.header("X-AP2-Mandate")
-  const result = await requestCtx.run({ mandateJson }, () =>
-    facilitator.verify(body.paymentPayload, body.paymentRequirements),
-  )
-  return c.json(result)
+  try {
+    const body = await readPaymentBody(c)
+    if (body instanceof Response) return body
+    const mandateJson = c.req.header("X-AP2-Mandate")
+    const result = await requestCtx.run({ mandateJson }, () =>
+      facilitator.verify(body.paymentPayload, body.paymentRequirements),
+    )
+    return c.json(result)
+  } catch (error) {
+    return c.json({ error: error instanceof Error ? error.message : String(error) }, 500)
+  }
 })
 
 app.post("/settle", async (c) => {
-  const body = await readPaymentBody(c)
-  if (body instanceof Response) return body
-  const mandateJson = c.req.header("X-AP2-Mandate")
-  const result = await requestCtx.run({ mandateJson }, () =>
-    facilitator.settle(body.paymentPayload, body.paymentRequirements),
-  )
-  return c.json(result)
+  try {
+    const body = await readPaymentBody(c)
+    if (body instanceof Response) return body
+    const mandateJson = c.req.header("X-AP2-Mandate")
+    const result = await requestCtx.run({ mandateJson }, () =>
+      facilitator.settle(body.paymentPayload, body.paymentRequirements),
+    )
+    return c.json(result)
+  } catch (error) {
+    return c.json({ error: error instanceof Error ? error.message : String(error) }, 500)
+  }
 })
 
 app.route("/mandates", mandatesRouter)

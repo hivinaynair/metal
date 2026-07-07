@@ -24,6 +24,7 @@ export async function POST(request: Request) {
   const scenario = SCENARIOS[scenarioIndex]!
   const account = agents[scenario.agentKey]
   const route = reportRoutes.find((r) => r.id === scenario.routeId)!
+  const targetUrl = new URL(route.path, request.url).toString()
   const agentId = scenario.agentKey === "ghost"
     ? "metal-agent-ghost"
     : `metal-agent-${scenario.agentKey.replace("agent", "")}`
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
     agentRes = await fetch(`${env.AGENT_URL}/run`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ scenarioIndex, mandateHeader }),
+      body: JSON.stringify({ scenarioIndex, mandateHeader, targetUrl }),
     })
   } catch (err) {
     return new Response(`Agent server unreachable: ${String(err)}`, { status: 503 })
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
           if (!line.startsWith("data: ")) continue
           try {
             const event = JSON.parse(line.slice(6)) as { type: string; result?: Record<string, unknown> }
-            if (event.type === "token") {
+            if (event.type === "token" || event.type === "gate") {
               await writer.write(enc.encode(line + "\n\n"))
             } else if (event.type === "done") {
               const agentResult = event.result ?? {}

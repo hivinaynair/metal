@@ -74,7 +74,9 @@
       "Bash(git -C /Users/vinay/bare-metal log --oneline --follow -- apps/agent/src/server.ts)",
       "Bash(git -C /Users/vinay/bare-metal diff HEAD apps/web/app/api/trigger-payment/route.ts)",
       "Bash(git -C /Users/vinay/bare-metal diff HEAD packages/shared/src/db/schema.ts)",
-      "Bash(git -C /Users/vinay/bare-metal diff HEAD apps/facilitator/src/hooks/settle.ts)"
+      "Bash(git -C /Users/vinay/bare-metal diff HEAD apps/facilitator/src/hooks/settle.ts)",
+      "Bash(open /tmp/settlement-mockups.html)",
+      "Read(//Users/vinay/bare-metal/apps/web/**)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",

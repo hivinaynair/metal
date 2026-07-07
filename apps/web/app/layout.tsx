@@ -1,36 +1,41 @@
-import { Source_Sans_3 } from "next/font/google"
-import Link from "next/link"
+import type { ReactNode } from "react"
+import { Archivo, IBM_Plex_Mono, Newsreader } from "next/font/google"
 
 import "@workspace/ui/globals.css"
+import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { AppShell } from "@/components/app-shell"
 import { cn } from "@workspace/ui/lib/utils"
 import { TooltipProvider } from "@workspace/ui/components/tooltip"
 
-const sourceSans3 = Source_Sans_3({ subsets: ["latin"], variable: "--font-sans" })
+const archivo = Archivo({ subsets: ["latin"], variable: "--font-sans" })
+const newsreader = Newsreader({ subsets: ["latin"], variable: "--font-serif" })
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-mono",
+})
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: ReactNode
 }>) {
   return (
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("antialiased", "font-sans", sourceSans3.variable)}
+      className={cn(
+        "dark font-sans antialiased",
+        archivo.variable,
+        newsreader.variable,
+        plexMono.variable
+      )}
     >
       <body>
         <ThemeProvider>
           <TooltipProvider>
-            <header className="border-b border-border/50 px-6 py-3 flex items-center gap-6">
-              <span className="font-semibold tracking-tight text-sm">metal</span>
-              <nav className="flex items-center gap-4 text-sm text-muted-foreground">
-                <Link href="/" className="hover:text-foreground transition-colors">Demo</Link>
-                <Link href="/feed" className="hover:text-foreground transition-colors">Feed</Link>
-                <Link href="/policy" className="hover:text-foreground transition-colors">Policy</Link>
-              </nav>
-            </header>
-            {children}
+            <AppShell>{children}</AppShell>
           </TooltipProvider>
         </ThemeProvider>
       </body>

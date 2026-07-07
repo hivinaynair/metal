@@ -1,0 +1,78 @@
+:root {
+  --font-heading: var(--font-serif);
+  --radius: 0.375rem;
+}
+
+.dark {
+  --font-heading: var(--font-serif);
+}
+
+@layer base {
+  html {
+    background: var(--background);
+  }
+
+  body {
+    font-feature-settings: "tnum";
+  }
+
+  ::selection {
+    background: var(--foreground);
+    color: var(--background);
+  }
+}
+
+@layer components {
+  .metal-grid {
+    background-image:
+      linear-gradient(var(--border-subtle) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+
+  .metal-card {
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius);
+    background: var(--surface-card);
+    box-shadow: var(--shadow-sm), var(--bevel-top);
+  }
+
+  .metal-eyebrow {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+
+  .metal-inset {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius);
+    background: var(--bg-inset);
+  }
+
+  .metal-data {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  .policy-range::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    background: var(--text-primary);
+    border: 2px solid var(--surface-card);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 50%);
+  }
+
+  .policy-range::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    background: var(--text-primary);
+    border: 2px solid var(--surface-card);
+  }
+}

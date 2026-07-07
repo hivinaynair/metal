@@ -1,16 +1,54 @@
 import { getAgentsWithMandates } from "@/lib/agents-data"
 import { getAttestations } from "@/lib/attestations"
-import { POLICY_MAX_AMOUNT_USDC } from "@/lib/demo-scenarios"
-import { Badge } from "@workspace/ui/components/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
+import { formatUsdc } from "@/lib/format"
+import { POLICY_MAX_AMOUNT_USDC, reportRoutes } from "@/lib/demo-scenarios"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui/components/table"
+  PolicyWorkbench,
+  type PolicyAgent,
+  type PolicyProofRun,
+  type PolicyResource,
+} from "@/components/policy-workbench"
+import { PageFrame, PageHead } from "@/components/page-chrome"
+
+function toPolicyAgent(
+  agent: Awaited<ReturnType<typeof getAgentsWithMandates>>[number]
+): PolicyAgent {
+  const expirySeconds = Number(agent.expiry)
+
+  return {
+    address: agent.address,
+    name: agent.name,
+    maxAmountUsdc: Number(agent.maxAmountUsdc),
+    delegatorAddress: agent.delegatorAddress,
+    expiry:
+      expirySeconds > 0
+        ? new Date(expirySeconds * 1000).toISOString().slice(0, 10)
+        : "—",
+    expired: expirySeconds * 1000 < Date.now(),
+  }
+}
+
+function toProofRun(
+  attestations: Awaited<ReturnType<typeof getAttestations>>
+): PolicyProofRun | null {
+  const blocked = attestations.find((attestation) => attestation.decision !== 0)
+  if (!blocked) return null
+
+  const amount = Number(formatUsdc(blocked.amountUsdc))
+  const failedRule =
+    blocked.identityStatus === 0
+      ? "requireIdentity"
+      : amount > POLICY_MAX_AMOUNT_USDC
+        ? "maxAmountUsdc"
+        : "preSettlementPolicy"
+
+  return {
+    failedRule,
+    amount: `${amount.toFixed(2)} USDC`,
+    limit: `${POLICY_MAX_AMOUNT_USDC.toFixed(2)} USDC`,
+    settlementTx: blocked.settlementTx || "none",
+  }
+}
 
 export default async function PolicyPage() {
   const [agents, attestations] = await Promise.all([
@@ -18,84 +56,33 @@ export default async function PolicyPage() {
     getAttestations(),
   ])
 
-  const blockedCount = attestations.filter((a) => a.decision !== 0).length
+  const resources: PolicyResource[] = reportRoutes.map((route) => ({
+    id: route.id,
+    label: route.path.replace("/api/", "GET /v1/"),
+    path: route.path,
+    price: Number(route.priceLabel.replace("$", "")),
+  }))
 
   return (
-    <main className="max-w-3xl mx-auto px-6 py-10 flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Policy</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Settlement layer rules and agent mandate registry.
-        </p>
-      </div>
-
-      {/* rule card */}
-      <Card className="border-primary/30">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            Active Rule
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl font-bold font-mono">${POLICY_MAX_AMOUNT_USDC}</span>
-            <div className="flex flex-col">
-              <span className="text-sm font-medium">POLICY_MAX_AMOUNT_USDC</span>
-              <span className="text-xs text-muted-foreground">
-                Enforced server-side in facilitator <code>onBeforeSettle</code>. Not decorative.
-              </span>
-            </div>
+    <PageFrame>
+      <PageHead
+        eyebrow="Programmable controls"
+        title="Compliance as executable logic"
+        question="Change the active institution policy. The next payment must pass it before settlement."
+        right={
+          <div className="metal-card flex items-center gap-2 px-4 py-2 font-mono text-sm text-[var(--text-secondary)]">
+            <span className="size-2 rounded-full bg-[var(--positive)]" />
+            mode: strict
           </div>
-          <div className="flex items-center gap-2 pt-1">
-            <Badge variant="destructive">{blockedCount} blocked</Badge>
-            <span className="text-xs text-muted-foreground">
-              transaction{blockedCount !== 1 ? "s" : ""} rejected by this policy
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+        }
+      />
 
-      {/* agent mandates */}
-      <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-          Agent Mandates
-        </h2>
-        <div className="rounded-lg border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Agent</TableHead>
-                <TableHead>Address</TableHead>
-                <TableHead>Mandate Limit</TableHead>
-                <TableHead>Delegator</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {agents.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground text-sm py-8">
-                    No mandates yet — run a demo to initialize agents.
-                  </TableCell>
-                </TableRow>
-              )}
-              {agents.map((agent) => (
-                <TableRow key={agent.address}>
-                  <TableCell className="font-medium">{agent.name}</TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {agent.address.slice(0, 6)}…{agent.address.slice(-4)}
-                  </TableCell>
-                  <TableCell className="font-mono">
-                    ${(Number(agent.maxAmountUsdc)).toFixed(0)}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {agent.delegatorAddress.slice(0, 6)}…{agent.delegatorAddress.slice(-4)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-    </main>
+      <PolicyWorkbench
+        agents={agents.map(toPolicyAgent)}
+        resources={resources}
+        initialMaxAmountUsdc={POLICY_MAX_AMOUNT_USDC}
+        proofRun={toProofRun(attestations)}
+      />
+    </PageFrame>
   )
 }

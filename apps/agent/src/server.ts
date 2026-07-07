@@ -2,6 +2,7 @@ import { Hono } from "hono"
 import { serve } from "@hono/node-server"
 import { streamText } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
+import { eq } from "drizzle-orm"
 import { keccak256 } from "viem"
 import { CdpClient } from "@coinbase/cdp-sdk"
 import { createDb, schema } from "@workspace/shared/db"
@@ -79,7 +80,7 @@ async function getAttestationTx(settlementTxHash: string, retries = 5): Promise<
     const rows = await getDb()
       .select({ attestationTx: schema.settlementAttestations.attestationTx })
       .from(schema.settlementAttestations)
-      .where((t, { eq }) => eq(t.paymentHash, paymentHash))
+      .where(eq(schema.settlementAttestations.paymentHash, paymentHash))
       .limit(1)
     if (rows[0]?.attestationTx) return rows[0].attestationTx
     await new Promise((r) => setTimeout(r, 800))
@@ -92,9 +93,10 @@ const app = new Hono()
 app.get("/health", (c) => c.text("ok"))
 
 app.post("/run", async (c) => {
-  const body = await c.req.json<{ scenarioIndex?: number; mandateHeader?: string }>()
+  const body = await c.req.json<{ scenarioIndex?: number; mandateHeader?: string; targetUrl?: string }>()
   const index = Math.min(Math.max(Number(body.scenarioIndex ?? 0), 0), SCENARIOS.length - 1)
   const scenario = SCENARIOS[index]!
+  const targetUrl = typeof body.targetUrl === "string" ? body.targetUrl : undefined
 
   const account = await getCdp().evm.getOrCreateAccount({ name: scenario.name })
   const tools = await buildTools(account, { mandateHeader: body.mandateHeader })
@@ -105,6 +107,9 @@ app.post("/run", async (c) => {
       const send = (obj: unknown) =>
         controller.enqueue(enc.encode(`data: ${JSON.stringify(obj)}\n\n`))
 
+      // Gate 0: agent identity resolved
+      send({ type: "gate", step: 0 })
+
       let settlementTxHash: string | undefined
       let httpStatus: number | undefined
       let responseError: string | undefined
@@ -114,23 +119,23 @@ app.post("/run", async (c) => {
           model: anthropic("claude-sonnet-4-6"),
           tools,
           system: "You are a financial compliance agent with a crypto wallet on Base Sepolia.",
-          prompt: scenario.prompt,
+          prompt: targetUrl
+            ? `${scenario.prompt}\n\nUse this exact URL when calling x402Fetch: ${targetUrl}`
+            : scenario.prompt,
           maxSteps: 4,
         })
 
-        for await (const chunk of result.textStream) {
-          send({ type: "token", text: chunk })
-        }
-
-        // Extract payment result from tool calls
-        for (const step of await result.steps) {
-          for (const tr of step.toolResults ?? []) {
-            if (tr.toolName === "x402Fetch") {
-              const r = tr.result as { txHash?: string; httpStatus?: number; body?: { error?: string } }
-              if (r.txHash) settlementTxHash = r.txHash
-              if (r.httpStatus) httpStatus = r.httpStatus
-              if (r.body?.error) responseError = r.body.error
-            }
+        for await (const chunk of result.fullStream) {
+          if (chunk.type === "text-delta") {
+            send({ type: "token", text: chunk.textDelta })
+          } else if (chunk.type === "tool-call" && chunk.toolName === "x402Fetch") {
+            // Gate 1: agent is submitting payment to the 402 endpoint / facilitator
+            send({ type: "gate", step: 1 })
+          } else if (chunk.type === "tool-result" && chunk.toolName === "x402Fetch") {
+            const r = chunk.result as { txHash?: string; httpStatus?: number; body?: { error?: string } }
+            if (r.txHash) settlementTxHash = r.txHash
+            if (r.httpStatus) httpStatus = r.httpStatus
+            if (r.body?.error) responseError = r.body.error
           }
         }
       } catch (err) {

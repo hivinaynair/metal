@@ -12,6 +12,24 @@ import { getVercelAITools } from "@coinbase/agentkit-vercel-ai-sdk"
 import { BASE_SEPOLIA_CAIP2, BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
 import type { EvmServerAccount } from "@coinbase/cdp-sdk"
 
+function summarizeNonJsonResponse(url: string, response: Response, text: string) {
+  const contentType = response.headers.get("content-type") ?? "unknown content type"
+  const title = text.match(/<title[^>]*>(.*?)<\/title>/is)?.[1]
+    ?.replace(/\s+/g, " ")
+    .trim()
+
+  if (contentType.includes("text/html") || /^\s*<!doctype html/i.test(text) || /^\s*<html/i.test(text)) {
+    return title
+      ? `Upstream returned HTML for ${url} (${response.status} ${response.statusText}): ${title}`
+      : `Upstream returned HTML for ${url} (${response.status} ${response.statusText})`
+  }
+
+  const summary = text.replace(/\s+/g, " ").trim()
+  return summary
+    ? `Upstream returned ${response.status} ${response.statusText} for ${url}: ${summary.slice(0, 240)}`
+    : `Upstream returned ${contentType} for ${url} (${response.status} ${response.statusText})`
+}
+
 // Build all tools for the agent — AgentKit built-ins + custom x402FetchTool.
 export async function buildTools(cdpAccount: EvmServerAccount, opts?: { mandateHeader?: string }) {
   const walletProvider = await CdpEvmWalletProvider.configureWithWallet({
@@ -62,7 +80,13 @@ export async function buildTools(cdpAccount: EvmServerAccount, opts?: { mandateH
         txHash = (d.transaction as string | undefined) ?? (d.txHash as string | undefined)
       }
 
-      const body = await response.json()
+      let body: unknown
+      const contentType = response.headers.get("content-type") ?? ""
+      if (contentType.includes("application/json")) {
+        body = await response.json()
+      } else {
+        body = { error: summarizeNonJsonResponse(url, response, await response.text()) }
+      }
       return {
         httpStatus: response.status,
         body,

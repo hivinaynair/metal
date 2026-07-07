@@ -1,20 +1,21 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import Link from "next/link"
-import { ArrowUpRight, Copy, Play } from "lucide-react"
+import type { ReactNode } from "react"
+import { useMemo, useState } from "react"
+import { Copy, Play, Wallet, Zap } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
-import { Badge } from "@workspace/ui/components/badge"
-import { Separator } from "@workspace/ui/components/separator"
-import { TracePanel, buildTraceSteps, TRACE_STEP_COUNT } from "@/components/trace-panel"
+import { cn } from "@workspace/ui/lib/utils"
+import { PageFrame, PageHead } from "@/components/page-chrome"
+import { TracePanel, buildTraceSteps } from "@/components/trace-panel"
 import { SettlementScene } from "@/components/settlement-scene"
 import { demoAgents } from "@/lib/demo-scenarios"
 
 const SCENARIOS = [
-  { agentId: "metal-agent-1", slot: "A", title: "Happy Path" },
-  { agentId: "metal-agent-2", slot: "B", title: "Mandate Exceeded" },
-  { agentId: "metal-agent-3", slot: "C", title: "Policy Exceeded" },
-  { agentId: "metal-agent-ghost", slot: "D", title: "Unregistered Agent" },
+  { agentId: "metal-agent-1", slot: "A", title: "Happy path", displayAgent: "Orion Pay", packetFrom: "0x9F21...Ae21", mandate: "ap2_9F21...Ae21" },
+  { agentId: "metal-agent-2", slot: "B", title: "Mandate exceeded", displayAgent: "Atlas Treasury", packetFrom: "0xC4b8...A1F0", mandate: "ap2_C4b8...A1F0" },
+  { agentId: "metal-agent-3", slot: "C", title: "Policy exceeded", displayAgent: "Nova Fetch", packetFrom: "0x3af5...Ab12", mandate: "ap2_3af5...Ab12" },
+  { agentId: "metal-agent-ghost", slot: "D", title: "Unregistered agent", displayAgent: "Ghost Runner", packetFrom: "0x62c1...Gh09", mandate: "ap2_none" },
+  { agentId: "metal-agent-2", slot: "E", title: "Expired mandate", displayAgent: "Vega Scheduler", packetFrom: "0x8d0e...Vg1a", mandate: "ap2_8d0e...Vg1a", disabled: true },
 ]
 
 interface TriggerResult {
@@ -44,7 +45,19 @@ function failureStep(error?: string) {
   if (error === "identity_not_found") return 2
   if (error === "mandate_amount_exceeded") return 3
   if (error === "policy_amount_exceeded") return 4
-  return error ? 4 : 0
+  return 4
+}
+
+function cleanRejectionReason(error?: string | null) {
+  if (!error) return null
+  const trimmed = error.trim()
+  if (/^(<!doctype html|<html)/i.test(trimmed)) {
+    const title = trimmed.match(/<title[^>]*>(.*?)<\/title>/is)?.[1]
+      ?.replace(/\s+/g, " ")
+      .trim()
+    return title ? `Upstream returned HTML: ${title}` : "Upstream returned an HTML error page"
+  }
+  return trimmed.length > 240 ? `${trimmed.slice(0, 240)}...` : trimmed
 }
 
 export default function Page() {
@@ -54,7 +67,6 @@ export default function Page() {
   const [result, setResult] = useState<TriggerResult | null>(null)
   const [agentReasoning, setAgentReasoning] = useState("")
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle")
-  const animRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const selectedScenario = SCENARIOS[selectedIndex]!
   const selectedAgent = demoAgents.find((agent) => agent.id === selectedScenario.agentId)!
@@ -62,32 +74,12 @@ export default function Page() {
   const approved = result?.httpStatus === 200
   const activeStep = loading ? animStep : result ? (approved ? 6 : failureStep(error)) : 0
 
-  function startAnim() {
-    setAnimStep(1)
-    let step = 1
-    animRef.current = setInterval(() => {
-      step++
-      if (step > TRACE_STEP_COUNT) {
-        clearInterval(animRef.current!)
-        return
-      }
-      setAnimStep(step)
-    }, 760)
-  }
-
-  function stopAnim() {
-    if (animRef.current) clearInterval(animRef.current)
-  }
-
-  useEffect(() => () => stopAnim(), [])
-
   async function runDemo() {
-    stopAnim()
+    setAnimStep(0)
     setResult(null)
     setAgentReasoning("")
     setCopyState("idle")
     setLoading(true)
-    startAnim()
 
     try {
       const response = await fetch("/api/trigger-payment", {
@@ -113,11 +105,12 @@ export default function Page() {
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue
           try {
-            const event = JSON.parse(line.slice(6)) as { type: string; text?: string; result?: TriggerResult }
+            const event = JSON.parse(line.slice(6)) as { type: string; text?: string; step?: number; result?: TriggerResult }
             if (event.type === "token" && event.text) {
               setAgentReasoning((prev) => prev + event.text)
+            } else if (event.type === "gate" && typeof event.step === "number") {
+              setAnimStep(event.step)
             } else if (event.type === "done" && event.result) {
-              stopAnim()
               setResult(event.result)
               setLoading(false)
             }
@@ -125,7 +118,6 @@ export default function Page() {
         }
       }
     } catch (err) {
-      stopAnim()
       setResult({
         slot: selectedScenario.slot,
         agent: selectedAgent,
@@ -159,7 +151,7 @@ export default function Page() {
         mandateValid: result?.mandateValid ?? null,
         policyThreshold: result?.policyThreshold ?? "$2",
         policyDecision: result ? (result.httpStatus === 200 ? "approved" : "rejected") : "not run",
-        rejectionReason: result?.body?.error ?? null,
+        rejectionReason: cleanRejectionReason(result?.body?.error),
         settlementTxHash: result?.settlementTxHash ?? null,
         settlementTxUrl: result?.settlementTxUrl ?? null,
         attestationTxHash: result?.attestationTxHash ?? null,
@@ -177,202 +169,207 @@ export default function Page() {
   }
 
   return (
-    <main className="dark min-h-[calc(100vh-57px)] overflow-x-hidden bg-[#050706] text-white">
-      <div className="mx-4 box-border flex w-[calc(100vw-2rem)] min-w-0 max-w-7xl flex-col gap-6 py-5 sm:mx-6 sm:w-[calc(100vw-3rem)] lg:mx-auto lg:w-full lg:px-8">
+    <PageFrame>
+      <PageHead
+        eyebrow="The live rail"
+        title="Compliance before settlement"
+        question="Send a payment through the rail. Each gate approves, blocks, or skips — a rejected flow physically stops before it can settle."
+        right={<TopStatus />}
+      />
 
-        {/* Framing */}
-        <div className="rounded-lg border border-teal-300/15 bg-teal-300/5 px-4 py-3">
-          <p className="text-sm text-teal-100/80">
-            Metal enforces identity, authorization, policy, and attestation at the settlement layer — before funds move.
-            This is that primitive stack, live on Base Sepolia. Pick a scenario and run it.
-          </p>
-        </div>
-
-        <section className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="flex min-w-0 flex-col gap-4">
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-teal-300/20 bg-teal-300/10 px-3 py-1 text-xs text-teal-100">
-                  <span className="h-1.5 w-1.5 rounded-full bg-teal-300 shadow-[0_0_12px_rgba(94,234,212,0.9)]" />
-                  Base Sepolia settlement demo
-                </div>
-                <h1 className="text-3xl font-semibold text-white sm:text-4xl">Metal Demo</h1>
-                <p className="mt-2 max-w-2xl text-sm text-white/58">
-                  A live 402 payment moving through identity, authorization, policy, settlement, and attestation gates.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={runDemo}
-                  disabled={loading}
-                  className="border border-teal-200/30 bg-teal-200 text-[#04110f] hover:bg-teal-100"
-                >
-                  <Play className="h-4 w-4" />
-                  {loading ? "Running" : "Run Demo"}
-                </Button>
-                <Link
-                  href="/feed"
-                  className="inline-flex h-10 items-center justify-center gap-1.5 border border-white/15 bg-white/[0.04] px-6 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-white/10"
-                >
-                  Feed
-                  <ArrowUpRight className="h-4 w-4" />
-                </Link>
-              </div>
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-4">
-              {SCENARIOS.map((scenario, index) => {
-                const agent = demoAgents.find((a) => a.id === scenario.agentId)!
-                const selected = index === selectedIndex
-                return (
-                  <button
-                    key={scenario.agentId}
-                    onClick={() => {
-                      if (loading) return
-                      setSelectedIndex(index)
-                      setResult(null)
-                      setAgentReasoning("")
-                      setCopyState("idle")
-                    }}
-                    className={`min-w-0 overflow-hidden rounded-lg border p-3 text-left transition ${
-                      selected
-                        ? "border-teal-300/60 bg-teal-300/12 shadow-[0_0_28px_rgba(45,212,191,0.14)]"
-                        : "border-white/10 bg-white/[0.04] hover:border-white/25 hover:bg-white/[0.07]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-[11px] text-white/45">Slot {scenario.slot}</span>
-                      <Badge
-                        variant={agent.status === "approved" ? "outline" : "destructive"}
-                        className={`hidden text-[10px] sm:inline-flex ${agent.status === "approved" ? "border-teal-300/40 bg-teal-300/10 text-teal-100" : "border-red-400/50 bg-red-500/15 text-red-100"}`}
-                      >
-                        {agent.status}
-                      </Badge>
-                    </div>
-                    <p className="mt-2 text-sm font-medium text-white">{scenario.title}</p>
-                    <p className="mt-1 text-xs text-white/45">{agent.failsAt === "-" ? "All gates open" : agent.failsAt}</p>
-                  </button>
-                )
-              })}
-            </div>
-
-            <SettlementScene
-              agentLabel={selectedAgent.id}
-              amountLabel={result?.route.price ?? (selectedAgent.route.includes("$5") ? "$5.00" : "$0.01")}
-              routeLabel={result?.route.path ?? (selectedAgent.route.startsWith("Premium") ? "/api/premium-risk-report" : "/api/settlement-risk-report")}
-              mandateLimit={selectedAgent.mandateLimit}
-              failAt={selectedAgent.failsAt}
-              activeStep={activeStep}
-              running={loading}
-              approved={Boolean(approved)}
-              rejectedReason={error}
-              settlementTx={result?.settlementTxUrl}
-              attestationTx={result?.attestationTxUrl}
-            />
-          </div>
-
-          <aside className="flex min-w-0 flex-col gap-4">
-            <section className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-              <div className="flex items-center gap-2">
-                <span className="text-teal-300">◆</span>
-                <p className="text-xs uppercase tracking-wide text-white/40">Agent</p>
-                {loading && !agentReasoning && (
-                  <span className="text-xs text-white/30 italic">thinking…</span>
-                )}
-              </div>
-              {agentReasoning ? (
-                <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-5 text-teal-50/85">
-                  {agentReasoning}
-                  {loading && <span className="animate-pulse">▋</span>}
-                </pre>
-              ) : (
-                <p className="mt-3 text-sm leading-6 text-white/50 italic">
-                  Agent reasoning will stream here when you run the demo.
-                </p>
+      <div className="inline-flex w-fit max-w-full flex-wrap items-center gap-1 rounded-md border border-border bg-card p-1">
+        <span className="metal-eyebrow px-2">Scenario</span>
+        {SCENARIOS.map((scenario, index) => {
+          const agent = demoAgents.find((a) => a.id === scenario.agentId)!
+          const selected = index === selectedIndex
+          return (
+            <button
+              key={scenario.slot}
+              disabled={loading || scenario.disabled}
+              onClick={() => {
+                if (loading || scenario.disabled) return
+                setSelectedIndex(index)
+                setResult(null)
+                setAgentReasoning("")
+                setCopyState("idle")
+              }}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-sm px-3 py-2 text-left text-sm font-medium transition",
+                selected
+                  ? "bg-muted text-foreground"
+                  : "bg-transparent text-muted-foreground hover:text-foreground",
+                scenario.disabled && "cursor-not-allowed opacity-55 hover:text-muted-foreground"
               )}
-              <Separator className="my-4 bg-white/10" />
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <p className="text-white/40">Payer</p>
-                  <p className="mt-1 font-mono text-white">{shortAddress(result?.payer)}</p>
-                </div>
-                <div>
-                  <p className="text-white/40">Delegator</p>
-                  <p className="mt-1 font-mono text-white">{shortAddress(result?.mandateDelegator)}</p>
-                </div>
-                <div>
-                  <p className="text-white/40">Policy</p>
-                  <p className="mt-1 font-mono text-white">{result?.policyThreshold ?? "$2"} ceiling</p>
-                </div>
-                <div>
-                  <p className="text-white/40">Decision</p>
-                  <p className="mt-1 font-mono text-white">
-                    {loading ? "running" : result ? (approved ? "approved" : "rejected") : "ready"}
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            <section className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs uppercase tracking-wide text-white/40">Trace</p>
-                {result && (
-                  <Badge
-                    variant={approved ? "outline" : "destructive"}
-                    className={approved ? "border-teal-300/40 bg-teal-300/10 text-teal-100" : "border-red-400/50 bg-red-500/15 text-red-100"}
-                  >
-                    {approved ? "approved" : "blocked"}
-                  </Badge>
+            >
+              <span
+                className={cn(
+                  "size-2 rounded-full bg-muted-foreground",
+                  selected && agent.status === "approved" && "bg-emerald-400",
+                  selected && agent.status !== "approved" && "bg-destructive"
                 )}
-              </div>
-              <div className="mt-4">
-                <TracePanel steps={traceSteps} />
-              </div>
-            </section>
-          </aside>
-        </section>
+              />
+              {scenario.title}
+            </button>
+          )
+        })}
+      </div>
 
-        <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="min-w-0 rounded-lg border border-white/10 bg-white/[0.04] p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-white/40">Proof Bundle</p>
-                <p className="mt-1 text-sm text-white/55">Copyable evidence package for the selected run.</p>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={copyProof}
-                className="text-white/70 hover:bg-white/10 hover:text-white"
-              >
-                <Copy className="h-4 w-4" />
-                {copyState === "copied" ? "Copied" : "Copy"}
-              </Button>
-            </div>
-            <pre className="mt-4 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded border border-white/10 bg-black/35 p-4 text-xs text-teal-50/82">
+      <SettlementScene
+        agentLabel={selectedScenario.displayAgent}
+        agentReasoning={agentReasoning}
+        amountLabel={result?.route.price ?? (selectedAgent.route.includes("$5") ? "$5.00" : "$0.01")}
+        routeLabel={result?.route.path ?? (selectedAgent.route.startsWith("Premium") ? "/api/premium-risk-report" : "/api/settlement-risk-report")}
+        mandateLimit={selectedAgent.mandateLimit}
+        activeStep={activeStep}
+        running={loading}
+        approved={Boolean(approved)}
+        rejectedReason={error}
+        settlementTx={result?.settlementTxUrl}
+        attestationTx={result?.attestationTxUrl}
+        action={
+          <Button
+            size="lg"
+            onClick={runDemo}
+            disabled={loading}
+            className="border border-foreground bg-foreground text-background hover:bg-foreground/85"
+          >
+            {loading ? (
+              <>
+                <Zap className="h-4 w-4 animate-pulse" />
+                Running
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4" />
+                Run payment
+              </>
+            )}
+          </Button>
+        }
+      />
+
+      <section className="grid min-w-0 items-stretch gap-4 lg:grid-cols-[1.05fr_1fr_0.82fr]">
+        <Panel title="Technical trace" icon={<Zap className="size-4" />}>
+          <TracePanel steps={traceSteps} />
+        </Panel>
+
+        <Panel
+          title="Proof / evidence"
+          icon={<Wallet className="size-4" />}
+          action={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={copyProof}
+              disabled={!result}
+              className="h-10 text-muted-foreground"
+            >
+              <Copy className="h-4 w-4" />
+              {copyState === "copied" ? "Copied" : "Copy"}
+            </Button>
+          }
+        >
+          {result ? (
+            <pre className="h-full min-h-0 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-6 text-foreground/80">
               {proofBundle}
             </pre>
-          </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Portable, on-chain-anchored evidence appears here after a run.
+            </p>
+          )}
+        </Panel>
 
-          <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-            <p className="text-xs uppercase tracking-wide text-white/40">Demo Readout</p>
-            <div className="mt-4 grid gap-3 text-sm">
-              <div className="rounded border border-white/10 bg-white/[0.03] p-3">
-                <p className="text-white/45">Thesis</p>
-                <p className="mt-1 text-white/78">Compliance decisions execute before settlement, not after.</p>
-              </div>
-              <div className="rounded border border-white/10 bg-white/[0.03] p-3">
-                <p className="text-white/45">Failure copy</p>
-                <p className="mt-1 text-white/78">Blocked before funds moved.</p>
-              </div>
-              <div className="rounded border border-white/10 bg-white/[0.03] p-3">
-                <p className="text-white/45">Primitive stack</p>
-                <p className="mt-1 font-mono text-xs text-white/72">x402 / ERC-8004 / AP2 / Policy / Attestation</p>
-              </div>
-            </div>
-          </div>
-        </section>
+        <Panel title="Packet" icon={<Wallet className="size-4" />}>
+          <PacketPanel
+            amount={result?.route.price ?? (selectedAgent.route.includes("$5") ? "$5.00" : "$0.01")}
+            from={result?.payer ? shortAddress(result.payer) : selectedScenario.packetFrom}
+            mandate={selectedScenario.mandate}
+            policy="pol_9f8a…d21b"
+          />
+        </Panel>
+      </section>
+    </PageFrame>
+  )
+}
+
+function TopStatus() {
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="flex overflow-hidden rounded-md border border-border bg-card">
+        <div className="border-r border-border px-4 py-2">
+          <p className="metal-eyebrow">Network</p>
+          <p className="mt-1 flex items-center gap-2 text-sm font-semibold">
+            <span className="size-1.5 rounded-full bg-emerald-400" />
+            Base Sepolia
+          </p>
+        </div>
+        <div className="px-4 py-2">
+          <p className="metal-eyebrow">Environment</p>
+          <p className="mt-1 text-sm font-semibold">Testnet</p>
+        </div>
       </div>
-    </main>
+    </div>
+  )
+}
+
+function Panel({
+  title,
+  icon,
+  action,
+  children,
+}: {
+  title: string
+  icon: ReactNode
+  action?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <section className="metal-card flex min-h-80 flex-col rounded-md p-0">
+      <div className="flex h-[72px] items-center gap-3 border-b border-border px-5">
+        <span className="text-muted-foreground">{icon}</span>
+        <h2 className="text-sm font-semibold">{title}</h2>
+        <div className="ml-auto">{action}</div>
+      </div>
+      <div className="min-h-0 flex-1 p-5">{children}</div>
+    </section>
+  )
+}
+
+function PacketPanel({
+  amount,
+  from,
+  mandate,
+  policy,
+}: {
+  amount: string
+  from: string
+  mandate: string
+  policy: string
+}) {
+  const rows = [
+    ["Amount", `${amount.replace("$", "")} USDC`],
+    ["From", from],
+    ["To", "0xMetal…9E21"],
+    ["Mandate", mandate],
+    ["Policy", policy],
+    ["Created", "14:23:10.912Z"],
+  ]
+
+  return (
+    <div className="grid">
+      {rows.map(([label, value], index) => (
+        <div
+          key={label}
+          className={cn(
+            "flex items-center justify-between gap-4 py-3 text-sm",
+            index < rows.length - 1 && "border-b border-border"
+          )}
+        >
+          <span className="text-muted-foreground">{label}</span>
+          <span className="text-right font-mono text-foreground">{value}</span>
+        </div>
+      ))}
+    </div>
   )
 }

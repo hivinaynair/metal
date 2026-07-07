@@ -3,9 +3,11 @@ import { privateKeyToAccount } from "viem/accounts"
 import { baseSepolia } from "viem/chains"
 import { CdpClient } from "@coinbase/cdp-sdk"
 import type { EvmServerAccount } from "@coinbase/cdp-sdk"
+import { eq } from "drizzle-orm"
 import { registerInErc8004 } from "@workspace/shared/erc8004"
 import { BASE_SEPOLIA_USDC_ADDRESS, ERC20_BALANCE_ABI } from "@workspace/shared/abis"
 import { MANDATE_EIP712_DOMAIN, MANDATE_EIP712_TYPES } from "@workspace/shared/mandate"
+import { createDb, schema } from "@workspace/shared/db"
 import { env } from "@/env"
 
 interface AgentConfig {
@@ -24,7 +26,6 @@ const AGENT_CONFIGS: AgentConfig[] = [
 const MANDATE_EXPIRY = 9999999999n
 const USDC_MIN_BALANCE = 100_000n // 0.10 USDC in atomic units (6 decimals)
 
-
 export interface AgentAccounts {
   agent1: EvmServerAccount
   agent2: EvmServerAccount
@@ -34,8 +35,6 @@ export interface AgentAccounts {
 
 // Module-level cache: init runs once per process, retries on failure
 let initPromise: Promise<AgentAccounts> | null = null
-const registeredAgents = new Map<string, bigint>()
-const registeredMandates = new Set<string>()
 
 // address (lowercase) → serialized mandate JSON for X-AP2-Mandate header
 const mandateHeaders = new Map<string, string>()
@@ -55,6 +54,7 @@ export function initAgents(): Promise<AgentAccounts> {
 }
 
 async function runInit(): Promise<AgentAccounts> {
+  const db = createDb(env.DATABASE_URL)
   const cdp = new CdpClient({
     apiKeyId: env.CDP_API_KEY_ID,
     apiKeySecret: env.CDP_API_KEY_SECRET,
@@ -74,6 +74,7 @@ async function runInit(): Promise<AgentAccounts> {
     if (!config.register) continue
 
     const address = account.address as `0x${string}`
+    const addressLower = address.toLowerCase()
 
     // Fund ETH (gas) if balance is zero
     const ethBalance = await publicClient.getBalance({ address })
@@ -94,14 +95,44 @@ async function runInit(): Promise<AgentAccounts> {
       await cdp.evm.requestFaucet({ address: account.address, network: "base-sepolia", token: "usdc" })
     }
 
-    let agentId = registeredAgents.get(account.address)
-    if (!agentId) {
+    // 1. Get or create ERC-8004 registration
+    const agentRow = await db.query.agents.findFirst({
+      where: eq(schema.agents.address, addressLower),
+    })
+
+    let agentId: bigint
+    if (agentRow) {
+      agentId = agentRow.agentId
+      console.log(`[init] ${config.name} already registered — agentId: ${agentId}`)
+    } else {
       agentId = await registerInErc8004(account, env.APP_URL, publicClient)
-      registeredAgents.set(account.address, agentId)
+      await db.insert(schema.agents).values({
+        address: addressLower,
+        agentId,
+        name: config.name,
+      })
       console.log(`[init] ${config.name} registered — agentId: ${agentId}`)
     }
 
-    if (!registeredMandates.has(account.address)) {
+    // 2. Get or create mandate
+    const mandateRow = await db.query.mandates.findFirst({
+      where: eq(schema.mandates.agentAddress, addressLower),
+    })
+
+    if (mandateRow) {
+      console.log(`[init] Mandate already exists for ${config.name}`)
+      mandateHeaders.set(addressLower, JSON.stringify({
+        agentId: mandateRow.nonce.toString(),
+        payload: {
+          agent: address,
+          delegator: mandateRow.delegatorAddress,
+          maxAmountUsdc: mandateRow.maxAmountUsdc.toString(),
+          expiry: mandateRow.expiry.toString(),
+          nonce: mandateRow.nonce.toString(),
+        },
+        signature: mandateRow.signature,
+      }))
+    } else {
       const mandatePayload = {
         agent: address,
         delegator: delegator.address,
@@ -139,7 +170,16 @@ async function runInit(): Promise<AgentAccounts> {
         throw new Error(`Mandate registration failed for ${config.name}: ${response.status} ${await response.text()}`)
       }
 
-      mandateHeaders.set(account.address.toLowerCase(), JSON.stringify({
+      await db.insert(schema.mandates).values({
+        agentAddress: addressLower,
+        delegatorAddress: delegator.address,
+        maxAmountUsdc: config.maxAmountUsdc,
+        expiry: MANDATE_EXPIRY,
+        nonce: agentId,
+        signature,
+      })
+
+      mandateHeaders.set(addressLower, JSON.stringify({
         agentId: agentId.toString(),
         payload: {
           agent: mandatePayload.agent,
@@ -150,7 +190,6 @@ async function runInit(): Promise<AgentAccounts> {
         },
         signature,
       }))
-      registeredMandates.add(account.address)
       console.log(`[init] Mandate registered for ${config.name}`)
     }
   }

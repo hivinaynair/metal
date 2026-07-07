@@ -1,43 +1,49 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { CheckCircle2, Circle, Lock, ShieldCheck, XCircle } from "lucide-react"
-import { Badge } from "@workspace/ui/components/badge"
+import type { ReactNode } from "react"
+import {
+  Check,
+  Coins,
+  FileText,
+  LinkIcon,
+  Lock,
+  Settings,
+  ShieldCheck,
+  X,
+  Zap,
+} from "lucide-react"
+
 import { cn } from "@workspace/ui/lib/utils"
 import { POLICY_MAX_AMOUNT_USDC } from "@/lib/demo-scenarios"
 
 export type GateState = "idle" | "running" | "approved" | "rejected" | "skipped"
 
-interface Gate {
-  key: string
-  label: string
-  short: string
-  detail: string
-}
+const gates = [
+  { key: "challenge", label: "402", icon: Zap },
+  { key: "identity", label: "ERC-8004", icon: ShieldCheck },
+  { key: "mandate", label: "AP2", icon: FileText },
+  { key: "policy", label: "Policy", icon: Settings },
+  { key: "settlement", label: "Settlement", icon: Coins },
+  { key: "attestation", label: "Attestation", icon: LinkIcon },
+] as const
 
-const gates: Gate[] = [
-  { key: "challenge", label: "402 Challenge", short: "402", detail: "paid route" },
-  { key: "identity", label: "ERC-8004", short: "ID", detail: "agent identity" },
-  { key: "mandate", label: "AP2 Mandate", short: "AP2", detail: "delegated spend" },
-  { key: "policy", label: "Policy", short: "POL", detail: "settlement rule" },
-  { key: "settlement", label: "Settlement", short: "SET", detail: "USDC transfer" },
-  { key: "attestation", label: "Attestation", short: "ATT", detail: "audit proof" },
-]
-
-const packetStops = [4, 19, 34, 49, 64, 79, 94]
+// Packet stop positions (%) per step — 0=start, 1–6=gate centers across full width
+const stops = [4, 8, 25, 42, 58, 75, 92]
 
 interface SettlementSceneProps {
   agentLabel: string
+  agentReasoning?: string
   amountLabel: string
   routeLabel: string
   mandateLimit: string
-  failAt: string
   activeStep: number
   running: boolean
   approved: boolean
   rejectedReason?: string
   settlementTx?: string
   attestationTx?: string
+  action?: ReactNode
 }
 
 function failedStep(reason?: string) {
@@ -47,14 +53,20 @@ function failedStep(reason?: string) {
   return reason ? 4 : 0
 }
 
-function gateState(index: number, activeStep: number, approved: boolean, rejectedReason?: string): GateState {
+function gateState(index: number, activeStep: number, approved: boolean, running: boolean, rejectedReason?: string): GateState {
   const step = index + 1
   const fail = failedStep(rejectedReason)
+  const isFinalFailure = !running && !approved && activeStep > 0
 
   if (approved && activeStep >= step) return "approved"
   if (fail > 0) {
     if (step < fail) return "approved"
     if (step === fail) return "rejected"
+    return "skipped"
+  }
+  if (isFinalFailure) {
+    if (step < activeStep) return "approved"
+    if (step === activeStep) return "rejected"
     return "skipped"
   }
   if (activeStep === step) return "running"
@@ -64,257 +76,196 @@ function gateState(index: number, activeStep: number, approved: boolean, rejecte
 
 function packetPosition(activeStep: number, rejectedReason?: string) {
   const fail = failedStep(rejectedReason)
-  if (fail > 0) return packetStops[fail]!
-  return packetStops[Math.min(Math.max(activeStep, 0), packetStops.length - 1)]!
+  if (fail > 0) return stops[fail]!
+  return stops[Math.min(Math.max(activeStep, 0), stops.length - 1)]!
 }
 
-function railProgress(activeStep: number, rejectedReason?: string) {
-  return packetPosition(activeStep, rejectedReason)
-}
+function GateModule({
+  state,
+  icon: Icon,
+  label,
+}: {
+  state: GateState
+  icon: (typeof gates)[number]["icon"]
+  label: string
+}) {
+  const active = state === "approved" || state === "running"
+  const blocked = state === "rejected"
+  const skipped = state === "skipped"
 
-function stateStyles(state: GateState) {
-  if (state === "approved") {
-    return {
-      shell: "border-teal-300/60 bg-teal-300/12 text-teal-50 shadow-[0_0_28px_rgba(45,212,191,0.18)]",
-      dot: "bg-teal-300 shadow-[0_0_18px_rgba(94,234,212,0.85)]",
-      line: "bg-teal-300",
-    }
-  }
-  if (state === "running") {
-    return {
-      shell: "border-cyan-200/70 bg-cyan-300/12 text-cyan-50 shadow-[0_0_32px_rgba(103,232,249,0.22)]",
-      dot: "bg-cyan-200 shadow-[0_0_20px_rgba(103,232,249,0.95)]",
-      line: "bg-cyan-200",
-    }
-  }
-  if (state === "rejected") {
-    return {
-      shell: "border-red-400/75 bg-red-500/16 text-red-50 shadow-[0_0_34px_rgba(248,113,113,0.26)]",
-      dot: "bg-red-400 shadow-[0_0_20px_rgba(248,113,113,0.9)]",
-      line: "bg-red-400",
-    }
-  }
-  if (state === "skipped") {
-    return {
-      shell: "border-white/10 bg-white/[0.03] text-white/24",
-      dot: "bg-white/18",
-      line: "bg-white/10",
-    }
-  }
-  return {
-    shell: "border-white/12 bg-white/[0.045] text-white/55",
-    dot: "bg-white/28",
-    line: "bg-white/16",
-  }
-}
+  const flangeClass = cn(
+    "absolute -left-2 -right-2 h-[5px] rounded-[2px] border bg-gradient-to-b from-[#141a1f] to-[#0a0d0f]",
+    active && "border-accent/20 shadow-[0_0_6px_rgba(63,224,208,0.1)]",
+    blocked && "border-destructive/20",
+    !active && !blocked && "border-white/[0.05]"
+  )
 
-function GateIcon({ state }: { state: GateState }) {
-  if (state === "approved") return <CheckCircle2 className="h-4 w-4 text-teal-200" />
-  if (state === "rejected") return <XCircle className="h-4 w-4 text-red-200" />
-  if (state === "running") return <ShieldCheck className="h-4 w-4 text-cyan-100" />
-  if (state === "skipped") return <Lock className="h-4 w-4 text-white/25" />
-  return <Circle className="h-4 w-4 text-white/35" />
+  return (
+    <div className={cn("flex flex-1 flex-col items-center pt-3 gap-2", skipped && "opacity-30")}>
+      {/* Label */}
+      <span className={cn(
+        "font-mono text-[9px] font-bold uppercase tracking-[0.14em]",
+        active && "text-accent",
+        blocked && "text-destructive",
+        !active && !blocked && "text-white/18"
+      )}>
+        {label}
+      </span>
+
+      {/* Gate body with flanges */}
+      <div className="relative">
+        {/* Top flanges */}
+        <div className={cn(flangeClass, "top-2")} />
+        {/* Bottom flanges */}
+        <div className={cn(flangeClass, "bottom-2")} />
+
+        {/* Icon block */}
+        <div className={cn(
+          "relative flex h-14 w-9 items-center justify-center rounded-[3px] border bg-gradient-to-b from-[#0e1215] to-[#080b0d]",
+          active && "border-accent/25 shadow-[0_0_16px_rgba(63,224,208,0.12),inset_0_0_12px_rgba(63,224,208,0.05)]",
+          blocked && "border-destructive/25 shadow-[0_0_16px_rgba(239,96,96,0.12),inset_0_0_12px_rgba(239,96,96,0.05)]",
+          !active && !blocked && "border-white/[0.06]"
+        )}>
+          {active && (
+            <div className="absolute inset-0 rounded-[3px] opacity-40 blur-sm"
+              style={{ background: "radial-gradient(circle at 50% 50%, rgba(63,224,208,0.15), transparent 70%)" }} />
+          )}
+          {blocked && (
+            <div className="absolute inset-0 rounded-[3px] opacity-40 blur-sm"
+              style={{ background: "radial-gradient(circle at 50% 50%, rgba(239,96,96,0.15), transparent 70%)" }} />
+          )}
+          <Icon className={cn(
+            "relative size-3.5",
+            active && "text-accent",
+            blocked && "text-destructive",
+            !active && !blocked && "text-white/15"
+          )} />
+        </div>
+
+        {/* Status badge */}
+        {(state === "approved" || state === "rejected") && (
+          <span className={cn(
+            "absolute -right-2 -top-2 grid size-[18px] place-items-center rounded-full border-2 border-[#060709]",
+            state === "approved"
+              ? "bg-emerald-500 shadow-[0_0_8px_rgba(52,211,153,0.5)]"
+              : "bg-destructive shadow-[0_0_8px_rgba(239,96,96,0.5)]"
+          )}>
+            {state === "approved" ? <Check className="size-2.5 text-white" /> : <X className="size-2.5 text-white" />}
+          </span>
+        )}
+        {skipped && <Lock className="absolute -right-2 -top-2 size-3 text-white/20" />}
+      </div>
+    </div>
+  )
 }
 
 export function SettlementScene({
   agentLabel,
+  agentReasoning,
   amountLabel,
   routeLabel,
   mandateLimit,
-  failAt,
   activeStep,
   running,
   approved,
   rejectedReason,
   settlementTx,
   attestationTx,
+  action,
 }: SettlementSceneProps) {
-  const rejected = Boolean(rejectedReason)
+  const rejected = Boolean(rejectedReason) || (!running && !approved && activeStep > 0)
   const packetLeft = packetPosition(activeStep, rejectedReason)
-  const progress = railProgress(activeStep, rejectedReason)
+  const statusLabel = running ? "RUNNING" : approved ? "SETTLED" : rejected ? "BLOCKED" : "READY"
+  const latestReasoning = agentReasoning?.replace(/\s+/g, " ").trim().slice(-100)
 
   return (
-    <section className="relative box-border w-full max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-white/10 bg-[#060908] text-white shadow-2xl sm:max-w-full">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(45,212,191,0.2),transparent_36%),linear-gradient(135deg,rgba(255,255,255,0.07)_0_1px,transparent_1px_24px)]" />
-      <div className="absolute inset-x-10 top-10 h-px bg-gradient-to-r from-transparent via-teal-200/50 to-transparent" />
+    <section className="overflow-hidden rounded-sm border border-accent/10 bg-[#060709] text-foreground">
 
-      <div className="relative grid min-w-0 gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_260px] lg:p-6">
-        <div className="min-w-0">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-teal-100/70">Settlement Rail</p>
-              <h2 className="mt-1 max-w-xl text-wrap text-xl font-semibold text-white">
-                Payment primitives executing before funds move
-              </h2>
-            </div>
-            <Badge
-              variant={rejected ? "destructive" : approved ? "outline" : "secondary"}
-              className={cn(
-                "border-white/20 bg-white/10 text-white",
-                approved && "border-teal-300/50 bg-teal-300/10 text-teal-100",
-                rejected && "border-red-400/70 bg-red-500/20 text-red-50",
-              )}
-            >
-              {running ? "running" : rejected ? "blocked before funds moved" : approved ? "approved" : "ready"}
-            </Badge>
+      {/* HUD header */}
+      <div className="flex items-center gap-3 border-b border-accent/[0.07] bg-accent/[0.025] px-5 py-2.5">
+        <div className="size-1.5 shrink-0 rounded-full bg-accent shadow-[0_0_6px_theme(colors.accent/DEFAULT)]" />
+        <span className="shrink-0 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-accent/70">
+          x402 Settlement Pipeline
+        </span>
+        {latestReasoning && (
+          <span className="ml-2 min-w-0 truncate font-mono text-[9px] text-white/20">
+            {latestReasoning}
+          </span>
+        )}
+        <span className="ml-auto shrink-0 font-mono text-[9px] text-white/15">{agentLabel}</span>
+      </div>
+
+      {/* Pipeline */}
+      <div className="relative h-[110px] px-6">
+        {/* Track background */}
+        <div className="absolute left-6 right-6 top-1/2 h-px -translate-y-1/2 bg-white/[0.04]" />
+
+        {/* Track fill */}
+        <motion.div
+          className={cn(
+            "absolute left-6 top-1/2 h-px -translate-y-1/2",
+            rejected
+              ? "shadow-[0_0_6px_rgba(239,96,96,0.5)] bg-gradient-to-r from-destructive/90 to-destructive/20"
+              : "shadow-[0_0_6px_rgba(63,224,208,0.5)] bg-gradient-to-r from-accent/90 to-accent/20"
+          )}
+          initial={false}
+          animate={{ width: `calc(${Math.max(0, packetLeft - 4)}% - 1.5rem)` }}
+          transition={{ duration: 0.55, ease: [0.2, 0, 0, 1] }}
+        />
+
+        {/* Packet */}
+        <motion.div
+          className="absolute top-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
+          initial={false}
+          animate={{ left: `${packetLeft}%` }}
+          transition={{ duration: 0.72, ease: [0.2, 0, 0, 1] }}
+        >
+          <div className={cn(
+            "rounded-[3px] border px-3 py-2 text-center backdrop-blur-md",
+            rejected
+              ? "border-destructive/50 bg-[#060709]/90 shadow-[0_0_20px_rgba(239,96,96,0.18),0_8px_24px_rgba(0,0,0,0.6)]"
+              : "border-accent/50 bg-[#060709]/90 shadow-[0_0_20px_rgba(63,224,208,0.18),0_8px_24px_rgba(0,0,0,0.6)]"
+          )}>
+            <p className={cn(
+              "font-mono text-[7px] font-bold uppercase tracking-[0.18em]",
+              rejected ? "text-destructive" : "text-accent"
+            )}>
+              Payment
+            </p>
+            <p className="mt-0.5 font-mono text-xs font-semibold text-white">{amountLabel}</p>
           </div>
+        </motion.div>
 
-          <div className="relative overflow-hidden rounded-lg border border-white/10 bg-[#030504] p-4 sm:p-5">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_46%_42%,rgba(20,184,166,0.18),transparent_34%),linear-gradient(to_bottom,rgba(255,255,255,0.05),transparent_36%)]" />
-            <div className="absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-teal-200/18 to-transparent" />
-
-            <div className="relative mb-4 flex items-center justify-between text-[10px] uppercase tracking-wide text-white/40">
-              <span>Agent authorization</span>
-              <span>Base Sepolia settlement</span>
-            </div>
-
-            <div className="relative min-h-[360px] overflow-hidden pt-12 sm:min-h-[430px]">
-              <div className="absolute left-6 right-6 top-[118px] h-2 rounded-full bg-white/10 sm:left-8 sm:right-8">
-                <motion.div
-                  className={cn(
-                    "h-full rounded-full bg-gradient-to-r from-teal-300 via-cyan-200 to-teal-300 shadow-[0_0_28px_rgba(45,212,191,0.48)]",
-                    rejected && "from-teal-300 via-cyan-200 to-red-400",
-                  )}
-                  initial={false}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ type: "spring", stiffness: 80, damping: 18 }}
-                />
-              </div>
-
-              <motion.div
-                className="absolute top-[84px] z-20 -translate-x-1/2"
-                initial={false}
-                animate={{ left: `${packetLeft}%` }}
-                transition={{ type: "spring", stiffness: 90, damping: 17 }}
-              >
-                <motion.div
-                  className={cn(
-                    "relative flex h-16 w-24 items-center justify-center rounded-full border text-xs font-semibold",
-                    rejected
-                      ? "border-red-300/80 bg-red-500/25 text-red-50 shadow-[0_0_44px_rgba(248,113,113,0.48)]"
-                      : "border-teal-100/80 bg-teal-300/22 text-teal-50 shadow-[0_0_44px_rgba(45,212,191,0.52)]",
-                  )}
-                  animate={{
-                    scale: running ? [1, 1.05, 1] : 1,
-                    boxShadow: rejected
-                      ? "0 0 44px rgba(248,113,113,0.48)"
-                      : "0 0 44px rgba(45,212,191,0.52)",
-                  }}
-                  transition={{ duration: 1, repeat: running ? Infinity : 0 }}
-                >
-                  <span>{amountLabel}</span>
-                  <span className="absolute inset-0 rounded-full border border-white/30" />
-                </motion.div>
-              </motion.div>
-
-              <div className="relative z-10 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-                {gates.map((gate, index) => {
-                  const state = gateState(index, activeStep, approved, rejectedReason)
-                  const styles = stateStyles(state)
-                  return (
-                    <motion.div
-                      key={gate.key}
-                      className={cn("relative min-h-36 min-w-0 rounded-lg border p-3 backdrop-blur sm:min-h-40", styles.shell)}
-                      initial={false}
-                      animate={{
-                        y: state === "running" ? [0, -4, 0] : 0,
-                        opacity: state === "skipped" ? 0.45 : 1,
-                      }}
-                      transition={{ duration: 0.9, repeat: state === "running" ? Infinity : 0 }}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className={cn("h-2.5 w-2.5 rounded-full", styles.dot)} />
-                        <GateIcon state={state} />
-                      </div>
-                      <div className="mt-8 sm:mt-12">
-                        <p className="font-mono text-[11px] uppercase tracking-wide text-white/45">{gate.short}</p>
-                        <p className="mt-1 break-words text-sm font-medium text-white">{gate.label}</p>
-                        <p className="mt-1 text-xs text-white/42">{gate.detail}</p>
-                      </div>
-                      <motion.div
-                        className={cn("absolute inset-x-3 bottom-3 h-1 rounded-full", styles.line)}
-                        initial={false}
-                        animate={{ scaleX: state === "running" ? [0.25, 1, 0.25] : state === "idle" ? 0.22 : 1 }}
-                        transition={{ duration: 1.1, repeat: state === "running" ? Infinity : 0 }}
-                        style={{ transformOrigin: "left" }}
-                      />
-                    </motion.div>
-                  )
-                })}
-              </div>
-
-              <motion.div
-                className="mt-5 grid min-w-0 gap-2 text-xs text-white/70 sm:grid-cols-3"
-                initial={false}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <div className="min-w-0 rounded border border-white/10 bg-white/[0.04] p-3">
-                  <p className="text-white/40">Agent</p>
-                  <p className="mt-1 break-all font-mono text-white">{agentLabel}</p>
-                </div>
-                <div className="min-w-0 rounded border border-white/10 bg-white/[0.04] p-3">
-                  <p className="text-white/40">Resource</p>
-                  <p className="mt-1 break-all font-mono text-white">{routeLabel}</p>
-                </div>
-                <div className="min-w-0 rounded border border-white/10 bg-white/[0.04] p-3">
-                  <p className="text-white/40">Mandate / Policy</p>
-                  <p className="mt-1 font-mono text-white">
-                    {mandateLimit} / ${POLICY_MAX_AMOUNT_USDC}
-                  </p>
-                </div>
-              </motion.div>
-            </div>
-          </div>
+        {/* Gates */}
+        <div className="relative z-10 flex h-full w-full">
+          {gates.map((gate, index) => {
+            const state = gateState(index, activeStep, approved, running, rejectedReason)
+            return (
+              <GateModule key={gate.key} state={state} icon={gate.icon} label={gate.label} />
+            )
+          })}
         </div>
+      </div>
 
-        <aside className="flex flex-col gap-3 rounded-lg border border-white/10 bg-white/[0.04] p-4">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-white/40">Scenario</p>
-            <p className="mt-1 text-sm text-white">{failAt === "-" ? "Happy path" : failAt}</p>
-          </div>
-          <div className="h-px bg-white/10" />
-          <div className="grid gap-3 text-xs">
-            <div>
-              <p className="text-white/40">Current packet</p>
-              <p className="mt-1 font-mono text-teal-100">{amountLabel} USDC authorization</p>
-            </div>
-            <div>
-              <p className="text-white/40">Safety invariant</p>
-              <p className="mt-1 text-white/80">Rejected flows stop before settlement.</p>
-            </div>
-            <motion.div
-              animate={{
-                borderColor: rejected ? "rgba(248,113,113,0.35)" : approved ? "rgba(94,234,212,0.35)" : "rgba(255,255,255,0.1)",
-              }}
-              className="rounded border border-white/10 bg-black/15 p-3"
-            >
-              <p className="text-white/40">Proof artifacts</p>
-              <div className="mt-2 flex flex-col gap-2">
-                <span
-                  className={cn(
-                    "rounded border px-2 py-1 font-mono",
-                    settlementTx
-                      ? "border-teal-300/40 bg-teal-300/10 text-teal-100"
-                      : "border-white/10 bg-white/[0.03] text-white/35",
-                  )}
-                >
-                  settlement tx {settlementTx ? "ready" : "pending"}
-                </span>
-                <span
-                  className={cn(
-                    "rounded border px-2 py-1 font-mono",
-                    attestationTx
-                      ? "border-teal-300/40 bg-teal-300/10 text-teal-100"
-                      : "border-white/10 bg-white/[0.03] text-white/35",
-                  )}
-                >
-                  attestation {attestationTx ? "ready" : approved ? "emitted" : "pending"}
-                </span>
-              </div>
-            </motion.div>
-          </div>
-        </aside>
+      {/* HUD status bar */}
+      <div className="flex flex-wrap items-center gap-3 border-t border-accent/[0.06] bg-accent/[0.015] px-5 py-3">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1">
+          {[
+            ["AGENT", agentLabel, undefined],
+            ["ROUTE", routeLabel, undefined],
+            ["MANDATE", mandateLimit, undefined],
+            ["POLICY", `$${POLICY_MAX_AMOUNT_USDC}`, undefined],
+            ["STATUS", statusLabel, running ? "text-accent" : approved ? "text-emerald-400" : rejected ? "text-destructive" : "text-white/30"],
+            ["SETTLEMENT", settlementTx ? "READY" : rejected ? "NONE" : "PENDING", settlementTx ? "text-accent" : rejected ? "text-destructive/60" : "text-white/25"],
+            ["ATTESTATION", attestationTx ? "READY" : rejected ? "NONE" : "PENDING", attestationTx ? "text-accent" : rejected ? "text-destructive/60" : "text-white/25"],
+          ].map(([key, val, valClass]) => (
+            <span key={key as string} className="font-mono text-[9px] tracking-[0.06em] text-white/20">
+              {key}{" "}
+              <span className={cn("text-white/45", valClass as string | undefined)}>{val}</span>
+            </span>
+          ))}
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
       </div>
     </section>
   )
