@@ -1,4 +1,5 @@
 import { keccak256 } from "viem"
+import { and, eq } from "drizzle-orm"
 import { ATTESTATION_REGISTRY_ABI } from "@workspace/shared/abis"
 import { IdentityStatus, Decision } from "@workspace/shared/types"
 import { createDb, schema } from "@workspace/shared/db"
@@ -9,7 +10,9 @@ import { env } from "../lib/env.js"
 import type {
   FacilitatorSettleContext,
   FacilitatorSettleResultContext,
+  FacilitatorSettleFailureContext,
 } from "@x402/core/facilitator"
+import type { SettleResponse } from "@x402/core/types"
 
 let _db: ReturnType<typeof createDb> | undefined
 function getDb() {
@@ -19,6 +22,12 @@ function getDb() {
     _db = createDb(url)
   }
   return _db
+}
+
+function extractAuthNonce(payload: unknown): string | undefined {
+  const p = payload as Record<string, unknown>
+  const auth = p.authorization as Record<string, unknown> | undefined
+  return auth?.nonce as string | undefined
 }
 
 export async function onBeforeSettle({
@@ -32,9 +41,10 @@ export async function onBeforeSettle({
     if (payer) {
       const mandate = await getMandate(payer)
       const identityStatus = mandate ? IdentityStatus.Verified : IdentityStatus.NotFound
+      const authNonce = extractAuthNonce(paymentPayload.payload) ?? ""
       const paymentHash = keccak256(
         new TextEncoder().encode(
-          `${payer}-${paymentAmountAtomic}-${Date.now()}`
+          `${payer}-${paymentAmountAtomic}-${authNonce}`
         ) as unknown as `0x${string}`
       )
       try {
@@ -46,6 +56,7 @@ export async function onBeforeSettle({
           amountUsdc: paymentAmountAtomic,
           identityStatus,
           decision: Decision.Rejected,
+          authorizationNonce: authNonce || null,
         })
       } catch (err) {
         console.error("[onBeforeSettle] db insert failed:", err)
@@ -86,6 +97,8 @@ export async function onAfterSettle({
     console.error("[onAfterSettle] attestation failed:", err)
   }
 
+  const authorizationNonce = extractAuthNonce(paymentPayload.payload) ?? null
+
   try {
     await db.insert(schema.settlementAttestations).values({
       paymentHash,
@@ -95,8 +108,41 @@ export async function onAfterSettle({
       amountUsdc: amountUsdcAtomic,
       identityStatus,
       decision: Decision.Approved,
+      authorizationNonce,
     })
   } catch (err) {
     console.error("[onAfterSettle] db insert failed:", err)
+  }
+}
+
+export async function onSettleFailure({
+  paymentPayload,
+  requirements,
+}: FacilitatorSettleFailureContext): Promise<void | { recovered: true; result: SettleResponse }> {
+  const authNonce = extractAuthNonce(paymentPayload.payload)
+  if (!authNonce) return
+
+  const db = getDb()
+  try {
+    const existing = await db
+      .select()
+      .from(schema.settlementAttestations)
+      .where(
+        and(
+          eq(schema.settlementAttestations.authorizationNonce, authNonce),
+          eq(schema.settlementAttestations.decision, Decision.Approved),
+        )
+      )
+      .limit(1)
+
+    if (existing.length > 0 && existing[0]!.settlementTx) {
+      console.log("[onSettleFailure] duplicate detected, recovering:", authNonce)
+      return {
+        recovered: true,
+        result: { success: true, transaction: existing[0]!.settlementTx, network: requirements.network },
+      }
+    }
+  } catch (err) {
+    console.error("[onSettleFailure] db lookup failed:", err)
   }
 }

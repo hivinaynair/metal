@@ -7,7 +7,7 @@ import { BASE_SEPOLIA_CAIP2 } from "@workspace/shared/chains"
 import { facilitatorSigner } from "./lib/clients.js"
 import { verifyDeps } from "./lib/deps.js"
 import { onBeforeVerify } from "./hooks/verify.js"
-import { onBeforeSettle, onAfterSettle } from "./hooks/settle.js"
+import { onBeforeSettle, onAfterSettle, onSettleFailure } from "./hooks/settle.js"
 import { requestCtx } from "./lib/request-context.js"
 import mandatesRouter from "./routes/mandates.js"
 import type { Context } from "hono"
@@ -87,6 +87,7 @@ facilitator
   .onBeforeVerify((ctx) => onBeforeVerify(ctx, verifyDeps))
   .onBeforeSettle(onBeforeSettle)
   .onAfterSettle(onAfterSettle)
+  .onSettleFailure(onSettleFailure)
 
 // Hono app
 const app = new Hono()

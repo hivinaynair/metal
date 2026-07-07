@@ -76,9 +76,16 @@ function shortAddress(value?: string) {
   return `${value.slice(0, 6)}...${value.slice(-4)}`
 }
 
-function failureStep(error?: string) {
+function failureStep(result: TriggerResult) {
+  const error = result.body?.error
   if (error === "identity_not_found") return 2
-  if (error === "mandate_amount_exceeded") return 3
+  if (
+    error === "mandate_not_registered" ||
+    error === "mandate_signature_invalid" ||
+    error === "mandate_expired" ||
+    error === "mandate_amount_exceeded" ||
+    result.mandateValid === false
+  ) return 3
   if (error === "policy_amount_exceeded") return 4
   return 4
 }
@@ -125,7 +132,7 @@ export default function Page() {
     : result
       ? approved
         ? 6
-        : failureStep(error)
+        : failureStep(result)
       : 0
 
   async function runDemo() {
@@ -410,7 +417,7 @@ function decisionStatus(
   if (!result) return "pending"
   if (result.httpStatus === 200) return "approved"
 
-  const failed = failureStep(result.body?.error)
+  const failed = failureStep(result)
   if (step < failed) return "approved"
   if (step === failed) return "rejected"
   return "skipped"

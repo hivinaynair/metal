@@ -27,4 +27,5 @@ export const settlementAttestations = pgTable("settlement_attestations", {
   amountUsdc: bigint("amount_usdc", { mode: "bigint" }).notNull(),
   identityStatus: integer("identity_status").notNull(),
   decision: integer("decision").notNull(),
+  authorizationNonce: text("authorization_nonce"),
 })

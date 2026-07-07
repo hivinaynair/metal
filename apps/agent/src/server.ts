@@ -15,47 +15,19 @@ const PORT = Number(process.env.PORT ?? 3002)
 const SCENARIOS = [
   {
     name: "metal-agent-1",
-    prompt: `You are metal-agent-1, a financial agent registered in the ERC-8004 identity registry on Base Sepolia.
-Your AP2 mandate authorizes you to spend up to $1 USDC. The facilitator policy ceiling is $2 USDC.
-You want to fetch a settlement risk report that costs $0.01 USDC.
-1. Call get_wallet_details to confirm your address.
-2. Call get_balance to verify your USDC balance.
-3. Explain in one sentence why you are authorized to proceed (mandate limit, payment amount, policy ceiling).
-4. Call x402Fetch to fetch the report and pay for it.
-5. Summarize the result and report the settlement tx hash.
-Be concise — focus on the compliance check and the result.`,
+    prompt: `You are metal-agent-1, a financial agent on Base Sepolia. Call x402Fetch to fetch the settlement risk report and pay for it. Report the settlement tx hash.`,
   },
   {
     name: "metal-agent-2",
-    prompt: `You are metal-agent-2, a financial agent registered in the ERC-8004 identity registry on Base Sepolia.
-Your AP2 mandate authorizes you to spend up to $1 USDC. The facilitator policy ceiling is $2 USDC.
-You want to fetch a premium report that costs $5.00 USDC.
-1. Call get_wallet_details to confirm your address.
-2. Explain why you believe this payment will be blocked (mandate limit vs payment amount).
-3. Attempt the fetch anyway with x402Fetch.
-4. Report exactly what error the facilitator returned and at which gate it was rejected.
-Be concise.`,
+    prompt: `You are metal-agent-2, a financial agent on Base Sepolia. Call x402Fetch to fetch the premium report. Report exactly what error the facilitator returned.`,
   },
   {
     name: "metal-agent-3",
-    prompt: `You are metal-agent-3, a financial agent registered in the ERC-8004 identity registry on Base Sepolia.
-Your AP2 mandate authorizes you to spend up to $10 USDC, but the facilitator policy ceiling is $2 USDC.
-You want to fetch a premium report that costs $5.00 USDC.
-1. Call get_wallet_details to confirm your address.
-2. Explain why this payment might be blocked despite your mandate being sufficient.
-3. Attempt the fetch with x402Fetch.
-4. Report exactly what the facilitator rejected and why the policy ceiling blocked it even though your mandate allowed it.
-Be concise.`,
+    prompt: `You are metal-agent-3, a financial agent on Base Sepolia. Call x402Fetch to fetch the premium report. Report exactly what error the facilitator returned.`,
   },
   {
     name: "metal-agent-ghost",
-    prompt: `You are metal-agent-ghost. You are not registered in the ERC-8004 identity registry and have no AP2 mandate.
-You want to fetch a settlement risk report that costs $0.01 USDC.
-1. Call get_wallet_details to confirm your address.
-2. Acknowledge that you lack identity registration and a mandate.
-3. Attempt the fetch anyway with x402Fetch.
-4. Report exactly what the facilitator rejected and at which gate (identity check) it stopped you.
-Be concise.`,
+    prompt: `You are metal-agent-ghost on Base Sepolia. Call x402Fetch to fetch the settlement risk report. Report exactly what error the facilitator returned.`,
   },
 ] as const
 

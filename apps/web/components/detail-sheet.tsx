@@ -95,8 +95,8 @@ export function DetailSheet({ open, onClose, row }: DetailSheetProps) {
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-        <SheetHeader className="mb-4">
+      <SheetContent className="w-full overflow-y-auto p-6 sm:max-w-md">
+        <SheetHeader className="mb-6 p-0 pr-14">
           <SheetTitle className="flex items-center gap-2">
             Transaction
             <Badge variant={approved ? "outline" : "destructive"}>
@@ -110,7 +110,7 @@ export function DetailSheet({ open, onClose, row }: DetailSheetProps) {
 
         <TracePanel steps={steps} />
 
-        <Separator className="my-4" />
+        <Separator className="my-4 -mx-6 w-auto" />
 
         <div className="flex flex-col gap-2 text-xs text-muted-foreground">
           <p className="italic">

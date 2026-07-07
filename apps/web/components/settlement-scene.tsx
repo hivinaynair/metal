@@ -50,7 +50,12 @@ interface SettlementSceneProps {
 
 function failedStep(reason?: string) {
   if (reason === "identity_not_found") return 2
-  if (reason === "mandate_amount_exceeded") return 3
+  if (
+    reason === "mandate_not_registered" ||
+    reason === "mandate_signature_invalid" ||
+    reason === "mandate_expired" ||
+    reason === "mandate_amount_exceeded"
+  ) return 3
   if (reason === "policy_amount_exceeded") return 4
   return reason ? 4 : 0
 }

@@ -78,7 +78,10 @@
       "Bash(open /tmp/settlement-mockups.html)",
       "Read(//Users/vinay/bare-metal/apps/web/**)",
       "Bash(open http://localhost:3000)",
-      "Bash(grep -r FacilitatorSettleContext node_modules/@x402/core/dist --include=*.d.ts -A 10)"
+      "Bash(grep -r FacilitatorSettleContext node_modules/@x402/core/dist --include=*.d.ts -A 10)",
+      "Bash(grep -r \"authorization\\\\|nonce\\\\|validBefore\" /Users/vinay/bare-metal/node_modules/.bun/@x402+evm@*/node_modules/@x402/evm/dist/cjs/*.d.ts)",
+      "Read(//private/etc/**)",
+      "Bash(open /tmp/settlement-pipeline.html)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",
