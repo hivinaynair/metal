@@ -5,7 +5,6 @@ import { CdpClient } from "@coinbase/cdp-sdk"
 import type { EvmServerAccount } from "@coinbase/cdp-sdk"
 import { eq } from "drizzle-orm"
 import { registerInErc8004 } from "@workspace/shared/erc8004"
-import { BASE_SEPOLIA_USDC_ADDRESS, ERC20_BALANCE_ABI } from "@workspace/shared/abis"
 import { MANDATE_EIP712_DOMAIN, MANDATE_EIP712_TYPES } from "@workspace/shared/mandate"
 import { createDb, schema } from "@workspace/shared/db"
 import { env } from "@/env"
@@ -24,7 +23,6 @@ const AGENT_CONFIGS: AgentConfig[] = [
 ]
 
 const MANDATE_EXPIRY = 9999999999n
-const USDC_MIN_BALANCE = 100_000n // 0.10 USDC in atomic units (6 decimals)
 
 export interface AgentAccounts {
   agent1: EvmServerAccount
@@ -75,25 +73,6 @@ async function runInit(): Promise<AgentAccounts> {
 
     const address = account.address as `0x${string}`
     const addressLower = address.toLowerCase()
-
-    // Fund ETH (gas) if balance is zero
-    const ethBalance = await publicClient.getBalance({ address })
-    if (ethBalance === 0n) {
-      console.log(`[init] Funding ETH for ${config.name}`)
-      await cdp.evm.requestFaucet({ address: account.address, network: "base-sepolia", token: "eth" })
-    }
-
-    // Fund USDC if below minimum
-    const usdcBalance = await publicClient.readContract({
-      address: BASE_SEPOLIA_USDC_ADDRESS,
-      abi: ERC20_BALANCE_ABI,
-      functionName: "balanceOf",
-      args: [address],
-    }) as bigint
-    if (usdcBalance < USDC_MIN_BALANCE) {
-      console.log(`[init] Funding USDC for ${config.name}`)
-      await cdp.evm.requestFaucet({ address: account.address, network: "base-sepolia", token: "usdc" })
-    }
 
     // 1. Get or create ERC-8004 registration
     const agentRow = await db.query.agents.findFirst({
