@@ -21,7 +21,7 @@ export const settlementAttestations = pgTable("settlement_attestations", {
   id: serial("id").primaryKey(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   paymentHash: text("payment_hash").notNull(),
-  settlementTx: text("settlement_tx").notNull(),
+  settlementTx: text("settlement_tx"),
   attestationTx: text("attestation_tx"),
   payerAddress: text("payer_address").notNull(),
   amountUsdc: bigint("amount_usdc", { mode: "bigint" }).notNull(),

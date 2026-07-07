@@ -10,7 +10,7 @@ export interface AttestationRow {
   identityStatus: number
   decision: number
   timestamp: number
-  settlementTx: string
+  settlementTx: string | null
   settlementTxUrl: string
   attestationTx: string
   attestationTxUrl: string
@@ -37,7 +37,9 @@ export async function getAttestations(): Promise<AttestationRow[]> {
     decision: row.decision,
     timestamp: Math.floor(row.createdAt.getTime() / 1000),
     settlementTx: row.settlementTx,
-    settlementTxUrl: `${BASE_SEPOLIA_EXPLORER}/tx/${row.settlementTx}`,
+    settlementTxUrl: row.settlementTx
+      ? `${BASE_SEPOLIA_EXPLORER}/tx/${row.settlementTx}`
+      : "",
     attestationTx: row.attestationTx ?? "",
     attestationTxUrl: row.attestationTx
       ? `${BASE_SEPOLIA_EXPLORER}/tx/${row.attestationTx}`

@@ -22,7 +22,7 @@ interface DetailSheetProps {
     identityStatus: number
     decision: number
     timestamp: number
-    settlementTx: string
+    settlementTx: string | null
     settlementTxUrl: string
     attestationTx: string
     attestationTxUrl: string

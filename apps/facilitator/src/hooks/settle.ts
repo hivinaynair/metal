@@ -22,11 +22,35 @@ function getDb() {
 }
 
 export async function onBeforeSettle({
+  paymentPayload,
   requirements,
 }: FacilitatorSettleContext): Promise<void | { abort: true; reason: string }> {
   const paymentAmountAtomic = BigInt(requirements.amount)
   const policyMaxAtomic = BigInt(env.POLICY_MAX_AMOUNT_USDC) * USDC_ATOMIC_FACTOR
   if (paymentAmountAtomic > policyMaxAtomic) {
+    const payer = getPayerAddress(paymentPayload.payload)
+    if (payer) {
+      const mandate = await getMandate(payer)
+      const identityStatus = mandate ? IdentityStatus.Verified : IdentityStatus.NotFound
+      const paymentHash = keccak256(
+        new TextEncoder().encode(
+          `${payer}-${paymentAmountAtomic}-${Date.now()}`
+        ) as unknown as `0x${string}`
+      )
+      try {
+        await getDb().insert(schema.settlementAttestations).values({
+          paymentHash,
+          settlementTx: null,
+          attestationTx: null,
+          payerAddress: payer,
+          amountUsdc: paymentAmountAtomic,
+          identityStatus,
+          decision: Decision.Rejected,
+        })
+      } catch (err) {
+        console.error("[onBeforeSettle] db insert failed:", err)
+      }
+    }
     return { abort: true, reason: "policy_amount_exceeded" }
   }
 }
