@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Settlement Pipeline UI Mockup V2</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #060709;
+      --ink: rgba(255,255,255,0.90);
+      --muted: rgba(255,255,255,0.42);
+      --ghost: rgba(255,255,255,0.075);
+      --teal: rgba(63,224,208,1);
+      --teal-70: rgba(63,224,208,0.70);
+      --teal-30: rgba(63,224,208,0.30);
+      --teal-12: rgba(63,224,208,0.12);
+      --red: rgba(239,96,96,1);
+      --red-70: rgba(239,96,96,0.70);
+      --red-14: rgba(239,96,96,0.14);
+      --amber: rgba(247,181,86,1);
+      --amber-70: rgba(247,181,86,0.70);
+      --amber-14: rgba(247,181,86,0.14);
+      --panel: #0a0d0f;
+      --panel2: #10151b;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 28px;
+      background:
+        linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.014) 1px, transparent 1px),
+        radial-gradient(circle at 15% 18%, rgba(63,224,208,0.10), transparent 28rem),
+        radial-gradient(circle at 88% 42%, rgba(239,96,96,0.055), transparent 28rem),
+        #030405;
+      background-size: 28px 28px, 28px 28px, auto, auto, auto;
+      color: var(--ink);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .wrap { max-width: 1320px; margin: 0 auto; }
+
+    input { display: none; }
+
+    .shell {
+      overflow: hidden;
+      border: 1px solid rgba(63,224,208,0.10);
+      border-radius: 3px;
+      background:
+        radial-gradient(circle at 22% 47%, rgba(63,224,208,0.07), transparent 25rem),
+        linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.006)),
+        var(--bg);
+      box-shadow: 0 32px 90px rgba(0,0,0,0.55);
+    }
+
+    .hud {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      height: 42px;
+      border-bottom: 1px solid rgba(63,224,208,0.07);
+      background: rgba(63,224,208,0.025);
+      padding: 0 20px;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .hud::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 8px var(--teal);
+    }
+
+    .hud span:last-child {
+      margin-left: auto;
+      color: rgba(255,255,255,0.34);
+    }
+
+    .modebar {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: #050607;
+      padding: 10px 20px;
+    }
+
+    .modebar label {
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 3px;
+      background: rgba(255,255,255,0.025);
+      color: var(--muted);
+      padding: 7px 10px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    #ok:checked ~ .shell label[for="ok"],
+    #reject:checked ~ .shell label[for="reject"],
+    #recover:checked ~ .shell label[for="recover"] {
+      border-color: rgba(63,224,208,0.30);
+      background: rgba(63,224,208,0.08);
+      color: var(--teal);
+    }
+
+    .stage {
+      position: relative;
+      min-height: 590px;
+      padding: 26px 26px 0;
+    }
+
+    .actor {
+      position: absolute;
+      left: 26px;
+      top: 76px;
+      width: 190px;
+      height: 380px;
+      z-index: 5;
+    }
+
+    .bubble {
+      width: 226px;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 6px;
+      background: rgba(17,21,28,0.96);
+      padding: 10px 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.45;
+      color: rgba(255,255,255,0.84);
+      box-shadow: 0 14px 34px rgba(0,0,0,0.42), 0 0 24px rgba(63,224,208,0.08);
+    }
+
+    .robot {
+      position: absolute;
+      left: 34px;
+      bottom: 0;
+      width: 120px;
+      height: 250px;
+      border: 1px solid rgba(63,224,208,0.18);
+      border-radius: 62px 62px 22px 22px;
+      background:
+        radial-gradient(circle at 50% 17%, rgba(63,224,208,0.24), transparent 34px),
+        linear-gradient(180deg, #161c23, #080a0d);
+      box-shadow: 0 0 38px rgba(63,224,208,0.10), inset 0 0 26px rgba(255,255,255,0.03);
+    }
+
+    .robot::before,
+    .robot::after {
+      content: "";
+      position: absolute;
+      top: 58px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 12px var(--teal);
+    }
+
+    .robot::before { left: 36px; }
+    .robot::after { right: 36px; }
+
+    .canvas {
+      position: relative;
+      margin-left: 210px;
+      min-height: 500px;
+    }
+
+    .lane-label {
+      position: absolute;
+      left: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.46);
+    }
+
+    .lane-label::before {
+      content: "";
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    .lane-label.request { top: 16px; color: rgba(63,224,208,0.72); }
+    .lane-label.settle { top: 218px; color: rgba(63,224,208,0.72); }
+
+    .rail {
+      position: absolute;
+      left: 0;
+      right: 16px;
+      height: 1px;
+      background: rgba(255,255,255,0.065);
+    }
+
+    .rail.request { top: 112px; }
+    .rail.settle { top: 316px; }
+
+    .rail-fill {
+      position: absolute;
+      left: 0;
+      height: 1px;
+      background: linear-gradient(90deg, var(--teal-70), rgba(63,224,208,0.08));
+      box-shadow: 0 0 8px rgba(63,224,208,0.48);
+    }
+
+    .rail-fill.request { top: 112px; width: 62%; }
+    .rail-fill.settle { top: 316px; width: 93%; }
+
+    #reject:checked ~ .shell .rail-fill.settle {
+      width: 43%;
+      background: linear-gradient(90deg, var(--teal-70), var(--red-70));
+      box-shadow: 0 0 8px rgba(239,96,96,0.45);
+    }
+
+    #recover:checked ~ .shell .rail-fill.settle {
+      background: linear-gradient(90deg, var(--teal-70), var(--amber-70) 70%, var(--teal-30));
+      box-shadow: 0 0 8px rgba(247,181,86,0.42);
+    }
+
+    .drop {
+      position: absolute;
+      top: 112px;
+      left: 57%;
+      width: 1px;
+      height: 204px;
+      background: linear-gradient(180deg, var(--teal-70), rgba(63,224,208,0.08));
+      box-shadow: 0 0 8px rgba(63,224,208,0.36);
+    }
+
+    .drop::after {
+      content: "signed retry drops into settlement";
+      position: absolute;
+      left: 9px;
+      top: 90px;
+      white-space: nowrap;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(63,224,208,0.68);
+    }
+
+    .node {
+      position: absolute;
+      z-index: 2;
+      min-height: 78px;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 4px;
+      background: linear-gradient(180deg, var(--panel2), #080b0d);
+      padding: 12px;
+      box-shadow: inset 0 0 14px rgba(255,255,255,0.018), 0 8px 24px rgba(0,0,0,0.28);
+    }
+
+    .node.ok {
+      border-color: rgba(63,224,208,0.26);
+      box-shadow: 0 0 16px rgba(63,224,208,0.11), inset 0 0 12px rgba(63,224,208,0.04);
+    }
+
+    .node.red {
+      border-color: rgba(239,96,96,0.34);
+      box-shadow: 0 0 16px rgba(239,96,96,0.12), inset 0 0 12px rgba(239,96,96,0.05);
+    }
+
+    .node.amber {
+      border-color: rgba(247,181,86,0.38);
+      box-shadow: 0 0 16px rgba(247,181,86,0.13), inset 0 0 12px rgba(247,181,86,0.045);
+    }
+
+    .caption {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.62);
+    }
+
+    .ok .caption { color: var(--teal); }
+    .red .caption { color: var(--red); }
+    .amber .caption { color: var(--amber); }
+
+    .sub {
+      margin-top: 9px;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.36;
+      color: rgba(255,255,255,0.50);
+    }
+
+    .stamp {
+      display: inline-grid;
+      place-items: center;
+      min-width: 18px;
+      height: 18px;
+      border: 2px solid var(--bg);
+      border-radius: 999px;
+      color: white;
+      font-size: 10px;
+      letter-spacing: 0;
+    }
+
+    .stamp.ok { background: #34d399; box-shadow: 0 0 8px rgba(52,211,153,0.5); }
+    .stamp.red { background: var(--red); box-shadow: 0 0 8px rgba(239,96,96,0.5); }
+    .stamp.amber { background: var(--amber); box-shadow: 0 0 8px rgba(247,181,86,0.44); }
+
+    .agent-out { left: 0; top: 72px; width: 120px; }
+    .api { left: 150px; top: 72px; width: 116px; }
+    .challenge { left: 296px; top: 72px; width: 116px; }
+    .forge { left: 442px; top: 54px; width: 260px; min-height: 116px; }
+    .retry { left: 732px; top: 72px; width: 120px; }
+
+    .sig {
+      margin-top: 8px;
+      border: 1px solid rgba(63,224,208,0.17);
+      border-radius: 3px;
+      background: rgba(63,224,208,0.045);
+      padding: 7px 8px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: rgba(255,255,255,0.68);
+    }
+
+    .sig + .sig { margin-top: 6px; }
+    .sig strong { color: var(--teal); font-weight: 900; }
+
+    .gate {
+      top: 276px;
+      width: 126px;
+      min-height: 116px;
+      text-align: center;
+      display: grid;
+      align-content: center;
+    }
+
+    .gate::before,
+    .gate::after {
+      content: "";
+      position: absolute;
+      left: -9px;
+      right: -9px;
+      height: 5px;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 2px;
+      background: linear-gradient(180deg, #141a1f, #0a0d0f);
+    }
+
+    .gate::before { top: 13px; }
+    .gate::after { bottom: 13px; }
+    .gate.ok::before, .gate.ok::after { border-color: rgba(63,224,208,0.20); }
+    .gate.red::before, .gate.red::after { border-color: rgba(239,96,96,0.24); }
+    .gate.amber::before, .gate.amber::after { border-color: rgba(247,181,86,0.25); }
+
+    .mandate { left: 0; }
+    .identity { left: 154px; }
+    .policy { left: 308px; }
+    .settlement { left: 462px; }
+    .attest { left: 616px; }
+    .result { left: 770px; }
+
+    .drain {
+      position: absolute;
+      top: 386px;
+      width: 1px;
+      height: 80px;
+      background: linear-gradient(180deg, var(--red-70), rgba(239,96,96,0.04));
+      box-shadow: 0 0 8px rgba(239,96,96,0.34);
+      opacity: 0.38;
+    }
+
+    .drain span {
+      position: absolute;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 1px solid rgba(239,96,96,0.24);
+      border-radius: 3px;
+      background: rgba(18,10,12,0.92);
+      padding: 6px 8px;
+      white-space: nowrap;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--red);
+    }
+
+    .drain.mandate { left: 63px; }
+    .drain.identity { left: 217px; }
+    .drain.policy { left: 371px; }
+
+    #ok:checked ~ .shell .drain,
+    #recover:checked ~ .shell .drain {
+      opacity: 0.18;
+      filter: grayscale(1);
+    }
+
+    #reject:checked ~ .shell .policy {
+      border-color: rgba(239,96,96,0.36);
+      box-shadow: 0 0 16px rgba(239,96,96,0.13), inset 0 0 12px rgba(239,96,96,0.05);
+    }
+
+    #reject:checked ~ .shell .policy .caption { color: var(--red); }
+    #reject:checked ~ .shell .policy .stamp { background: var(--red); }
+    #reject:checked ~ .shell .settlement,
+    #reject:checked ~ .shell .attest,
+    #reject:checked ~ .shell .result { opacity: 0.30; filter: grayscale(1); }
+    #reject:checked ~ .shell .drain.policy { opacity: 1; filter: none; }
+
+    .loop {
+      display: none;
+      position: absolute;
+      left: 444px;
+      top: 226px;
+      width: 212px;
+      height: 130px;
+      border: 1px solid rgba(247,181,86,0.50);
+      border-bottom: 0;
+      border-radius: 80px 80px 0 0;
+      box-shadow: 0 -4px 18px rgba(247,181,86,0.11);
+      pointer-events: none;
+    }
+
+    .loop::after {
+      content: "authorization_nonce cache hit";
+      position: absolute;
+      left: 40px;
+      top: -12px;
+      border: 1px solid rgba(247,181,86,0.28);
+      border-radius: 3px;
+      background: rgba(18,14,8,0.96);
+      padding: 6px 8px;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      white-space: nowrap;
+    }
+
+    #recover:checked ~ .shell .loop { display: block; }
+    #recover:checked ~ .shell .settlement {
+      border-color: rgba(247,181,86,0.40);
+      box-shadow: 0 0 16px rgba(247,181,86,0.13), inset 0 0 12px rgba(247,181,86,0.045);
+    }
+    #recover:checked ~ .shell .settlement .caption { color: var(--amber); }
+    #recover:checked ~ .shell .settlement .stamp { background: var(--amber); }
+
+    .packet {
+      position: absolute;
+      z-index: 4;
+      border: 1px solid rgba(63,224,208,0.50);
+      border-radius: 3px;
+      background: rgba(6,7,9,0.94);
+      padding: 9px 14px;
+      min-width: 96px;
+      text-align: center;
+      font-family: var(--mono);
+      box-shadow: 0 0 20px rgba(63,224,208,0.18), 0 8px 24px rgba(0,0,0,0.6);
+    }
+
+    .packet .p1 {
+      color: var(--teal);
+      font-size: 7px;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .packet .p2 {
+      margin-top: 2px;
+      color: white;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .packet.request {
+      left: 640px;
+      top: 92px;
+    }
+
+    .packet.settle {
+      left: 632px;
+      top: 296px;
+    }
+
+    #reject:checked ~ .shell .packet.settle {
+      left: 328px;
+      border-color: rgba(239,96,96,0.52);
+      box-shadow: 0 0 20px rgba(239,96,96,0.18), 0 8px 24px rgba(0,0,0,0.6);
+    }
+    #reject:checked ~ .shell .packet.settle .p1 { color: var(--red); }
+
+    #recover:checked ~ .shell .packet.settle {
+      left: 506px;
+      border-color: rgba(247,181,86,0.56);
+      box-shadow: 0 0 20px rgba(247,181,86,0.18), 0 8px 24px rgba(0,0,0,0.6);
+    }
+    #recover:checked ~ .shell .packet.settle .p1 { color: var(--amber); }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      background: #050607;
+      padding: 16px 20px;
+    }
+
+    .avatar {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.45);
+      font-family: var(--mono);
+      font-weight: 900;
+    }
+
+    .footer strong { font-size: 14px; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 2px;
+      background: rgba(63,224,208,0.12);
+      color: var(--teal);
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .meta {
+      margin-top: 5px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .notes {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.42;
+      color: rgba(255,255,255,0.52);
+    }
+
+    .notes div {
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 4px;
+      background: rgba(255,255,255,0.02);
+      padding: 10px;
+    }
+
+    .notes strong {
+      display: block;
+      margin-bottom: 4px;
+      color: rgba(255,255,255,0.84);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 1120px) {
+      body { padding: 14px; }
+      .stage { min-height: 1160px; }
+      .actor { position: relative; inset: auto; height: 300px; }
+      .canvas { margin-left: 0; min-height: 760px; }
+      .node, .gate, .packet, .drain, .loop, .drop, .lane-label, .rail, .rail-fill {
+        position: static;
+        width: auto;
+        margin: 10px 0;
+      }
+      .drop, .rail, .rail-fill, .loop, .drain { display: none !important; }
+      .packet { display: inline-block; }
+      .notes { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <input checked id="ok" name="mode" type="radio" />
+    <input id="reject" name="mode" type="radio" />
+    <input id="recover" name="mode" type="radio" />
+
+    <section class="shell">
+      <div class="hud">
+        <span>x402 Settlement Pipeline / two-rail machine</span>
+        <span>AGENT-7B · BASE SEPOLIA · $0.01</span>
+      </div>
+
+      <div class="modebar">
+        <label for="ok">Approved</label>
+        <label for="reject">Reject branch</label>
+        <label for="recover">Replay recovery</label>
+      </div>
+
+      <div class="stage">
+        <div class="actor">
+          <div class="bubble">I get a 402, build two signatures, then retry with payment + mandate.</div>
+          <div class="robot" aria-label="Spline robot placeholder"></div>
+        </div>
+
+        <div class="canvas">
+          <div class="lane-label request">Request rail</div>
+          <div class="lane-label settle">Settlement rail</div>
+
+          <div class="rail request"></div>
+          <div class="rail settle"></div>
+          <div class="rail-fill request"></div>
+          <div class="rail-fill settle"></div>
+          <div class="drop"></div>
+
+          <div class="node ok agent-out">
+            <div class="caption">Agent <span class="stamp ok">✓</span></div>
+            <div class="sub">Intent + wallet context.</div>
+          </div>
+
+          <div class="node ok api">
+            <div class="caption">API <span class="stamp ok">402</span></div>
+            <div class="sub">Challenge returns price + payTo.</div>
+          </div>
+
+          <div class="node ok challenge">
+            <div class="caption">402 <span class="stamp ok">✓</span></div>
+            <div class="sub">Payment requirements locked.</div>
+          </div>
+
+          <div class="node ok forge">
+            <div class="caption">Signature chamber <span class="stamp ok">2</span></div>
+            <div class="sig"><strong>X-PAYMENT</strong> EIP-3009 from agent wallet</div>
+            <div class="sig"><strong>X-AP2-Mandate</strong> EIP-712 from institution</div>
+          </div>
+
+          <div class="node ok retry">
+            <div class="caption">Retry <span class="stamp ok">↴</span></div>
+            <div class="sub">Same API call, now authorized.</div>
+          </div>
+
+          <div class="packet request">
+            <div class="p1">signed request</div>
+            <div class="p2">2 headers</div>
+          </div>
+
+          <div class="node ok gate mandate">
+            <div class="caption">Mandate <span class="stamp ok">✓</span></div>
+            <div class="sub">Present, registered, valid.</div>
+          </div>
+
+          <div class="node ok gate identity">
+            <div class="caption">Identity <span class="stamp ok">✓</span></div>
+            <div class="sub">ERC-8004 payer lookup.</div>
+          </div>
+
+          <div class="node ok gate policy">
+            <div class="caption">Policy <span class="stamp ok">✓</span></div>
+            <div class="sub">Amount under mandate ceiling.</div>
+          </div>
+
+          <div class="node ok gate settlement">
+            <div class="caption">USDC <span class="stamp ok">✓</span></div>
+            <div class="sub">transferWithAuthorization.</div>
+          </div>
+
+          <div class="node ok gate attest">
+            <div class="caption">Attest <span class="stamp ok">✓</span></div>
+            <div class="sub">Non-blocking proof write.</div>
+          </div>
+
+          <div class="node ok gate result">
+            <div class="caption">200 <span class="stamp ok">✓</span></div>
+            <div class="sub">Response released to agent.</div>
+          </div>
+
+          <div class="packet settle">
+            <div class="p1">payment</div>
+            <div class="p2">$0.01</div>
+          </div>
+
+          <div class="drain mandate"><span>reject mandate</span></div>
+          <div class="drain identity"><span>reject identity</span></div>
+          <div class="drain policy"><span>reject policy</span></div>
+          <div class="loop"></div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="avatar">AI</div>
+        <div>
+          <strong>Demo Agent</strong>
+          <span class="pill">Trusted</span>
+          <div class="meta">GET /v1/market-data · 0.01 USDC · Base Sepolia · dual-signed retry</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="notes">
+      <div><strong>Keep the hero</strong>The old horizontal pipeline still reads immediately; it just becomes two rails inside one machine.</div>
+      <div><strong>Signature chamber</strong>The dual-signature step is intentionally wider and more mechanical than a normal gate.</div>
+      <div><strong>Failure drains</strong>Rejection paths hang below each blocking authority gate, so branches do not clutter the happy path.</div>
+      <div><strong>Replay loop</strong>Recovery wraps the USDC module, showing cached txHash reuse as a settlement-side exception.</div>
+    </div>
+  </div>
+</body>
+</html>

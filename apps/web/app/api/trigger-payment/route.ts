@@ -1,6 +1,7 @@
 import { privateKeyToAccount } from "viem/accounts"
 import { initAgents, getMandateHeader } from "@/lib/init-agents"
-import { reportRoutes, demoAgents, POLICY_MAX_AMOUNT_USDC } from "@/lib/demo-scenarios"
+import { reportRoutes, demoAgents } from "@/lib/demo-scenarios"
+import { isMandateFailure } from "@/lib/settlement-status"
 import { env } from "@/env"
 
 const SCENARIOS = [
@@ -24,6 +25,15 @@ export async function POST(request: Request) {
   const scenario = SCENARIOS[scenarioIndex]!
   const account = agents[scenario.agentKey]
   const route = reportRoutes.find((r) => r.id === scenario.routeId)!
+
+  let policyThreshold = "unknown"
+  try {
+    const policyRes = await fetch(`${env.FACILITATOR_URL}/policy`)
+    const policyData = await policyRes.json() as { maxAmountUsdc?: number }
+    if (typeof policyData.maxAmountUsdc === "number") {
+      policyThreshold = `$${policyData.maxAmountUsdc}`
+    }
+  } catch { /* use fallback */ }
   const targetUrl = new URL(route.path, request.url).toString()
   const agentId = scenario.agentKey === "ghost"
     ? "metal-agent-ghost"
@@ -57,7 +67,7 @@ export async function POST(request: Request) {
     payer: account.address,
     agentUri: `${env.APP_URL}/api/agent/${account.address}`,
     mandateDelegator: demoAgent?.mandateLimit === "none" ? undefined : delegator.address,
-    policyThreshold: `$${POLICY_MAX_AMOUNT_USDC}`,
+    policyThreshold,
   }
 
   // Pipe SSE from agent → browser; enrich the done event with web-side metadata
@@ -89,10 +99,7 @@ export async function POST(request: Request) {
               const agentResult = event.result ?? {}
               const mandateValid = Boolean(
                 demoAgent?.mandateLimit !== "none" &&
-                agentResult["error"] !== "mandate_not_registered" &&
-                agentResult["error"] !== "mandate_signature_invalid" &&
-                agentResult["error"] !== "mandate_expired" &&
-                agentResult["error"] !== "mandate_amount_exceeded",
+                !isMandateFailure(agentResult["error"]),
               )
               const enriched = {
                 type: "done",

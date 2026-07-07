@@ -5,6 +5,7 @@ import { cn } from "@workspace/ui/lib/utils"
 import { Badge } from "@workspace/ui/components/badge"
 import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
 import { POLICY_MAX_AMOUNT_USDC } from "@/lib/demo-scenarios"
+import { settlementFailureStep } from "@/lib/settlement-status"
 
 const TRACE_STEP_COUNT = 6
 
@@ -122,13 +123,7 @@ export function buildTraceSteps(result: {
   const ok = result.httpStatus === 200
 
   // map error code → which step fails (steps after failStep are skipped)
-  let failStep = 0
-  if (!ok) {
-    if (error === "identity_not_found") failStep = 2
-    else if (error === "mandate_amount_exceeded") failStep = 3
-    else if (error === "policy_amount_exceeded") failStep = 4
-    else failStep = 4
-  }
+  const failStep = ok ? 0 : settlementFailureStep(error) || 4
 
   function stepStatus(n: number): StepStatus {
     if (ok) return "approved"

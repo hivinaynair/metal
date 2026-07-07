@@ -5,8 +5,9 @@ import { IdentityStatus, Decision } from "@workspace/shared/types"
 import { createDb, schema } from "@workspace/shared/db"
 import { walletClient, account } from "../lib/clients.js"
 import { getMandate } from "../lib/mandate-store.js"
-import { getPayerAddress, USDC_ATOMIC_FACTOR } from "../lib/mandate.js"
+import { getPayerAddress } from "../lib/mandate.js"
 import { env } from "../lib/env.js"
+import { getPolicyMaxAmountUsdc } from "../lib/policy-store.js"
 import type {
   FacilitatorSettleContext,
   FacilitatorSettleResultContext,
@@ -35,7 +36,7 @@ export async function onBeforeSettle({
   requirements,
 }: FacilitatorSettleContext): Promise<void | { abort: true; reason: string }> {
   const paymentAmountAtomic = BigInt(requirements.amount)
-  const policyMaxAtomic = BigInt(env.POLICY_MAX_AMOUNT_USDC) * USDC_ATOMIC_FACTOR
+  const policyMaxAtomic = BigInt(Math.round(getPolicyMaxAmountUsdc() * 1_000_000))
   if (paymentAmountAtomic > policyMaxAtomic) {
     const payer = getPayerAddress(paymentPayload.payload)
     if (payer) {

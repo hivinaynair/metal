@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Settlement Pipeline UI Mockup</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #060709;
+      --panel: #0a0d0f;
+      --panel-2: #0e1215;
+      --panel-3: #11151c;
+      --text: rgba(255,255,255,0.9);
+      --muted: rgba(255,255,255,0.43);
+      --faint: rgba(255,255,255,0.08);
+      --teal: rgba(63,224,208,1);
+      --teal-soft: rgba(63,224,208,0.16);
+      --teal-line: rgba(63,224,208,0.58);
+      --red: rgba(239,96,96,1);
+      --red-soft: rgba(239,96,96,0.15);
+      --red-line: rgba(239,96,96,0.65);
+      --amber: rgba(247,181,86,1);
+      --amber-soft: rgba(247,181,86,0.15);
+      --font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 20% 12%, rgba(63,224,208,0.08), transparent 24rem),
+        radial-gradient(circle at 90% 40%, rgba(239,96,96,0.045), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 28px;
+    }
+
+    .wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    .scene {
+      overflow: hidden;
+      border: 1px solid rgba(63,224,208,0.10);
+      border-radius: 3px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.018), transparent 32%),
+        var(--bg);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.44);
+    }
+
+    .hud {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 40px;
+      border-bottom: 1px solid rgba(63,224,208,0.07);
+      background: rgba(63,224,208,0.025);
+      padding: 10px 20px;
+      font-family: var(--font);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .hud-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--teal);
+      box-shadow: 0 0 8px var(--teal);
+    }
+
+    .hud .status {
+      margin-left: auto;
+      color: rgba(255,255,255,0.35);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: #050607;
+      padding: 10px 20px;
+      font-family: var(--font);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .tabs label {
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 3px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.025);
+      padding: 7px 10px;
+    }
+
+    input { display: none; }
+
+    #approved:checked ~ .scene .tabs label[for="approved"],
+    #rejected:checked ~ .scene .tabs label[for="rejected"],
+    #replay:checked ~ .scene .tabs label[for="replay"] {
+      color: var(--teal);
+      border-color: rgba(63,224,208,0.28);
+      background: rgba(63,224,208,0.08);
+      box-shadow: inset 0 0 18px rgba(63,224,208,0.045);
+    }
+
+    .stage {
+      position: relative;
+      min-height: 610px;
+      padding: 24px 26px 0;
+    }
+
+    .robot {
+      position: absolute;
+      left: 22px;
+      top: 96px;
+      width: 168px;
+      height: 324px;
+      z-index: 4;
+    }
+
+    .speech {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 214px;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 6px;
+      background: rgba(17,21,28,0.96);
+      padding: 9px 11px;
+      font-family: var(--font);
+      font-size: 11px;
+      line-height: 1.45;
+      color: rgba(255,255,255,0.84);
+      box-shadow: 0 14px 34px rgba(0,0,0,0.42), 0 0 24px rgba(63,224,208,0.08);
+    }
+
+    .bot-shell {
+      position: absolute;
+      left: 34px;
+      bottom: 0;
+      width: 116px;
+      height: 230px;
+      border: 1px solid rgba(63,224,208,0.16);
+      border-radius: 58px 58px 20px 20px;
+      background:
+        radial-gradient(circle at 50% 18%, rgba(63,224,208,0.22), transparent 30px),
+        linear-gradient(180deg, #151a1f, #080a0d);
+      box-shadow: 0 0 34px rgba(63,224,208,0.10), inset 0 0 24px rgba(255,255,255,0.03);
+    }
+
+    .bot-eye {
+      position: absolute;
+      top: 52px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 12px var(--teal);
+    }
+
+    .bot-eye.left { left: 34px; }
+    .bot-eye.right { right: 34px; }
+
+    .lanes {
+      margin-left: 190px;
+      position: relative;
+      z-index: 2;
+      display: grid;
+      gap: 20px;
+    }
+
+    .lane {
+      position: relative;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 5px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.006));
+      padding: 36px 18px 22px;
+    }
+
+    .lane-title {
+      position: absolute;
+      top: 10px;
+      left: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.48);
+    }
+
+    .lane-title::before {
+      content: "";
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 8px var(--teal);
+    }
+
+    .flow {
+      position: relative;
+      display: grid;
+      grid-template-columns: 0.85fr 0.9fr 0.9fr 1.55fr 0.75fr;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .settle-flow {
+      grid-template-columns: repeat(6, minmax(88px, 1fr));
+      gap: 14px;
+      min-height: 178px;
+    }
+
+    .rail {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      top: 50%;
+      height: 1px;
+      background: rgba(255,255,255,0.06);
+      transform: translateY(-50%);
+      z-index: 0;
+    }
+
+    .rail.fill {
+      right: 10%;
+      background: linear-gradient(90deg, var(--teal-line), rgba(63,224,208,0.08));
+      box-shadow: 0 0 8px rgba(63,224,208,0.45);
+    }
+
+    .node, .gate, .signature, .packet {
+      position: relative;
+      z-index: 1;
+      min-height: 76px;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 4px;
+      background: linear-gradient(180deg, var(--panel-2), #080b0d);
+      box-shadow: inset 0 0 14px rgba(255,255,255,0.018), 0 8px 24px rgba(0,0,0,0.28);
+      padding: 12px;
+    }
+
+    .node.active, .gate.ok, .signature.ok, .packet.ok {
+      border-color: rgba(63,224,208,0.26);
+      box-shadow: 0 0 16px rgba(63,224,208,0.11), inset 0 0 12px rgba(63,224,208,0.04);
+    }
+
+    .gate.reject {
+      border-color: rgba(239,96,96,0.34);
+      box-shadow: 0 0 16px rgba(239,96,96,0.12), inset 0 0 12px rgba(239,96,96,0.05);
+    }
+
+    .gate.skip { opacity: 0.32; }
+
+    .label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-family: var(--font);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.62);
+    }
+
+    .ok .label, .active .label { color: var(--teal); }
+    .reject .label { color: var(--red); }
+
+    .copy {
+      margin-top: 9px;
+      font-family: var(--font);
+      font-size: 11px;
+      line-height: 1.35;
+      color: rgba(255,255,255,0.52);
+    }
+
+    .badge {
+      display: inline-grid;
+      place-items: center;
+      min-width: 18px;
+      height: 18px;
+      border: 2px solid var(--bg);
+      border-radius: 999px;
+      font-size: 10px;
+      letter-spacing: 0;
+      color: white;
+    }
+
+    .badge.ok { background: #34d399; box-shadow: 0 0 8px rgba(52,211,153,0.5); }
+    .badge.reject { background: var(--red); box-shadow: 0 0 8px rgba(239,96,96,0.5); }
+    .badge.warn { background: var(--amber); box-shadow: 0 0 8px rgba(247,181,86,0.42); }
+
+    .signature {
+      min-height: 104px;
+      background:
+        linear-gradient(90deg, rgba(63,224,208,0.07), transparent 45%),
+        linear-gradient(180deg, var(--panel-2), #080b0d);
+    }
+
+    .sig-stack {
+      display: grid;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    .sig {
+      border: 1px solid rgba(63,224,208,0.18);
+      border-radius: 3px;
+      background: rgba(63,224,208,0.045);
+      padding: 7px 8px;
+      font-family: var(--font);
+      font-size: 10px;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .sig strong {
+      color: var(--teal);
+      font-weight: 900;
+    }
+
+    .packet {
+      display: grid;
+      place-items: center;
+      min-height: 78px;
+      text-align: center;
+      border-color: rgba(63,224,208,0.50);
+      background: rgba(6,7,9,0.92);
+      box-shadow: 0 0 20px rgba(63,224,208,0.18), 0 8px 24px rgba(0,0,0,0.6);
+    }
+
+    .packet .copy { margin: 3px 0 0; color: white; font-weight: 800; }
+
+    .gate {
+      min-height: 116px;
+      display: grid;
+      align-content: center;
+      text-align: center;
+    }
+
+    .gate::before, .gate::after {
+      content: "";
+      position: absolute;
+      left: -9px;
+      right: -9px;
+      height: 5px;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 2px;
+      background: linear-gradient(180deg, #141a1f, #0a0d0f);
+    }
+
+    .gate::before { top: 13px; }
+    .gate::after { bottom: 13px; }
+
+    .gate.ok::before, .gate.ok::after { border-color: rgba(63,224,208,0.20); }
+    .gate.reject::before, .gate.reject::after { border-color: rgba(239,96,96,0.22); }
+
+    .branch {
+      position: absolute;
+      bottom: -48px;
+      left: 50%;
+      width: 1px;
+      height: 42px;
+      background: linear-gradient(180deg, var(--red-line), rgba(239,96,96,0.04));
+      box-shadow: 0 0 8px rgba(239,96,96,0.34);
+      transform: translateX(-50%);
+      opacity: 0;
+    }
+
+    .branch-card {
+      position: absolute;
+      bottom: -84px;
+      left: 50%;
+      min-width: 142px;
+      transform: translateX(-50%);
+      border: 1px solid rgba(239,96,96,0.26);
+      border-radius: 4px;
+      background: rgba(18,10,12,0.94);
+      padding: 8px 9px;
+      font-family: var(--font);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--red);
+      opacity: 0;
+    }
+
+    #rejected:checked ~ .scene .policy-reject .branch,
+    #rejected:checked ~ .scene .policy-reject .branch-card {
+      opacity: 1;
+    }
+
+    #rejected:checked ~ .scene .policy-reject {
+      border-color: rgba(239,96,96,0.34);
+      box-shadow: 0 0 16px rgba(239,96,96,0.12), inset 0 0 12px rgba(239,96,96,0.05);
+    }
+
+    #rejected:checked ~ .scene .policy-reject .label { color: var(--red); }
+    #rejected:checked ~ .scene .after-policy { opacity: 0.32; }
+    #rejected:checked ~ .scene .settle-lane .rail.fill {
+      right: 49%;
+      background: linear-gradient(90deg, var(--teal-line), var(--red-line));
+    }
+
+    .joiner {
+      position: absolute;
+      left: 392px;
+      top: 177px;
+      width: 1px;
+      height: 85px;
+      background: linear-gradient(180deg, rgba(63,224,208,0.65), rgba(63,224,208,0.10));
+      box-shadow: 0 0 8px rgba(63,224,208,0.36);
+      z-index: 1;
+    }
+
+    .joiner::after {
+      content: "API retry";
+      position: absolute;
+      left: 8px;
+      top: 34px;
+      white-space: nowrap;
+      font-family: var(--font);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(63,224,208,0.78);
+    }
+
+    .replay-path {
+      display: none;
+      position: absolute;
+      right: 70px;
+      top: 358px;
+      width: 310px;
+      border: 1px solid rgba(247,181,86,0.28);
+      border-radius: 5px;
+      background: rgba(18,14,8,0.92);
+      padding: 10px 12px;
+      font-family: var(--font);
+      box-shadow: 0 0 26px rgba(247,181,86,0.10);
+      z-index: 5;
+    }
+
+    .replay-path::before {
+      content: "";
+      position: absolute;
+      left: -118px;
+      top: 50%;
+      width: 118px;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(247,181,86,0.08), rgba(247,181,86,0.75));
+      box-shadow: 0 0 8px rgba(247,181,86,0.35);
+    }
+
+    #replay:checked ~ .scene .replay-path {
+      display: block;
+    }
+
+    #replay:checked ~ .scene .settlement-gate {
+      border-color: rgba(247,181,86,0.36);
+      box-shadow: 0 0 16px rgba(247,181,86,0.13), inset 0 0 12px rgba(247,181,86,0.04);
+    }
+
+    #replay:checked ~ .scene .settlement-gate .label {
+      color: var(--amber);
+    }
+
+    #replay:checked ~ .scene .settle-lane .rail.fill {
+      background: linear-gradient(90deg, var(--teal-line), rgba(247,181,86,0.78), rgba(63,224,208,0.22));
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      background: #050607;
+      padding: 16px 20px;
+    }
+
+    .avatar {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.45);
+      font-family: var(--font);
+      font-weight: 900;
+    }
+
+    .footer strong {
+      font-size: 14px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 2px;
+      background: rgba(63,224,208,0.12);
+      color: var(--teal);
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .footer .meta {
+      margin-top: 5px;
+      font-family: var(--font);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .legend {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      font-family: var(--font);
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .legend div {
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 4px;
+      background: rgba(255,255,255,0.02);
+      padding: 10px;
+    }
+
+    .legend strong {
+      display: block;
+      margin-bottom: 4px;
+      color: rgba(255,255,255,0.82);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 980px) {
+      body { padding: 14px; }
+      .stage { min-height: 900px; }
+      .robot { position: relative; left: 0; top: 0; width: 100%; height: 250px; }
+      .bot-shell { left: 54px; }
+      .lanes { margin-left: 0; }
+      .flow, .settle-flow { grid-template-columns: 1fr; }
+      .rail, .rail.fill, .joiner, .replay-path::before { display: none; }
+      .replay-path { position: static; width: auto; margin-top: 12px; }
+      .legend { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <input checked id="approved" name="state" type="radio" />
+    <input id="rejected" name="state" type="radio" />
+    <input id="replay" name="state" type="radio" />
+
+    <section class="scene">
+      <div class="hud">
+        <span class="hud-dot"></span>
+        <span>x402 Settlement Pipeline / Nonlinear Draft</span>
+        <span class="status">AGENT-7B / BASE SEPOLIA / $0.01</span>
+      </div>
+
+      <div class="tabs" aria-label="Mockup states">
+        <label for="approved">Approved flow</label>
+        <label for="rejected">Policy reject</label>
+        <label for="replay">Replay recovered</label>
+      </div>
+
+      <div class="stage">
+        <div class="robot">
+          <div class="speech">I need market data. Build payment auth, attach mandate, retry the API.</div>
+          <div class="bot-shell" aria-label="Spline robot placeholder">
+            <span class="bot-eye left"></span>
+            <span class="bot-eye right"></span>
+          </div>
+        </div>
+
+        <div class="joiner"></div>
+
+        <div class="lanes">
+          <div class="lane">
+            <div class="lane-title">Request lane</div>
+            <div class="rail"></div>
+            <div class="rail fill"></div>
+            <div class="flow">
+              <div class="node active">
+                <div class="label">Agent <span class="badge ok">OK</span></div>
+                <div class="copy">User intent, wallet, institution context.</div>
+              </div>
+              <div class="node active">
+                <div class="label">API <span class="badge ok">402</span></div>
+                <div class="copy">Challenge: price, recipient, network, resource.</div>
+              </div>
+              <div class="node active">
+                <div class="label">402 <span class="badge ok">OK</span></div>
+                <div class="copy">Payment requirements accepted.</div>
+              </div>
+              <div class="signature ok">
+                <div class="label">Signature forge <span class="badge ok">2X</span></div>
+                <div class="sig-stack">
+                  <div class="sig"><strong>X-PAYMENT</strong> / EIP-3009 from agent wallet</div>
+                  <div class="sig"><strong>X-AP2-Mandate</strong> / EIP-712 from institution</div>
+                </div>
+              </div>
+              <div class="packet ok">
+                <div>
+                  <div class="label">API retry</div>
+                  <div class="copy">$0.01 USDC</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lane settle-lane">
+            <div class="lane-title">Settlement lane</div>
+            <div class="rail"></div>
+            <div class="rail fill"></div>
+            <div class="flow settle-flow">
+              <div class="gate ok">
+                <div class="label">Mandate <span class="badge ok">OK</span></div>
+                <div class="copy">Header present, registered, not expired.</div>
+                <div class="branch"></div>
+                <div class="branch-card">Reject: mandate</div>
+              </div>
+              <div class="gate ok">
+                <div class="label">Identity <span class="badge ok">OK</span></div>
+                <div class="copy">ERC-8004 payer registered.</div>
+                <div class="branch"></div>
+                <div class="branch-card">Reject: identity</div>
+              </div>
+              <div class="gate ok policy-reject">
+                <div class="label">Policy <span class="badge ok">OK</span></div>
+                <div class="copy">Amount inside mandate ceiling.</div>
+                <div class="branch"></div>
+                <div class="branch-card">Reject: policy</div>
+              </div>
+              <div class="gate ok after-policy settlement-gate">
+                <div class="label">USDC settle <span class="badge ok">OK</span></div>
+                <div class="copy">EIP-3009 transferWithAuthorization.</div>
+              </div>
+              <div class="gate ok after-policy">
+                <div class="label">Attest <span class="badge ok">OK</span></div>
+                <div class="copy">Non-blocking proof record.</div>
+              </div>
+              <div class="gate ok after-policy">
+                <div class="label">200 gate <span class="badge ok">OK</span></div>
+                <div class="copy">Result returns to agent only after settle.</div>
+              </div>
+            </div>
+
+            <div class="replay-path">
+              <div class="label" style="color: var(--amber)">Replay recovery <span class="badge warn">DB</span></div>
+              <div class="copy">EVM transfer failed on retry. Lookup authorization_nonce; cached txHash found. Continue as recovered settlement, not duplicate spend.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="avatar">AI</div>
+        <div>
+          <strong>Demo Agent</strong>
+          <span class="pill">Trusted</span>
+          <div class="meta">GET /v1/market-data · 0.01 USDC · Base Sepolia · dual-signed retry</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="legend">
+      <div><strong>Two lanes</strong> Top lane is conversational/request protocol. Bottom lane is settlement authority.</div>
+      <div><strong>Dual signatures</strong> A wider forge module makes the two independent headers visible before retry.</div>
+      <div><strong>Rejections</strong> Each blocking gate owns a short red branch rail that can light up without rerouting the whole diagram.</div>
+      <div><strong>Replay</strong> Recovery is an amber sidecar attached to USDC settle, since it is exceptional but successful.</div>
+    </div>
+  </div>
+</body>
+</html>

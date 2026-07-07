@@ -10,6 +10,7 @@ import { onBeforeVerify } from "./hooks/verify.js"
 import { onBeforeSettle, onAfterSettle, onSettleFailure } from "./hooks/settle.js"
 import { requestCtx } from "./lib/request-context.js"
 import mandatesRouter from "./routes/mandates.js"
+import { getPolicyMaxAmountUsdc, setPolicyMaxAmountUsdc } from "./lib/policy-store.js"
 import type { Context } from "hono"
 import { isRecord, parseBigIntField, readJsonObject } from "./lib/http.js"
 
@@ -120,6 +121,17 @@ app.post("/settle", async (c) => {
   } catch (error) {
     return c.json({ error: error instanceof Error ? error.message : String(error) }, 500)
   }
+})
+
+app.get("/policy", (c) => c.json({ maxAmountUsdc: getPolicyMaxAmountUsdc() }))
+
+app.post("/policy", async (c) => {
+  const body = await c.req.json() as { maxAmountUsdc?: unknown }
+  if (typeof body.maxAmountUsdc !== "number") {
+    return c.json({ error: "maxAmountUsdc must be a number" }, 400)
+  }
+  setPolicyMaxAmountUsdc(body.maxAmountUsdc)
+  return c.json({ maxAmountUsdc: getPolicyMaxAmountUsdc() })
 })
 
 app.route("/mandates", mandatesRouter)

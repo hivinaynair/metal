@@ -1,7 +1,8 @@
 import { getAgentsWithMandates } from "@/lib/agents-data"
 import { getAttestations } from "@/lib/attestations"
 import { formatUsdc } from "@/lib/format"
-import { POLICY_MAX_AMOUNT_USDC, reportRoutes } from "@/lib/demo-scenarios"
+import { reportRoutes } from "@/lib/demo-scenarios"
+import { env } from "@/env"
 import {
   PolicyWorkbench,
   type PolicyAgent,
@@ -29,7 +30,8 @@ function toPolicyAgent(
 }
 
 function toProofRun(
-  attestations: Awaited<ReturnType<typeof getAttestations>>
+  attestations: Awaited<ReturnType<typeof getAttestations>>,
+  policyMax: number
 ): PolicyProofRun | null {
   const blocked = attestations.find((attestation) => attestation.decision !== 0)
   if (!blocked) return null
@@ -38,22 +40,33 @@ function toProofRun(
   const failedRule =
     blocked.identityStatus === 0
       ? "requireIdentity"
-      : amount > POLICY_MAX_AMOUNT_USDC
+      : amount > policyMax
         ? "maxAmountUsdc"
         : "preSettlementPolicy"
 
   return {
     failedRule,
     amount: `${amount.toFixed(2)} USDC`,
-    limit: `${POLICY_MAX_AMOUNT_USDC.toFixed(2)} USDC`,
+    limit: `${policyMax.toFixed(2)} USDC`,
     settlementTx: blocked.settlementTx || "none",
   }
 }
 
+async function fetchPolicyMax(): Promise<number> {
+  try {
+    const res = await fetch(`${env.FACILITATOR_URL}/policy`, { cache: "no-store" })
+    const data = await res.json() as { maxAmountUsdc?: number }
+    return typeof data.maxAmountUsdc === "number" ? data.maxAmountUsdc : 2
+  } catch {
+    return 2
+  }
+}
+
 export default async function PolicyPage() {
-  const [agents, attestations] = await Promise.all([
+  const [agents, attestations, policyMax] = await Promise.all([
     getAgentsWithMandates(),
     getAttestations(),
+    fetchPolicyMax(),
   ])
 
   const resources: PolicyResource[] = reportRoutes.map((route) => ({
@@ -80,8 +93,8 @@ export default async function PolicyPage() {
       <PolicyWorkbench
         agents={agents.map(toPolicyAgent)}
         resources={resources}
-        initialMaxAmountUsdc={POLICY_MAX_AMOUNT_USDC}
-        proofRun={toProofRun(attestations)}
+        initialMaxAmountUsdc={policyMax}
+        proofRun={toProofRun(attestations, policyMax)}
       />
     </PageFrame>
   )

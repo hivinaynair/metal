@@ -17,6 +17,7 @@ import {
 
 import { cn } from "@workspace/ui/lib/utils"
 import { AgentSplineModel } from "@/components/agent-spline-model"
+import { settlementFailureStep } from "@/lib/settlement-status"
 
 export type GateState = "idle" | "running" | "approved" | "rejected" | "skipped"
 
@@ -48,18 +49,6 @@ interface SettlementSceneProps {
   action?: ReactNode
 }
 
-function failedStep(reason?: string) {
-  if (reason === "identity_not_found") return 2
-  if (
-    reason === "mandate_not_registered" ||
-    reason === "mandate_signature_invalid" ||
-    reason === "mandate_expired" ||
-    reason === "mandate_amount_exceeded"
-  ) return 3
-  if (reason === "policy_amount_exceeded") return 4
-  return reason ? 4 : 0
-}
-
 function gateState(
   index: number,
   activeStep: number,
@@ -68,7 +57,7 @@ function gateState(
   rejectedReason?: string
 ): GateState {
   const step = index + 1
-  const fail = failedStep(rejectedReason)
+  const fail = settlementFailureStep(rejectedReason)
   const isFinalFailure = !running && !approved && activeStep > 0
 
   if (approved && activeStep >= step) return "approved"
@@ -88,7 +77,7 @@ function gateState(
 }
 
 function packetPosition(activeStep: number, rejectedReason?: string) {
-  const fail = failedStep(rejectedReason)
+  const fail = settlementFailureStep(rejectedReason)
   if (fail > 0) return stops[fail]!
   return stops[Math.min(Math.max(activeStep, 0), stops.length - 1)]!
 }
@@ -144,26 +133,22 @@ function GateModule({
   )
 
   return (
-    <div
-      className={cn(
-        "flex flex-1 flex-col items-center gap-2 pt-16",
-        skipped && "opacity-30"
-      )}
-    >
+    <div className="flex flex-1 flex-col items-center gap-2 pt-16">
       {/* Label */}
       <span
         className={cn(
-          "font-mono text-[9px] font-bold tracking-[0.14em] uppercase",
-          active && "text-accent",
+          "relative z-10 font-mono text-[9px] font-bold tracking-[0.14em] uppercase",
+          active && "text-[#3fe0d0]",
           blocked && "text-destructive",
-          !active && !blocked && "text-white/60"
+          skipped && "text-white/50",
+          !active && !blocked && !skipped && "text-white/60"
         )}
       >
         {label}
       </span>
 
       {/* Gate body with flanges */}
-      <div className="relative">
+      <div className={cn("relative", skipped && "opacity-30")}>
         {/* Top flanges */}
         <div className={cn(flangeClass, "top-2")} />
         {/* Bottom flanges */}
