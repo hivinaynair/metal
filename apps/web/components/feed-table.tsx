@@ -42,6 +42,45 @@ export function FeedTable({ rows, agentNames = {} }: FeedTableProps) {
     return true
   })
 
+  function exportCsv() {
+    const header = [
+      "time",
+      "agent",
+      "payer",
+      "amount_usdc",
+      "identity",
+      "decision",
+      "settlement_tx",
+      "attestation_tx",
+    ]
+    const escape = (value: string) => `"${value.replaceAll('"', '""')}"`
+    const lines = filtered.map((row) => {
+      const approved = row.decision === DECISION_APPROVED
+      const agentName = agentNames[row.payer.toLowerCase()] ?? "unknown"
+      return [
+        new Date(row.timestamp * 1000).toISOString(),
+        agentName,
+        row.payer,
+        formatUsdc(row.amountUsdc),
+        row.identityStatus !== 0 ? "verified" : "unknown",
+        approved ? "approved" : "blocked",
+        row.settlementTx,
+        row.attestationTx,
+      ]
+        .map((value) => escape(String(value)))
+        .join(",")
+    })
+    const blob = new Blob([[header.join(","), ...lines].join("\n")], {
+      type: "text/csv;charset=utf-8",
+    })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement("a")
+    anchor.href = url
+    anchor.download = `metal-feed-${filter}.csv`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <>
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -60,7 +99,13 @@ export function FeedTable({ rows, agentNames = {} }: FeedTableProps) {
             </button>
           ))}
         </div>
-        <Button variant="outline" size="sm" className="ml-auto">
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-auto"
+          onClick={exportCsv}
+          disabled={filtered.length === 0}
+        >
           <FileText className="size-4" />
           Export
         </Button>

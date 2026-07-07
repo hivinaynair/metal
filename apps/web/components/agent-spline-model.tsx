@@ -32,7 +32,7 @@ export function AgentSplineModel({
 
 
   return (
-    <div className="absolute left-1/2 top-1/2 h-[300px] w-[260px] -translate-x-1/2 -translate-y-[60%]">
+    <div className="absolute left-1/2 top-1/2 h-[300px] w-[200px] -translate-x-1/2 -translate-y-[50%] scale-80">
       <Spline
         scene={sceneUrl}
         className="h-full w-full"

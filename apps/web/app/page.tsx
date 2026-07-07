@@ -2,20 +2,55 @@
 
 import type { ReactNode } from "react"
 import { useMemo, useState } from "react"
-import { Copy, Play, Wallet, Zap } from "lucide-react"
+import {
+  CheckCircle2,
+  Copy,
+  MessageSquareText,
+  Play,
+  Wallet,
+  XCircle,
+  Zap,
+} from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
+import { ScrollArea } from "@workspace/ui/components/scroll-area"
 import { cn } from "@workspace/ui/lib/utils"
 import { PageFrame, PageHead } from "@/components/page-chrome"
-import { TracePanel, buildTraceSteps } from "@/components/trace-panel"
 import { SettlementScene } from "@/components/settlement-scene"
 import { demoAgents } from "@/lib/demo-scenarios"
 
 const SCENARIOS = [
-  { agentId: "metal-agent-1", slot: "A", title: "Happy path", displayAgent: "Orion Pay", packetFrom: "0x9F21...Ae21", mandate: "ap2_9F21...Ae21" },
-  { agentId: "metal-agent-2", slot: "B", title: "Mandate exceeded", displayAgent: "Atlas Treasury", packetFrom: "0xC4b8...A1F0", mandate: "ap2_C4b8...A1F0" },
-  { agentId: "metal-agent-3", slot: "C", title: "Policy exceeded", displayAgent: "Nova Fetch", packetFrom: "0x3af5...Ab12", mandate: "ap2_3af5...Ab12" },
-  { agentId: "metal-agent-ghost", slot: "D", title: "Unregistered agent", displayAgent: "Ghost Runner", packetFrom: "0x62c1...Gh09", mandate: "ap2_none" },
-  { agentId: "metal-agent-2", slot: "E", title: "Expired mandate", displayAgent: "Vega Scheduler", packetFrom: "0x8d0e...Vg1a", mandate: "ap2_8d0e...Vg1a", disabled: true },
+  {
+    agentId: "metal-agent-1",
+    slot: "A",
+    title: "Happy path",
+    displayAgent: "Orion Pay",
+    packetFrom: "0x9F21...Ae21",
+    mandate: "ap2_9F21...Ae21",
+  },
+  {
+    agentId: "metal-agent-2",
+    slot: "B",
+    title: "Mandate exceeded",
+    displayAgent: "Atlas Treasury",
+    packetFrom: "0xC4b8...A1F0",
+    mandate: "ap2_C4b8...A1F0",
+  },
+  {
+    agentId: "metal-agent-3",
+    slot: "C",
+    title: "Policy exceeded",
+    displayAgent: "Nova Fetch",
+    packetFrom: "0x3af5...Ab12",
+    mandate: "ap2_3af5...Ab12",
+  },
+  {
+    agentId: "metal-agent-ghost",
+    slot: "D",
+    title: "Unregistered agent",
+    displayAgent: "Ghost Runner",
+    packetFrom: "0x62c1...Gh09",
+    mandate: "ap2_none",
+  },
 ]
 
 interface TriggerResult {
@@ -52,16 +87,27 @@ function cleanRejectionReason(error?: string | null) {
   if (!error) return null
   const trimmed = error.trim()
   if (/^(<!doctype html|<html)/i.test(trimmed)) {
-    const title = trimmed.match(/<title[^>]*>(.*?)<\/title>/is)?.[1]
+    const title = trimmed
+      .match(/<title[^>]*>(.*?)<\/title>/is)?.[1]
       ?.replace(/\s+/g, " ")
       .trim()
-    return title ? `Upstream returned HTML: ${title}` : "Upstream returned an HTML error page"
+    return title
+      ? `Upstream returned HTML: ${title}`
+      : "Upstream returned an HTML error page"
   }
   return trimmed.length > 240 ? `${trimmed.slice(0, 240)}...` : trimmed
 }
 
 export default function Page() {
-  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [selectedIndex, setSelectedIndex] = useState(() => {
+    if (typeof window === "undefined") return 0
+    const requestedScenario = Number(
+      new URLSearchParams(window.location.search).get("scenario") ?? 0
+    )
+    return Number.isInteger(requestedScenario)
+      ? Math.min(Math.max(requestedScenario, 0), SCENARIOS.length - 1)
+      : 0
+  })
   const [loading, setLoading] = useState(false)
   const [animStep, setAnimStep] = useState(0)
   const [result, setResult] = useState<TriggerResult | null>(null)
@@ -69,10 +115,18 @@ export default function Page() {
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle")
 
   const selectedScenario = SCENARIOS[selectedIndex]!
-  const selectedAgent = demoAgents.find((agent) => agent.id === selectedScenario.agentId)!
+  const selectedAgent = demoAgents.find(
+    (agent) => agent.id === selectedScenario.agentId
+  )!
   const error = result?.body?.error
   const approved = result?.httpStatus === 200
-  const activeStep = loading ? animStep : result ? (approved ? 6 : failureStep(error)) : 0
+  const activeStep = loading
+    ? animStep
+    : result
+      ? approved
+        ? 6
+        : failureStep(error)
+      : 0
 
   async function runDemo() {
     setAnimStep(0)
@@ -105,23 +159,37 @@ export default function Page() {
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue
           try {
-            const event = JSON.parse(line.slice(6)) as { type: string; text?: string; step?: number; result?: TriggerResult }
+            const event = JSON.parse(line.slice(6)) as {
+              type: string
+              text?: string
+              step?: number
+              result?: TriggerResult
+            }
             if (event.type === "token" && event.text) {
               setAgentReasoning((prev) => prev + event.text)
-            } else if (event.type === "gate" && typeof event.step === "number") {
+            } else if (
+              event.type === "gate" &&
+              typeof event.step === "number"
+            ) {
               setAnimStep(event.step)
             } else if (event.type === "done" && event.result) {
               setResult(event.result)
               setLoading(false)
             }
-          } catch { /* malformed line */ }
+          } catch {
+            /* malformed line */
+          }
         }
       }
     } catch (err) {
       setResult({
         slot: selectedScenario.slot,
         agent: selectedAgent,
-        route: { id: "unknown", path: "/api/trigger-payment", price: selectedAgent.route.includes("$5") ? "$5.00" : "$0.01" },
+        route: {
+          id: "unknown",
+          path: "/api/trigger-payment",
+          price: selectedAgent.route.includes("$5") ? "$5.00" : "$0.01",
+        },
         httpStatus: 500,
         body: { error: String(err) },
       })
@@ -130,12 +198,13 @@ export default function Page() {
     }
   }
 
-  const traceSteps = buildTraceSteps(result, loading ? animStep : 0)
   const proofBundle = useMemo(() => {
     const agent = result?.agent ?? selectedAgent
     const route = result?.route ?? {
       id: selectedAgent.route.startsWith("Premium") ? "premium" : "basic",
-      path: selectedAgent.route.startsWith("Premium") ? "/api/premium-risk-report" : "/api/settlement-risk-report",
+      path: selectedAgent.route.startsWith("Premium")
+        ? "/api/premium-risk-report"
+        : "/api/settlement-risk-report",
       price: selectedAgent.route.includes("$5") ? "$5.00" : "$0.01",
     }
 
@@ -150,7 +219,11 @@ export default function Page() {
         mandateDelegator: result?.mandateDelegator ?? "pending run",
         mandateValid: result?.mandateValid ?? null,
         policyThreshold: result?.policyThreshold ?? "$2",
-        policyDecision: result ? (result.httpStatus === 200 ? "approved" : "rejected") : "not run",
+        policyDecision: result
+          ? result.httpStatus === 200
+            ? "approved"
+            : "rejected"
+          : "not run",
         rejectionReason: cleanRejectionReason(result?.body?.error),
         settlementTxHash: result?.settlementTxHash ?? null,
         settlementTxUrl: result?.settlementTxUrl ?? null,
@@ -158,7 +231,7 @@ export default function Page() {
         attestationTxUrl: result?.attestationTxUrl ?? null,
       },
       null,
-      2,
+      2
     )
   }, [result, selectedAgent])
 
@@ -185,9 +258,9 @@ export default function Page() {
           return (
             <button
               key={scenario.slot}
-              disabled={loading || scenario.disabled}
+              disabled={loading}
               onClick={() => {
-                if (loading || scenario.disabled) return
+                if (loading) return
                 setSelectedIndex(index)
                 setResult(null)
                 setAgentReasoning("")
@@ -198,7 +271,7 @@ export default function Page() {
                 selected
                   ? "bg-muted text-foreground"
                   : "bg-transparent text-muted-foreground hover:text-foreground",
-                scenario.disabled && "cursor-not-allowed opacity-55 hover:text-muted-foreground"
+                loading && "cursor-not-allowed opacity-55"
               )}
             >
               <span
@@ -216,9 +289,22 @@ export default function Page() {
 
       <SettlementScene
         agentLabel={selectedScenario.displayAgent}
+        agentStatus={
+          selectedAgent.status === "approved"
+            ? "Trusted"
+            : selectedScenario.title
+        }
         agentReasoning={agentReasoning}
-        amountLabel={result?.route.price ?? (selectedAgent.route.includes("$5") ? "$5.00" : "$0.01")}
-        routeLabel={result?.route.path ?? (selectedAgent.route.startsWith("Premium") ? "/api/premium-risk-report" : "/api/settlement-risk-report")}
+        amountLabel={
+          result?.route.price ??
+          (selectedAgent.route.includes("$5") ? "$5.00" : "$0.01")
+        }
+        routeLabel={
+          result?.route.path ??
+          (selectedAgent.route.startsWith("Premium")
+            ? "/api/premium-risk-report"
+            : "/api/settlement-risk-report")
+        }
         mandateLimit={selectedAgent.mandateLimit}
         activeStep={activeStep}
         running={loading}
@@ -248,9 +334,18 @@ export default function Page() {
         }
       />
 
-      <section className="grid min-w-0 items-stretch gap-4 lg:grid-cols-[1.05fr_1fr_0.82fr]">
-        <Panel title="Technical trace" icon={<Zap className="size-4" />}>
-          <TracePanel steps={traceSteps} />
+      <section className="grid min-w-0 items-stretch gap-4 overflow-x-auto pb-1 lg:grid-cols-[minmax(360px,1.05fr)_minmax(420px,1fr)_320px]">
+        <Panel
+          title="Decision log"
+          icon={<MessageSquareText className="size-4" />}
+        >
+          <DecisionLog
+            result={result}
+            running={loading}
+            activeStep={activeStep}
+            selectedAgent={selectedAgent}
+            selectedScenario={selectedScenario}
+          />
         </Panel>
 
         <Panel
@@ -270,7 +365,7 @@ export default function Page() {
           }
         >
           {result ? (
-            <pre className="h-full min-h-0 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-6 text-foreground/80">
+            <pre className="font-mono text-xs leading-6 break-words whitespace-pre-wrap text-foreground/80">
               {proofBundle}
             </pre>
           ) : (
@@ -282,14 +377,171 @@ export default function Page() {
 
         <Panel title="Packet" icon={<Wallet className="size-4" />}>
           <PacketPanel
-            amount={result?.route.price ?? (selectedAgent.route.includes("$5") ? "$5.00" : "$0.01")}
-            from={result?.payer ? shortAddress(result.payer) : selectedScenario.packetFrom}
+            amount={
+              result?.route.price ??
+              (selectedAgent.route.includes("$5") ? "$5.00" : "$0.01")
+            }
+            from={
+              result?.payer
+                ? shortAddress(result.payer)
+                : selectedScenario.packetFrom
+            }
             mandate={selectedScenario.mandate}
             policy="pol_9f8a…d21b"
           />
         </Panel>
       </section>
     </PageFrame>
+  )
+}
+
+function decisionStatus(
+  step: number,
+  activeStep: number,
+  result: TriggerResult | null,
+  running: boolean
+) {
+  if (running) {
+    if (activeStep > step) return "approved"
+    if (activeStep === step) return "running"
+    return "pending"
+  }
+
+  if (!result) return "pending"
+  if (result.httpStatus === 200) return "approved"
+
+  const failed = failureStep(result.body?.error)
+  if (step < failed) return "approved"
+  if (step === failed) return "rejected"
+  return "skipped"
+}
+
+function DecisionLog({
+  result,
+  running,
+  activeStep,
+  selectedAgent,
+  selectedScenario,
+}: {
+  result: TriggerResult | null
+  running: boolean
+  activeStep: number
+  selectedAgent: (typeof demoAgents)[number]
+  selectedScenario: (typeof SCENARIOS)[number]
+}) {
+  const route = result?.route ?? {
+    path: selectedAgent.route.startsWith("Premium")
+      ? "/api/premium-risk-report"
+      : "/api/settlement-risk-report",
+    price: selectedAgent.route.includes("$5") ? "$5.00" : "$0.01",
+  }
+  const rejectedReason = cleanRejectionReason(result?.body?.error)
+
+  const rows = [
+    {
+      step: 0,
+      label: "Agent request",
+      detail: `${selectedScenario.displayAgent} requests ${route.path}`,
+    },
+    {
+      step: 1,
+      label: "x402 challenge",
+      detail: `${route.price} payment requirement received`,
+    },
+    {
+      step: 2,
+      label: "Identity",
+      detail: result?.agentUri
+        ? `ERC-8004 URI ${result.agentUri}`
+        : selectedAgent.id,
+    },
+    {
+      step: 3,
+      label: "Mandate",
+      detail:
+        result?.mandateValid === false
+          ? "AP2 mandate rejected"
+          : `Limit ${selectedAgent.mandateLimit}`,
+    },
+    {
+      step: 4,
+      label: "Policy",
+      detail: `Payment ${route.price} against ceiling ${result?.policyThreshold ?? "$2"}`,
+    },
+    {
+      step: 5,
+      label: "Settlement",
+      detail: result?.settlementTxHash
+        ? result.settlementTxHash.slice(0, 10) + "..."
+        : result && result.httpStatus !== 200
+          ? "No settlement transaction created"
+          : "Pending",
+    },
+  ]
+
+  if (!running && !result) {
+    return (
+      <div className="flex h-full min-h-52 flex-col justify-center rounded-sm border border-dashed border-border px-5 py-8 text-sm text-muted-foreground">
+        <p className="font-medium text-foreground">Waiting for a run.</p>
+        <p className="mt-2 leading-6">
+          The settlement checks will appear here as the payment moves through
+          the pipeline.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-3">
+        {rows.map((row) => {
+          const status = decisionStatus(row.step, activeStep, result, running)
+          const approved = status === "approved"
+          const rejected = status === "rejected"
+          const runningStep = status === "running"
+
+          return (
+            <div
+              key={row.label}
+              className={cn(
+                "flex gap-3 rounded-sm border border-transparent px-2 py-1.5",
+                runningStep && "border-border bg-muted/30",
+                status === "skipped" && "opacity-45"
+              )}
+            >
+              <span className="mt-0.5">
+                {approved ? (
+                  <CheckCircle2 className="size-4 text-[var(--positive)]" />
+                ) : rejected ? (
+                  <XCircle className="size-4 text-destructive" />
+                ) : runningStep ? (
+                  <Zap className="size-4 animate-pulse text-foreground" />
+                ) : (
+                  <span className="block size-4 rounded-full border border-border" />
+                )}
+              </span>
+              <span className="min-w-0">
+                <span
+                  className={cn(
+                    "block text-sm font-medium",
+                    rejected && "text-destructive",
+                    !approved &&
+                      !rejected &&
+                      !runningStep &&
+                      "text-muted-foreground"
+                  )}
+                >
+                  {row.label}
+                </span>
+                <span className="mt-0.5 block truncate font-mono text-xs text-muted-foreground">
+                  {rejected && rejectedReason ? rejectedReason : row.detail}
+                </span>
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
@@ -325,13 +577,15 @@ function Panel({
   children: ReactNode
 }) {
   return (
-    <section className="metal-card flex min-h-80 flex-col rounded-md p-0">
+    <section className="metal-card flex h-[420px] min-w-0 flex-col rounded-md p-0">
       <div className="flex h-[72px] items-center gap-3 border-b border-border px-5">
         <span className="text-muted-foreground">{icon}</span>
         <h2 className="text-sm font-semibold">{title}</h2>
         <div className="ml-auto">{action}</div>
       </div>
-      <div className="min-h-0 flex-1 p-5">{children}</div>
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="p-5">{children}</div>
+      </ScrollArea>
     </section>
   )
 }

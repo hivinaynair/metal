@@ -223,6 +223,13 @@ export function PolicyWorkbench({
   const rangePct = Math.min(100, Math.max(0, (maxAmountUsdc / 25) * 100))
 
   const canEvaluate = Boolean(selectedAgent)
+  const railScenarioIndex =
+    selectedResource?.id === "premium"
+      ? selectedAgent?.maxAmountUsdc &&
+        selectedAgent.maxAmountUsdc >= maxAmountUsdc
+        ? 2
+        : 1
+      : 0
 
   const proof = useMemo(() => proofRun, [proofRun])
 
@@ -444,7 +451,7 @@ export function PolicyWorkbench({
               </Button>
               {result && selectedResource ? (
                 <Link
-                  href="/"
+                  href={`/?scenario=${railScenarioIndex}`}
                   className={cn(
                     buttonVariants({ variant: "outline" }),
                     "border-0"
