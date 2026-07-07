@@ -120,18 +120,18 @@ async function runInit(): Promise<AgentAccounts> {
     })
 
     if (mandateRow) {
-      console.log(`[init] Mandate already exists for ${config.name}`)
       mandateHeaders.set(addressLower, JSON.stringify({
-        agentId: mandateRow.nonce.toString(),
+        agentId: agentId.toString(),
         payload: {
           agent: address,
           delegator: mandateRow.delegatorAddress,
           maxAmountUsdc: mandateRow.maxAmountUsdc.toString(),
           expiry: mandateRow.expiry.toString(),
-          nonce: mandateRow.nonce.toString(),
+          nonce: mandateRow.nonce.toString(), // nonce = agentId at mandate creation time
         },
         signature: mandateRow.signature,
       }))
+      console.log(`[init] Mandate rehydrated for ${config.name}`)
     } else {
       const mandatePayload = {
         agent: address,
