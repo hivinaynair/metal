@@ -1,134 +1,127 @@
 # Metal — Settlement Infrastructure Demo
 
-A reference implementation of Metal's compliance primitive stack, built on Base Sepolia.
-
-Metal's thesis: identity, authorization, policy, and attestation should be enforced **at the settlement layer** — not bolted on as a dashboard afterwards. This demo builds each primitive and makes it visible through a compliance console.
+Metal's thesis: identity, authorization, policy, and attestation enforce compliance **at the settlement layer** — before funds move, not in a dashboard afterwards. This demo builds that primitive stack live on Base Sepolia and puts a real Claude agent at the center of it.
 
 ## Primitive Stack
 
 | Primitive | Standard | Implementation |
-|---|---|---|
-| Identity | [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) | Live Base Sepolia registry at `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
-| Authorization | AP2 mandate | EIP-712 signed mandate, verified in facilitator |
-| Policy | Amount threshold | Enforced server-side in `/api/verify` before settlement |
-| Attestation | Metal native | `AttestationRegistry` contract on Base Sepolia |
+|-----------|----------|----------------|
+| Identity | [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) | Live registry at `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
+| Authorization | AP2 mandate | EIP-712 signed delegation, verified in facilitator before settlement |
+| Policy | Amount threshold | `POLICY_MAX_AMOUNT_USDC` ceiling enforced in `onBeforeSettle` |
+| Attestation | On-chain | `AttestationRegistry` at `0xe81ea4bd57eb034047c8f0fb016d74485239d76d` |
 | Settlement | [x402](https://x402.org) | `@x402/evm` exact scheme, Base Sepolia USDC |
 
-In production Metal, these would be native chain primitives. Here they run on Base Sepolia as a proxy.
+In production Metal, these are native chain primitives. Here they run on Base Sepolia as a proxy.
 
-## What's Built
+## Repo Structure
 
 ```
 bare-metal/
-├── contracts/              # AttestationRegistry (Solidity); identity uses live ERC-8004
 ├── apps/
-│   ├── web/                # Compliance console UI + x402-gated route (Next.js → Vercel)
-│   ├── agent/              # CDP/AgentKit wallet agent that can pay x402 resources
-│   └── facilitator/        # Custom x402 facilitator with Metal primitive stack (Hono → Vercel)
+│   ├── web/          # Compliance console + x402-gated routes (Next.js → Vercel)
+│   ├── agent/        # Claude agent with CDP/AgentKit wallet — HTTP server + CLI (Bun → Vercel)
+│   └── facilitator/  # Custom x402 facilitator with full primitive stack (Hono → Vercel)
 ├── packages/
-│   ├── shared/             # ERC-8004 lookup + AP2 mandate types
-│   └── ui/                 # Component library
-├── scripts/                # Deploy contracts, sign/register mandate, wallet utilities
-│   └── legacy/             # Older private-key payer scripts kept for debugging
-└── demo/
-    └── mandate.json        # Pre-signed AP2 mandate for the private-key demo wallet
+│   ├── shared/       # ERC-8004 lookup, AP2 mandate types, ABIs, Drizzle schema
+│   └── ui/           # Component library
+├── contracts/        # AttestationRegistry.sol + compiled artifacts
+└── scripts/          # Deploy contracts, fund wallets, sign/register mandates
 ```
 
 ## How it Works
 
-1. **Agent makes a payment** to an x402-gated API (`/api/settlement-risk-report`)
-2. **Facilitator `/verify`** runs the full primitive stack:
-   - Looks up the agent in live ERC-8004 — rejects if not registered
-   - Verifies the AP2 mandate signature — rejects if invalid, expired, or over-amount
-   - Checks amount against policy threshold — rejects if over limit
-3. **Facilitator `/settle`** settles the USDC payment on-chain, then:
-   - Calls `AttestationRegistry.attest()` — tamper-evident on-chain record
-4. **Compliance console** shows the full trace — both tx hashes, identity status, mandate chain
+```
+Agent wants to pay $0.01 for /api/settlement-risk-report
+  → x402 challenge issued
+  → Facilitator /verify:
+      1. ERC-8004 lookup — is this agent registered?
+      2. AP2 mandate — is the EIP-712 signature valid, not expired, amount within limit?
+      3. Policy check — is amount below the settlement ceiling?
+      ↳ reject at first failure, funds never move
+  → Facilitator /settle:
+      4. USDC settles on Base Sepolia
+      5. AttestationRegistry.attest() — tamper-evident on-chain record
+  → Compliance console shows trace + both Basescan links
+```
+
+## The 4 Demo Scenarios
+
+| Slot | Agent | Mandate | Route | Fails at |
+|------|-------|---------|-------|----------|
+| A | metal-agent-1 | $1 | Basic $0.01 | — (approved, real settlement) |
+| B | metal-agent-2 | $1 | Premium $5 | Mandate exceeded ($5 > $1) |
+| C | metal-agent-3 | $10 | Premium $5 | Policy ceiling ($5 > $2) |
+| D | metal-agent-ghost | none | Basic $0.01 | Identity not found in ERC-8004 |
+
+Each uses a real CDP wallet. The Claude agent reasons aloud before attempting payment — its reasoning streams live into the UI.
 
 ## Setup
 
 ### Prerequisites
 
 - [Bun](https://bun.sh) v1.3+
-- Base Sepolia ETH (for gas) and USDC in the payer wallet
+- CDP API key (for agent wallets)
+- Neon Postgres + Upstash Redis URLs
 
 ### Environment
 
+Copy `.env.example` to `.env.local` in each app. Required vars:
+
 ```bash
-cp .env.example .env.local
-```
-
-Required vars:
-
-```
 # Wallets
-PAY_TO_ADDRESS=            # Seller/payTo wallet address
-FACILITATOR_PRIVATE_KEY=   # Gas wallet — must hold Base Sepolia ETH for gas
-DELEGATOR_PRIVATE_KEY=     # Institution wallet that signs AP2 mandates
+PAY_TO_ADDRESS=              # receives USDC on settlement
+FACILITATOR_PRIVATE_KEY=     # gas wallet — holds Base Sepolia ETH, never USDC
+DELEGATOR_PRIVATE_KEY=       # institution wallet that signs AP2 mandates
 
-# AgentKit/CDP wallet agent
-ANTHROPIC_API_KEY=
+# CDP / AgentKit
 CDP_API_KEY_ID=
 CDP_API_KEY_SECRET=
 CDP_WALLET_SECRET=
+ANTHROPIC_API_KEY=
 
-# Contracts (populated by deploy script)
-IDENTITY_REGISTRY_ADDRESS=  # live ERC-8004: 0x8004A818BFB912233c491871b3d84c89A494BD9e
-ATTESTATION_REGISTRY_ADDRESS=
-AGENT_ID=                   # ERC-8004 token ID written by the agent on first run
-APP_URL=                    # base URL used for ERC-8004 agentURI metadata
+# Contracts
+ATTESTATION_REGISTRY_ADDRESS=0xe81ea4bd57eb034047c8f0fb016d74485239d76d
 
-# Facilitator
-FACILITATOR_URL=           # Deployed facilitator URL (or http://localhost:3001 for local)
-POLICY_MAX_AMOUNT_USDC=    # e.g. 10
-UPSTASH_REDIS_REST_URL=    # mandate store
-UPSTASH_REDIS_REST_TOKEN=  # mandate store
+# URLs
+APP_URL=                     # base URL (used for ERC-8004 agentURI)
+FACILITATOR_URL=             # deployed facilitator (or http://localhost:3001)
+AGENT_URL=                   # deployed agent server (or http://localhost:3002)
 
-# Optional private-key utilities
-PAYER_PRIVATE_KEY=         # Legacy payer scripts only
-RECIPIENT_PRIVATE_KEY=     # Generate PAY_TO_ADDRESS if needed
-```
-
-### Deploy contracts
-
-```bash
-bun --filter @workspace/scripts deploy-contracts  # deploys AttestationRegistry, writes address to .env.local
-```
-
-### Fund a gas wallet
-
-```bash
-bun --filter @workspace/scripts fund-wallet       # funds FACILITATOR_PRIVATE_KEY address with Base Sepolia ETH
-bun --filter @workspace/scripts fund-wallet 0x... # or pass an address explicitly
-```
-
-### Register the agent
-
-```bash
-bun --filter agent dev               # first run registers the CDP wallet in ERC-8004 and prints next steps
-```
-
-### Sign the AP2 mandate
-
-```bash
-AGENT_ADDRESS=<agent-wallet> bun --filter @workspace/scripts sign-mandate
-bun --filter @workspace/scripts register-mandate  # prefers demo/agentkit-mandate.json, or set MANDATE_PATH
+# Storage
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+DATABASE_URL=                # Neon Postgres
 ```
 
 ### Run locally
 
 ```bash
-bun dev                              # starts all apps via Turborepo
+bun dev          # starts web + facilitator + agent server via Turborepo
 ```
 
-### Test a real payment
+Web → `localhost:3000`, facilitator → `localhost:3001`, agent server → `localhost:3002`.
+
+Agent wallets are created and funded automatically on first request to the web console.
+
+### CLI agent
 
 ```bash
-bun --filter agent dev               # ask the agent to fetch the settlement risk report
+bun --filter agent dev                     # interactive REPL — ask it to fetch a report
+bun --filter agent dev happy-path          # one-shot: pays $0.01, prints reasoning + tx hashes
+bun --filter agent dev mandate-exceeded    # one-shot: blocked at mandate gate, agent explains why
+bun --filter agent dev policy-exceeded     # one-shot: blocked at policy ceiling
+bun --filter agent dev ghost               # one-shot: blocked at identity gate
+bun --filter agent dev serve               # HTTP server mode (used by web console)
 ```
 
-Both the USDC settlement tx and the attestation tx will be logged with Basescan links.
+The CLI agent uses a real CDP wallet, verifies its mandate and identity, and pays via x402. Both the settlement tx and attestation tx are logged with Basescan links.
 
-## GitHub Issues
+### Deploy contracts (if redeploying)
 
-See [#1](https://github.com/hivinaynair/metal/issues/1) for the full PRD and [#2–#8](https://github.com/hivinaynair/metal/issues) for implementation slices.
+```bash
+bun --filter @workspace/scripts deploy-contracts   # deploys AttestationRegistry, writes address to .env.local
+bun --filter @workspace/scripts fund-wallet        # funds FACILITATOR_PRIVATE_KEY with Base Sepolia ETH
+```
+
+Mandates are signed and registered automatically by `apps/web`'s `initAgents()` on first run.

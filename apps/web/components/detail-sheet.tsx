@@ -23,8 +23,10 @@ interface DetailSheetProps {
     identityStatus: number
     decision: number
     timestamp: number
-    txHash: string
+    settlementTx: string
+    settlementTxUrl: string
     attestationTx: string
+    attestationTxUrl: string
   } | null
 }
 
@@ -74,12 +76,12 @@ function buildSteps(row: NonNullable<DetailSheetProps["row"]>): TraceStep[] {
       id: 5,
       label: "Settlement + Attestation",
       status: approved ? "approved" : "skipped",
-      detail: row.txHash ? `${row.txHash.slice(0, 10)}…` : undefined,
-      link: row.txHash
-        ? { href: `${BASE_SEPOLIA_EXPLORER}/tx/${row.txHash}`, label: "settlement tx" }
+      detail: row.settlementTx ? `${row.settlementTx.slice(0, 10)}…` : undefined,
+      link: row.settlementTx
+        ? { href: row.settlementTxUrl, label: "settlement tx" }
         : undefined,
       attestationLink: row.attestationTx
-        ? { href: row.attestationTx, label: "attestation tx" }
+        ? { href: row.attestationTxUrl, label: "attestation tx" }
         : undefined,
     },
   ]
@@ -116,9 +118,9 @@ export function DetailSheet({ open, onClose, row }: DetailSheetProps) {
             AP2 mandate verified off-chain. In production Metal, mandates are enforced as a native authorization primitive.
           </p>
           <div className="flex flex-col gap-1">
-            {row.txHash && (
+            {row.settlementTx && (
               <a
-                href={`${BASE_SEPOLIA_EXPLORER}/tx/${row.txHash}`}
+                href={row.settlementTxUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline font-mono"
@@ -128,7 +130,7 @@ export function DetailSheet({ open, onClose, row }: DetailSheetProps) {
             )}
             {row.attestationTx && (
               <a
-                href={row.attestationTx}
+                href={row.attestationTxUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline font-mono"

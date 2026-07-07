@@ -1,4 +1,6 @@
-import { demoAgents } from "@/lib/demo-scenarios"
+import { eq } from "drizzle-orm"
+import { createDb, schema } from "@workspace/shared/db"
+import { env } from "@/env"
 
 export interface AgentWithMandate {
   address: string
@@ -9,15 +11,24 @@ export interface AgentWithMandate {
   expiry: bigint
 }
 
+let _db: ReturnType<typeof createDb> | undefined
+function getDb() {
+  if (!_db) _db = createDb(env.DATABASE_URL)
+  return _db
+}
+
 export async function getAgentsWithMandates(): Promise<AgentWithMandate[]> {
-  return demoAgents
-    .filter((agent) => agent.mandateLimit !== "none")
-    .map((agent, index) => ({
-      address: `demo:${agent.id}`,
-      name: agent.id,
-      agentId: BigInt(index + 1),
-      maxAmountUsdc: BigInt(agent.mandateLimit.replace("$", "")),
-      delegatorAddress: "0x0000000000000000000000000000000000000000",
-      expiry: 9999999999n,
-    }))
+  const rows = await getDb()
+    .select({
+      address: schema.agents.address,
+      name: schema.agents.name,
+      agentId: schema.agents.agentId,
+      maxAmountUsdc: schema.mandates.maxAmountUsdc,
+      delegatorAddress: schema.mandates.delegatorAddress,
+      expiry: schema.mandates.expiry,
+    })
+    .from(schema.agents)
+    .innerJoin(schema.mandates, eq(schema.agents.address, schema.mandates.agentAddress))
+
+  return rows
 }

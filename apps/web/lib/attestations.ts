@@ -1,6 +1,5 @@
-import { createPublicClient, http } from "viem"
-import { baseSepolia } from "viem/chains"
-import { ATTESTED_EVENT } from "@workspace/shared/abis"
+import { desc } from "drizzle-orm"
+import { createDb, schema } from "@workspace/shared/db"
 import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
 import { env } from "@/env"
 
@@ -11,46 +10,37 @@ export interface AttestationRow {
   identityStatus: number
   decision: number
   timestamp: number
-  txHash: string
+  settlementTx: string
+  settlementTxUrl: string
   attestationTx: string
+  attestationTxUrl: string
 }
 
-// Base Sepolia RPC limits getLogs to 2000 blocks per query
-const BLOCK_LOOKBACK = 2000n
+let _db: ReturnType<typeof createDb> | undefined
+function getDb() {
+  if (!_db) _db = createDb(env.DATABASE_URL)
+  return _db
+}
 
 export async function getAttestations(): Promise<AttestationRow[]> {
-  const client = createPublicClient({ chain: baseSepolia, transport: http() })
+  const rows = await getDb()
+    .select()
+    .from(schema.settlementAttestations)
+    .orderBy(desc(schema.settlementAttestations.createdAt))
+    .limit(50)
 
-  const latestBlock = await client.getBlockNumber()
-  const fromBlock = latestBlock > BLOCK_LOOKBACK ? latestBlock - BLOCK_LOOKBACK : 0n
-
-  const logs = await client.getLogs({
-    address: env.ATTESTATION_REGISTRY_ADDRESS as `0x${string}`,
-    event: ATTESTED_EVENT,
-    fromBlock,
-    toBlock: latestBlock,
-  })
-
-  return logs.map((log) => {
-    const { paymentHash, payer, amountUsdc, identityStatus, decision, timestamp } = log.args as {
-      paymentHash: `0x${string}`
-      payer: `0x${string}`
-      amountUsdc: bigint
-      identityStatus: number
-      decision: number
-      timestamp: bigint
-    }
-    return {
-      paymentHash,
-      payer,
-      amountUsdc,
-      identityStatus,
-      decision,
-      timestamp: Number(timestamp),
-      txHash: log.transactionHash ?? "",
-      attestationTx: log.transactionHash
-        ? `${BASE_SEPOLIA_EXPLORER}/tx/${log.transactionHash}`
-        : "",
-    }
-  })
+  return rows.map((row) => ({
+    paymentHash: row.paymentHash,
+    payer: row.payerAddress,
+    amountUsdc: row.amountUsdc,
+    identityStatus: row.identityStatus,
+    decision: row.decision,
+    timestamp: Math.floor(row.createdAt.getTime() / 1000),
+    settlementTx: row.settlementTx,
+    settlementTxUrl: `${BASE_SEPOLIA_EXPLORER}/tx/${row.settlementTx}`,
+    attestationTx: row.attestationTx ?? "",
+    attestationTxUrl: row.attestationTx
+      ? `${BASE_SEPOLIA_EXPLORER}/tx/${row.attestationTx}`
+      : "",
+  }))
 }

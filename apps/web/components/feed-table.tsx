@@ -110,15 +110,15 @@ export function FeedTable({ rows, agentNames = {} }: FeedTableProps) {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {row.txHash && (
+                    {row.settlementTx && (
                       <a
-                        href={`${BASE_SEPOLIA_EXPLORER}/tx/${row.txHash}`}
+                        href={row.settlementTxUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
                         className="text-xs text-primary hover:underline font-mono"
                       >
-                        {row.txHash.slice(0, 8)}… ↗
+                        {row.settlementTx.slice(0, 8)}… ↗
                       </a>
                     )}
                   </TableCell>

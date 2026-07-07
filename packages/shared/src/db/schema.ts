@@ -1,4 +1,4 @@
-import { pgTable, text, bigint, timestamp } from "drizzle-orm/pg-core"
+import { pgTable, text, bigint, timestamp, serial, integer } from "drizzle-orm/pg-core"
 
 export const agents = pgTable("agents", {
   address: text("address").primaryKey(),
@@ -15,4 +15,16 @@ export const mandates = pgTable("mandates", {
   nonce: bigint("nonce", { mode: "bigint" }).notNull(),
   signature: text("signature").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+})
+
+export const settlementAttestations = pgTable("settlement_attestations", {
+  id: serial("id").primaryKey(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  paymentHash: text("payment_hash").notNull(),
+  settlementTx: text("settlement_tx").notNull(),
+  attestationTx: text("attestation_tx"),
+  payerAddress: text("payer_address").notNull(),
+  amountUsdc: bigint("amount_usdc", { mode: "bigint" }).notNull(),
+  identityStatus: integer("identity_status").notNull(),
+  decision: integer("decision").notNull(),
 })

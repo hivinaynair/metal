@@ -28,9 +28,10 @@ interface TriggerResult {
   mandateDelegator?: string
   mandateValid?: boolean
   policyThreshold?: string
-  txHash?: string
-  settlementTx?: string
-  attestationTx?: string
+  settlementTxHash?: string
+  settlementTxUrl?: string
+  attestationTxHash?: string
+  attestationTxUrl?: string
   body?: { error?: string }
 }
 
@@ -51,6 +52,7 @@ export default function Page() {
   const [loading, setLoading] = useState(false)
   const [animStep, setAnimStep] = useState(0)
   const [result, setResult] = useState<TriggerResult | null>(null)
+  const [agentReasoning, setAgentReasoning] = useState("")
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle")
   const animRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -82,6 +84,7 @@ export default function Page() {
   async function runDemo() {
     stopAnim()
     setResult(null)
+    setAgentReasoning("")
     setCopyState("idle")
     setLoading(true)
     startAnim()
@@ -92,9 +95,35 @@ export default function Page() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ scenarioIndex: selectedIndex }),
       })
-      const data: TriggerResult = await response.json()
-      stopAnim()
-      setResult(data)
+
+      if (!response.body) throw new Error("No response stream")
+
+      const reader = response.body.getReader()
+      const dec = new TextDecoder()
+      let buffer = ""
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += dec.decode(value, { stream: true })
+        const lines = buffer.split("\n")
+        buffer = lines.pop() ?? ""
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue
+          try {
+            const event = JSON.parse(line.slice(6)) as { type: string; text?: string; result?: TriggerResult }
+            if (event.type === "token" && event.text) {
+              setAgentReasoning((prev) => prev + event.text)
+            } else if (event.type === "done" && event.result) {
+              stopAnim()
+              setResult(event.result)
+              setLoading(false)
+            }
+          } catch { /* malformed line */ }
+        }
+      }
     } catch (err) {
       stopAnim()
       setResult({
@@ -131,9 +160,10 @@ export default function Page() {
         policyThreshold: result?.policyThreshold ?? "$2",
         policyDecision: result ? (result.httpStatus === 200 ? "approved" : "rejected") : "not run",
         rejectionReason: result?.body?.error ?? null,
-        settlementTxHash: result?.txHash ?? null,
-        settlementTxUrl: result?.settlementTx ?? null,
-        attestationTxUrl: result?.attestationTx ?? null,
+        settlementTxHash: result?.settlementTxHash ?? null,
+        settlementTxUrl: result?.settlementTxUrl ?? null,
+        attestationTxHash: result?.attestationTxHash ?? null,
+        attestationTxUrl: result?.attestationTxUrl ?? null,
       },
       null,
       2,
@@ -149,6 +179,15 @@ export default function Page() {
   return (
     <main className="dark min-h-[calc(100vh-57px)] overflow-x-hidden bg-[#050706] text-white">
       <div className="mx-4 box-border flex w-[calc(100vw-2rem)] min-w-0 max-w-7xl flex-col gap-6 py-5 sm:mx-6 sm:w-[calc(100vw-3rem)] lg:mx-auto lg:w-full lg:px-8">
+
+        {/* Framing */}
+        <div className="rounded-lg border border-teal-300/15 bg-teal-300/5 px-4 py-3">
+          <p className="text-sm text-teal-100/80">
+            Metal enforces identity, authorization, policy, and attestation at the settlement layer — before funds move.
+            This is that primitive stack, live on Base Sepolia. Pick a scenario and run it.
+          </p>
+        </div>
+
         <section className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="flex min-w-0 flex-col gap-4">
             <div className="flex flex-wrap items-end justify-between gap-4">
@@ -192,6 +231,7 @@ export default function Page() {
                       if (loading) return
                       setSelectedIndex(index)
                       setResult(null)
+                      setAgentReasoning("")
                       setCopyState("idle")
                     }}
                     className={`min-w-0 overflow-hidden rounded-lg border p-3 text-left transition ${
@@ -226,19 +266,30 @@ export default function Page() {
               running={loading}
               approved={Boolean(approved)}
               rejectedReason={error}
-              settlementTx={result?.settlementTx}
-              attestationTx={result?.attestationTx}
+              settlementTx={result?.settlementTxUrl}
+              attestationTx={result?.attestationTxUrl}
             />
           </div>
 
           <aside className="flex min-w-0 flex-col gap-4">
             <section className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-xs uppercase tracking-wide text-white/40">Agent Statement</p>
-              <p className="mt-3 text-sm leading-6 text-white/78">
-                I am <span className="font-mono text-teal-100">{selectedAgent.id}</span>. I have a mandate authorizing up to{" "}
-                <span className="font-mono text-white">{selectedAgent.mandateLimit}</span>. This request costs{" "}
-                <span className="font-mono text-white">{selectedAgent.route.split(" ")[1]}</span>.
-              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-teal-300">◆</span>
+                <p className="text-xs uppercase tracking-wide text-white/40">Agent</p>
+                {loading && !agentReasoning && (
+                  <span className="text-xs text-white/30 italic">thinking…</span>
+                )}
+              </div>
+              {agentReasoning ? (
+                <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-5 text-teal-50/85">
+                  {agentReasoning}
+                  {loading && <span className="animate-pulse">▋</span>}
+                </pre>
+              ) : (
+                <p className="mt-3 text-sm leading-6 text-white/50 italic">
+                  Agent reasoning will stream here when you run the demo.
+                </p>
+              )}
               <Separator className="my-4 bg-white/10" />
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>

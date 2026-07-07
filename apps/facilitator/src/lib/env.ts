@@ -6,7 +6,6 @@ const required = (key: string): string => {
 
 export const env = {
   FACILITATOR_PRIVATE_KEY: required("FACILITATOR_PRIVATE_KEY") as `0x${string}`,
-  IDENTITY_REGISTRY_ADDRESS: required("IDENTITY_REGISTRY_ADDRESS") as `0x${string}`,
   ATTESTATION_REGISTRY_ADDRESS: required("ATTESTATION_REGISTRY_ADDRESS") as `0x${string}`,
   POLICY_MAX_AMOUNT_USDC: Number(process.env.POLICY_MAX_AMOUNT_USDC ?? "10"),
   PORT: Number(process.env.PORT ?? "3001"),

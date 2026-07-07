@@ -13,8 +13,7 @@ import { BASE_SEPOLIA_CAIP2, BASE_SEPOLIA_EXPLORER } from "@workspace/shared/cha
 import type { EvmServerAccount } from "@coinbase/cdp-sdk"
 
 // Build all tools for the agent — AgentKit built-ins + custom x402FetchTool.
-// CdpEvmWalletProvider reads CDP_API_KEY_NAME/SECRET/WALLET_SECRET from env automatically.
-export async function buildTools(cdpAccount: EvmServerAccount) {
+export async function buildTools(cdpAccount: EvmServerAccount, opts?: { mandateHeader?: string }) {
   const walletProvider = await CdpEvmWalletProvider.configureWithWallet({
     apiKeyId: process.env.CDP_API_KEY_ID ?? process.env.CDP_API_KEY_NAME,
     apiKeySecret: process.env.CDP_API_KEY_SECRET,
@@ -26,15 +25,13 @@ export async function buildTools(cdpAccount: EvmServerAccount) {
   const agentkit = await AgentKit.from({
     walletProvider,
     actionProviders: [
-      walletActionProvider(),  // get_wallet_details, get_balance, native_transfer
-      erc20ActionProvider(),   // ERC-20 get_balance, transfer
+      walletActionProvider(),
+      erc20ActionProvider(),
     ],
   })
 
   const agentKitTools = getVercelAITools(agentkit)
 
-  // x402FetchTool — agent uses this to fetch paywalled resources.
-  // EvmServerAccount is viem-compatible at runtime so it satisfies ExactEvmScheme.
   const fetchWithPayment = wrapFetchWithPaymentFromConfig(fetch, {
     schemes: [
       {
@@ -47,12 +44,15 @@ export async function buildTools(cdpAccount: EvmServerAccount) {
 
   const x402FetchTool = tool({
     description:
-      "Fetch a URL that may be gated behind an x402 paywall. Handles payment automatically. Returns the response body and the transaction hash if payment was made.",
+      "Fetch a URL that may be gated behind an x402 paywall. Handles payment automatically. Returns the response body, HTTP status, and the transaction hash if payment was made.",
     parameters: z.object({
       url: z.string().describe("The URL to fetch"),
     }),
     execute: async ({ url }) => {
-      const response = await fetchWithPayment(url)
+      const headers: Record<string, string> = {}
+      if (opts?.mandateHeader) headers["X-AP2-Mandate"] = opts.mandateHeader
+
+      const response = await fetchWithPayment(url, Object.keys(headers).length ? { headers } : undefined)
       const paymentHeader = response.headers.get("PAYMENT-RESPONSE")
       let txHash: string | undefined
 
@@ -60,14 +60,11 @@ export async function buildTools(cdpAccount: EvmServerAccount) {
         const decoded = decodePaymentResponseHeader(paymentHeader)
         const d = decoded as Record<string, unknown>
         txHash = (d.transaction as string | undefined) ?? (d.txHash as string | undefined)
-        if (!txHash) {
-          console.warn("[Metal Agent] x402 payment made but no txHash found in PAYMENT-RESPONSE header")
-        }
       }
 
       const body = await response.json()
       return {
-        status: response.status,
+        httpStatus: response.status,
         body,
         txHash,
         basescan: txHash ? `${BASE_SEPOLIA_EXPLORER}/tx/${txHash}` : undefined,
