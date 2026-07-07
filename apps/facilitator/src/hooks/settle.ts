@@ -31,18 +31,20 @@ export async function onAfterSettle({
 
   const amountUsdcAtomic = BigInt(paymentPayload.accepted.amount)
   const paymentHash = keccak256(result.transaction as `0x${string}`)
-  const identityStatus = (await getMandate(payer)) ? IdentityStatus.Verified : IdentityStatus.NotFound
+  const mandate = await getMandate(payer)
+  const identityStatus = mandate ? IdentityStatus.Verified : IdentityStatus.NotFound
 
   try {
-    await walletClient.writeContract({
+    const hash = await walletClient.writeContract({
       address: env.ATTESTATION_REGISTRY_ADDRESS,
       abi: ATTESTATION_REGISTRY_ABI,
       functionName: "attest",
       args: [paymentHash, payer, amountUsdcAtomic, identityStatus, Decision.Approved],
-      chain: null, // use walletClient's default chain (Base Sepolia)
+      chain: null,
       account,
     })
+    console.log("[onAfterSettle] attestation tx:", hash)
   } catch (err) {
-    console.error("[onAfterSettle] attestation failed — payment settled but not recorded on-chain:", err)
+    console.error("[onAfterSettle] attestation failed:", err)
   }
 }

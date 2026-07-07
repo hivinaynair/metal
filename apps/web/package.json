@@ -12,11 +12,15 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@coinbase/cdp-sdk": "^1.51.2",
     "@t3-oss/env-nextjs": "^0.13.11",
+    "@workspace/shared": "workspace:*",
     "@workspace/ui": "workspace:*",
     "@x402/core": "^2.17.0",
     "@x402/evm": "^2.17.0",
+    "@x402/fetch": "^2.17.0",
     "@x402/next": "^2.17.0",
+    "framer-motion": "^12.42.2",
     "lucide-react": "^1.23.0",
     "next": "16.2.6",
     "next-themes": "^0.4.6",

@@ -11,7 +11,12 @@
         "IDENTITY_REGISTRY_ADDRESS",
         "ATTESTATION_REGISTRY_ADDRESS",
         "UPSTASH_REDIS_REST_URL",
-        "UPSTASH_REDIS_REST_TOKEN"
+        "UPSTASH_REDIS_REST_TOKEN",
+        "DELEGATOR_PRIVATE_KEY",
+        "CDP_API_KEY_ID",
+        "CDP_API_KEY_SECRET",
+        "CDP_WALLET_SECRET",
+        "APP_URL"
       ],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]

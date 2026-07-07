@@ -1,4 +1,5 @@
-import { Redis } from "@upstash/redis"
+import { eq } from "drizzle-orm"
+import { createDb, schema } from "@workspace/shared/db"
 import type { SignedMandate } from "@workspace/shared/mandate"
 
 export interface MandateEntry {
@@ -6,82 +7,72 @@ export interface MandateEntry {
   agentId: bigint
 }
 
-interface StoredMandateEntry {
-  mandate: {
-    payload: {
-      agent: `0x${string}`
-      delegator: `0x${string}`
-      maxAmountUsdc: string
-      expiry: string
-      nonce: string
-    }
-    signature: `0x${string}`
+let _db: ReturnType<typeof createDb> | undefined
+
+function getDb() {
+  if (!_db) {
+    const url = process.env.DATABASE_URL
+    if (!url) throw new Error("Missing env var: DATABASE_URL")
+    _db = createDb(url)
   }
-  agentId: string
+  return _db
 }
 
-const redisUrl = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL
-const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN
-const redis = redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisToken }) : undefined
+export async function getMandate(agent: string): Promise<MandateEntry | undefined> {
+  const db = getDb()
+  const normalised = agent.toLowerCase()
 
-const keyForAgent = (agent: string) => `mandate:${agent.toLowerCase()}`
+  const rows = await db
+    .select({
+      agentId: schema.agents.agentId,
+      delegatorAddress: schema.mandates.delegatorAddress,
+      maxAmountUsdc: schema.mandates.maxAmountUsdc,
+      expiry: schema.mandates.expiry,
+      nonce: schema.mandates.nonce,
+      signature: schema.mandates.signature,
+    })
+    .from(schema.mandates)
+    .innerJoin(schema.agents, eq(schema.agents.address, schema.mandates.agentAddress))
+    .where(eq(schema.mandates.agentAddress, normalised))
+    .limit(1)
 
-function requireRedis(): Redis {
-  if (!redis) {
-    throw new Error(
-      "Missing Upstash Redis env vars: set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN",
-    )
-  }
-  return redis
-}
+  if (rows.length === 0) return undefined
 
-function serializeEntry(mandate: SignedMandate, agentId: bigint): StoredMandateEntry {
+  const row = rows[0]!
   return {
+    agentId: row.agentId,
     mandate: {
       payload: {
-        agent: mandate.payload.agent,
-        delegator: mandate.payload.delegator,
-        maxAmountUsdc: mandate.payload.maxAmountUsdc.toString(),
-        expiry: mandate.payload.expiry.toString(),
-        nonce: mandate.payload.nonce.toString(),
+        agent: agent as `0x${string}`,
+        delegator: row.delegatorAddress as `0x${string}`,
+        maxAmountUsdc: row.maxAmountUsdc,
+        expiry: row.expiry,
+        nonce: row.nonce,
       },
-      signature: mandate.signature,
+      signature: row.signature as `0x${string}`,
     },
-    agentId: agentId.toString(),
-  }
-}
-
-function deserializeEntry(entry: StoredMandateEntry): MandateEntry {
-  return {
-    mandate: {
-      payload: {
-        ...entry.mandate.payload,
-        maxAmountUsdc: BigInt(entry.mandate.payload.maxAmountUsdc),
-        expiry: BigInt(entry.mandate.payload.expiry),
-        nonce: BigInt(entry.mandate.payload.nonce),
-      },
-      signature: entry.mandate.signature,
-    },
-    agentId: BigInt(entry.agentId),
   }
 }
 
 export async function registerMandate(mandate: SignedMandate, agentId: bigint): Promise<boolean> {
-  const key = keyForAgent(mandate.payload.agent)
-  const redis = requireRedis()
+  const db = getDb()
+  const address = mandate.payload.agent.toLowerCase()
 
-  const result: unknown = await redis.set(
-    key,
-    JSON.stringify(serializeEntry(mandate, agentId)),
-    { nx: true },
-  )
-  return result === "OK" || result === true
-}
+  await db.insert(schema.agents)
+    .values({ address, agentId, name: address })
+    .onConflictDoNothing()
 
-export async function getMandate(agent: string): Promise<MandateEntry | undefined> {
-  const key = keyForAgent(agent)
-  const redis = requireRedis()
+  const result = await db.insert(schema.mandates)
+    .values({
+      agentAddress: address,
+      delegatorAddress: mandate.payload.delegator,
+      maxAmountUsdc: mandate.payload.maxAmountUsdc,
+      expiry: mandate.payload.expiry,
+      nonce: mandate.payload.nonce,
+      signature: mandate.signature,
+    })
+    .onConflictDoNothing()
+    .returning()
 
-  const value = await redis.get<StoredMandateEntry>(key)
-  return value ? deserializeEntry(value) : undefined
+  return result.length > 0
 }

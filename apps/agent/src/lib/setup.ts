@@ -1,6 +1,4 @@
-import { createPublicClient, createWalletClient, decodeEventLog, http } from "viem"
-import type { Account } from "viem"
-import { baseSepolia } from "viem/chains"
+import { decodeEventLog, encodeFunctionData } from "viem"
 import { ERC8004_ABI, ERC8004_ADDRESS } from "@workspace/shared/abis"
 import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
 import { setEnvVar } from "./persist.ts"
@@ -13,27 +11,23 @@ export async function registerInErc8004(
   cdpAccount: EvmServerAccount,
   appUrl: string,
 ): Promise<bigint> {
-  const publicClient = createPublicClient({ chain: baseSepolia, transport: http() })
-
-  // EvmServerAccount is viem-compatible at runtime (signMessage, signTypedData, signTransaction)
-  // but lacks `publicKey` and `source` fields that viem's type system requires.
-  const walletClient = createWalletClient({
-    account: cdpAccount as unknown as Account,
-    chain: baseSepolia,
-    transport: http(),
-  })
+  const networkAccount = await cdpAccount.useNetwork("base-sepolia")
 
   const agentURI = `${appUrl}/api/agent/${cdpAccount.address}`
   console.log(`[Metal Agent] Registering in ERC-8004: ${agentURI}`)
 
-  const hash = await walletClient.writeContract({
-    address: ERC8004_ADDRESS,
+  const data = encodeFunctionData({
     abi: ERC8004_ABI,
     functionName: "register",
     args: [agentURI],
   })
 
-  const receipt = await publicClient.waitForTransactionReceipt({ hash })
+  const { transactionHash } = await networkAccount.sendTransaction({
+    transaction: { to: ERC8004_ADDRESS, data },
+  })
+
+  console.log(`[Metal Agent] Tx: ${BASE_SEPOLIA_EXPLORER}/tx/${transactionHash}`)
+  const receipt = await networkAccount.waitForTransactionReceipt({ transactionHash })
 
   // ERC-721 mint emits Transfer(from=0x0, to=registrant, tokenId=agentId)
   const transferLog = receipt.logs.find((log) => {
@@ -52,7 +46,6 @@ export async function registerInErc8004(
 
   setEnvVar("AGENT_ID", agentId.toString())
   console.log(`[Metal Agent] Registered — agentId: ${agentId}`)
-  console.log(`[Metal Agent] Tx: ${BASE_SEPOLIA_EXPLORER}/tx/${hash}`)
 
   return agentId
 }

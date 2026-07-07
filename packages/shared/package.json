@@ -5,23 +5,38 @@
   "exports": {
     "./identity": {
       "types": "./src/identity.ts",
+      "bun": "./src/identity.ts",
       "default": "./dist/identity.js"
     },
     "./mandate": {
       "types": "./src/mandate.ts",
+      "bun": "./src/mandate.ts",
       "default": "./dist/mandate.js"
     },
     "./abis": {
       "types": "./src/abis.ts",
+      "bun": "./src/abis.ts",
       "default": "./dist/abis.js"
     },
     "./types": {
       "types": "./src/types.ts",
+      "bun": "./src/types.ts",
       "default": "./dist/types.js"
     },
     "./chains": {
       "types": "./src/chains.ts",
+      "bun": "./src/chains.ts",
       "default": "./dist/chains.js"
+    },
+    "./erc8004": {
+      "types": "./src/erc8004.ts",
+      "bun": "./src/erc8004.ts",
+      "default": "./dist/erc8004.js"
+    },
+    "./db": {
+      "types": "./src/db/index.ts",
+      "bun": "./src/db/index.ts",
+      "default": "./dist/db/index.js"
     }
   },
   "scripts": {
@@ -34,6 +49,8 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "drizzle-orm": "^0.45.2",
     "viem": "^2"
   }
 }

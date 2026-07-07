@@ -8,6 +8,7 @@ import { facilitatorSigner } from "./lib/clients.js"
 import { verifyDeps } from "./lib/deps.js"
 import { onBeforeVerify } from "./hooks/verify.js"
 import { onBeforeSettle, onAfterSettle } from "./hooks/settle.js"
+import { requestCtx } from "./lib/request-context.js"
 import mandatesRouter from "./routes/mandates.js"
 import type { Context } from "hono"
 import { isRecord, parseBigIntField, readJsonObject } from "./lib/http.js"
@@ -95,14 +96,20 @@ app.get("/supported", (c) => c.json(facilitator.getSupported()))
 app.post("/verify", async (c) => {
   const body = await readPaymentBody(c)
   if (body instanceof Response) return body
-  const result = await facilitator.verify(body.paymentPayload, body.paymentRequirements)
+  const mandateJson = c.req.header("X-AP2-Mandate")
+  const result = await requestCtx.run({ mandateJson }, () =>
+    facilitator.verify(body.paymentPayload, body.paymentRequirements),
+  )
   return c.json(result)
 })
 
 app.post("/settle", async (c) => {
   const body = await readPaymentBody(c)
   if (body instanceof Response) return body
-  const result = await facilitator.settle(body.paymentPayload, body.paymentRequirements)
+  const mandateJson = c.req.header("X-AP2-Mandate")
+  const result = await requestCtx.run({ mandateJson }, () =>
+    facilitator.settle(body.paymentPayload, body.paymentRequirements),
+  )
   return c.json(result)
 })
 

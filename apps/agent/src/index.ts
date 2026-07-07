@@ -1,5 +1,5 @@
 import readline from "readline"
-import { getAgentAccount } from "./lib/wallet.ts"
+import { getAgentAccount, getClient } from "./lib/wallet.ts"
 import { registerInErc8004 } from "./lib/setup.ts"
 import { buildTools } from "./tools.ts"
 import { runAgent } from "./agent.ts"
@@ -12,6 +12,10 @@ console.log(`[Metal Agent] Wallet: ${account.address}`)
 
 // One-time ERC-8004 registration — runs only when AGENT_ID is not set
 if (!env.AGENT_ID) {
+  // Fund ETH for gas before registering
+  console.log(`[Metal Agent] Requesting ETH from faucet…`)
+  await getClient().evm.requestFaucet({ address: account.address, network: "base-sepolia", token: "eth" })
+
   const agentId = await registerInErc8004(account, env.APP_URL)
   console.log()
   console.log(`[Metal Agent] Setup complete. Next steps:`)

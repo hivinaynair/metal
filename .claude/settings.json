@@ -54,7 +54,12 @@
       "Bash(ln -sf ../../.env.local /Users/vinay/bare-metal/apps/facilitator/.env.local)",
       "Bash(git push:*)",
       "Bash(npx awal@2.12.0 status)",
-      "Bash(npx awal@2.12.0 balance --chain base)"
+      "Bash(npx awal@2.12.0 balance --chain base)",
+      "mcp__Neon__create_project",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_gxsyCbu6Jmp4@ep-calm-snow-aobjmc7k-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" bun run db:generate)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_gxsyCbu6Jmp4@ep-calm-snow-aobjmc7k-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" bun run db:migrate)",
+      "Bash(bun remove:*)",
+      "Bash(gh issue:*)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",

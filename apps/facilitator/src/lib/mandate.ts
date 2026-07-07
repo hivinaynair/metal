@@ -8,7 +8,9 @@ export const USDC_ATOMIC_FACTOR = 1_000_000n
 export function getPayerAddress(
   payload: unknown,
 ): `0x${string}` | undefined {
-  return (payload as Record<string, unknown>).from as `0x${string}` | undefined
+  const p = payload as Record<string, unknown>
+  const auth = p.authorization as Record<string, unknown> | undefined
+  return (auth?.from ?? p.from) as `0x${string}` | undefined
 }
 
 // Verifies the delegator's EIP-712 signature over a SignedMandate.

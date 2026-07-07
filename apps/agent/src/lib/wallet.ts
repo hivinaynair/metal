@@ -6,7 +6,7 @@ const AGENT_ACCOUNT_NAME = "metal-agent"
 
 let _client: CdpClient | null = null
 
-function getClient(): CdpClient {
+export function getClient(): CdpClient {
   if (!_client) {
     // Reads CDP_API_KEY_NAME (or CDP_API_KEY_ID), CDP_API_KEY_SECRET,
     // and CDP_WALLET_SECRET automatically from environment variables.
