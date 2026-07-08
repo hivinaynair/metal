@@ -97,7 +97,8 @@
       "Bash(grep -v '^[[:space:]]*$')",
       "Bash(git check-ignore:*)",
       "Bash(cat /Users/vinay/bare-metal/.worktrees/agent-init-refactor/.env*)",
-      "Bash(grep -A 50 '\"\"globalEnv\"\"' /Users/vinay/bare-metal/.worktrees/agent-init-refactor/turbo.json)"
+      "Bash(grep -A 50 '\"\"globalEnv\"\"' /Users/vinay/bare-metal/.worktrees/agent-init-refactor/turbo.json)",
+      "Bash(git remote:*)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",

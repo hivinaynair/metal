@@ -1,0 +1,63 @@
+import { ImageResponse } from "next/og"
+
+export const runtime = "edge"
+export const alt = "Metal"
+export const size = { width: 1200, height: 630 }
+export const contentType = "image/png"
+
+export default function OgImage() {
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          background: "#101010",
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 32,
+        }}
+      >
+        {/* Logo mark */}
+        <svg width="96" height="96" viewBox="0 0 64 64" fill="none">
+          <rect width="64" height="64" fill="#101010" />
+          <path
+            d="M29.9132 29.3272L29.9132 16H34.0871V29.3272L50.7827 20.1739V24.5308L39.4707 30.7822C38.5129 31.3115 38.5129 32.6884 39.4707 33.2177L50.7827 39.4691V43.826L34.0871 34.6727V48H29.9132L29.9132 34.6727L13.2175 43.826V39.4691L24.5295 33.2177C25.4873 32.6884 25.4873 31.3115 24.5295 30.7822L13.2175 24.5308V20.1739L29.9132 29.3272Z"
+            fill="white"
+          />
+        </svg>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 16,
+          }}
+        >
+          <div
+            style={{
+              color: "#ffffff",
+              fontSize: 72,
+              fontWeight: 700,
+              letterSpacing: "-2px",
+            }}
+          >
+            Metal
+          </div>
+          <div
+            style={{
+              color: "#888888",
+              fontSize: 28,
+            }}
+          >
+            Global infrastructure for tokenized financial products
+          </div>
+        </div>
+      </div>
+    ),
+    size
+  )
+}
