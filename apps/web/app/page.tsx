@@ -79,7 +79,7 @@ export default function Page() {
         }}
       />
 
-      <div className="overflow-x-auto">
+      <div className="sm:overflow-x-auto">
         <SettlementScene
           agentLabel={selectedScenario.displayAgent}
           agentStatus={
@@ -103,7 +103,7 @@ export default function Page() {
           attestationTx={result?.attestationTxUrl}
           action={
             <Button
-              size="lg"
+              size="sm"
               onClick={startRun}
               disabled={loading}
               className="border border-foreground bg-foreground text-background hover:bg-foreground/85"

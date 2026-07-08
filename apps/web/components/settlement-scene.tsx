@@ -31,8 +31,12 @@ const gates = [
   { key: "attestation", label: "Attestation", icon: LinkIcon },
 ] as const
 
-// Packet stop positions (%) per step — 0=start (after agent), 1–6=gate centers
+// Horizontal packet stop positions (%) per step — 0=start, 1–6=gate centers
 const stops = [17, 31, 44, 57, 70, 83, 95]
+
+// Vertical packet stop positions (%) per step — 0=start, 1–6=gate centers
+// Container is h-80 (320px) with py-4 (16px) top/bottom padding. 6 rows of ~48px.
+const vStops = [6, 13, 28, 43, 58, 73, 88]
 
 interface SettlementSceneProps {
   agentLabel: string
@@ -81,6 +85,12 @@ function packetPosition(activeStep: number, rejectedReason?: string) {
   const fail = settlementFailureStep(rejectedReason)
   if (fail > 0) return stops[fail]!
   return stops[Math.min(Math.max(activeStep, 0), stops.length - 1)]!
+}
+
+function verticalPacketPosition(activeStep: number, rejectedReason?: string) {
+  const fail = settlementFailureStep(rejectedReason)
+  if (fail > 0) return vStops[fail]!
+  return vStops[Math.min(Math.max(activeStep, 0), vStops.length - 1)]!
 }
 
 function AgentActor({
@@ -134,7 +144,6 @@ function GateModule({
 
   return (
     <div className="flex flex-1 flex-col items-center gap-2 pt-16">
-      {/* Label */}
       <span
         className={cn(
           "relative z-10 font-mono text-[9px] font-bold tracking-[0.14em] uppercase",
@@ -148,30 +157,19 @@ function GateModule({
         {label}
       </span>
 
-      {/* Gate body with flanges */}
       <div className={cn("relative", skipped && "opacity-30")}>
-        {/* Top flanges */}
         <div className={cn(flangeClass, "top-2")} />
-        {/* Bottom flanges */}
         <div className={cn(flangeClass, "bottom-2")} />
-
-        {/* Icon block */}
         <div
           className={cn(
             "settlement-gate relative flex h-14 w-9 items-center justify-center rounded-[3px] border",
-            active &&
-              "border-accent/25 shadow-glow-positive",
-            blocked &&
-              "border-destructive/25 shadow-glow-negative",
+            active && "border-accent/25 shadow-glow-positive",
+            blocked && "border-destructive/25 shadow-glow-negative",
             !active && !blocked && "border-white/[0.06]"
           )}
         >
-          {active && (
-            <div className="gate-glow-positive absolute inset-0 rounded-[3px] opacity-40 blur-sm" />
-          )}
-          {blocked && (
-            <div className="gate-glow-negative absolute inset-0 rounded-[3px] opacity-40 blur-sm" />
-          )}
+          {active && <div className="gate-glow-positive absolute inset-0 rounded-[3px] opacity-40 blur-sm" />}
+          {blocked && <div className="gate-glow-negative absolute inset-0 rounded-[3px] opacity-40 blur-sm" />}
           <Icon
             className={cn(
               "relative size-3.5",
@@ -181,28 +179,80 @@ function GateModule({
             )}
           />
         </div>
-
-        {/* Status badge */}
         {(state === "approved" || state === "rejected") && (
           <span
             className={cn(
               "absolute -top-2 -right-2 grid size-[18px] place-items-center rounded-full border-2 border-surface-sunken",
-              state === "approved"
-                ? "bg-positive shadow-glow-positive"
-                : "bg-destructive shadow-glow-negative"
+              state === "approved" ? "bg-positive shadow-glow-positive" : "bg-destructive shadow-glow-negative"
             )}
           >
-            {state === "approved" ? (
-              <Check className="size-2.5 text-white" />
-            ) : (
-              <X className="size-2.5 text-white" />
-            )}
+            {state === "approved" ? <Check className="size-2.5 text-white" /> : <X className="size-2.5 text-white" />}
           </span>
         )}
-        {skipped && (
-          <Lock className="absolute -top-2 -right-2 size-3 text-white/20" />
-        )}
+        {skipped && <Lock className="absolute -top-2 -right-2 size-3 text-white/20" />}
       </div>
+    </div>
+  )
+}
+
+function MobileGateRow({
+  state,
+  icon: Icon,
+  label,
+}: {
+  state: GateState
+  icon: (typeof gates)[number]["icon"]
+  label: string
+}) {
+  const active = state === "approved" || state === "running"
+  const blocked = state === "rejected"
+  const skipped = state === "skipped"
+
+  return (
+    <div className={cn("flex flex-1 items-center gap-4 px-4", skipped && "opacity-30")}>
+      <div
+        className={cn(
+          "relative z-10 flex h-10 w-9 shrink-0 items-center justify-center rounded-[3px] border",
+          active && "border-accent/25 shadow-glow-positive",
+          blocked && "border-destructive/25 shadow-glow-negative",
+          !active && !blocked && "border-white/[0.06]"
+        )}
+      >
+        {active && <div className="gate-glow-positive absolute inset-0 rounded-[3px] opacity-40 blur-sm" />}
+        {blocked && <div className="gate-glow-negative absolute inset-0 rounded-[3px] opacity-40 blur-sm" />}
+        <Icon
+          className={cn(
+            "relative size-3.5",
+            active && "text-accent",
+            blocked && "text-destructive",
+            !active && !blocked && "text-white/30"
+          )}
+        />
+        {(state === "approved" || state === "rejected") && (
+          <span
+            className={cn(
+              "absolute -top-1.5 -right-1.5 grid size-[15px] place-items-center rounded-full border-2 border-surface-sunken",
+              state === "approved" ? "bg-positive shadow-glow-positive" : "bg-destructive shadow-glow-negative"
+            )}
+          >
+            {state === "approved" ? <Check className="size-2 text-white" /> : <X className="size-2 text-white" />}
+          </span>
+        )}
+        {skipped && <Lock className="absolute -top-1.5 -right-1.5 size-3 text-white/20" />}
+      </div>
+
+      <span
+        className={cn(
+          "font-mono text-[9px] font-bold tracking-[0.14em] uppercase",
+          state === "running" && "text-accent",
+          state === "approved" && "text-white",
+          blocked && "text-destructive",
+          skipped && "text-white/50",
+          state === "idle" && "text-white/60"
+        )}
+      >
+        {label}
+      </span>
     </div>
   )
 }
@@ -222,10 +272,8 @@ export function SettlementScene({
   const rejected =
     Boolean(rejectedReason) || (!running && !approved && activeStep > 0)
   const packetLeft = packetPosition(activeStep, rejectedReason)
-  const latestReasoning = agentReasoning
-    ?.replace(/\s+/g, " ")
-    .trim()
-    .slice(-100)
+  const packetTop = verticalPacketPosition(activeStep, rejectedReason)
+  const latestReasoning = agentReasoning?.replace(/\s+/g, " ").trim().slice(-100)
   const normalizedRoute = routeLabel
     .replace("/api/settlement-risk-report", "GET /v1/market-data")
     .replace("/api/premium-risk-report", "GET /v1/bulk-feed")
@@ -237,9 +285,80 @@ export function SettlementScene({
         : "bg-warning-surface text-warning"
 
   return (
-    <section className="settlement-pipeline settlement-pipeline-shadow min-w-[620px] overflow-hidden rounded-sm border border-accent/10 text-foreground">
-      {/* HUD header */}
-      <div className="flex items-center gap-3 border-b border-accent/[0.07] bg-accent/[0.025] px-5 py-3">
+    <section className="settlement-pipeline settlement-pipeline-shadow overflow-hidden rounded-sm border border-accent/10 text-foreground sm:min-w-[620px]">
+
+      {/* ── MOBILE: header (was footer) ── */}
+      <div className="flex items-center gap-3 border-b border-border bg-surface-sunken px-4 py-3 sm:hidden">
+        <div className="grid size-8 shrink-0 place-items-center rounded-sm bg-muted text-muted-foreground">
+          <Bot className="size-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-foreground">{agentLabel}</span>
+            <span className={cn("inline-flex items-center rounded-[2px] px-1.5 py-0.5 text-[10px] font-semibold", statusTone)}>
+              {agentStatus}
+            </span>
+          </div>
+          <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
+            {normalizedRoute} · {amountLabel.replace("$", "")} USDC
+          </p>
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
+      </div>
+
+      {/* ── MOBILE: vertical pipeline ── */}
+      <div className="relative flex h-80 flex-col py-4 sm:hidden">
+        {/* Track background — centered on gate icons (px-4 + w-9/2 = 16+18 = 34px) */}
+        <div className="absolute top-4 bottom-4 left-[34px] w-px bg-white/[0.06]" />
+
+        {/* Track fill */}
+        <motion.div
+          className={cn(
+            "absolute top-4 left-[34px] w-px",
+            rejected
+              ? "bg-gradient-to-b from-destructive/90 to-destructive/20 shadow-glow-negative"
+              : "bg-gradient-to-b from-accent/90 to-accent/20 shadow-glow-positive"
+          )}
+          initial={false}
+          animate={{ height: `${Math.max(0, packetTop - 6)}%` }}
+          transition={{ duration: 0.55, ease: [0.2, 0, 0, 1] }}
+        />
+
+        {/* Packet */}
+        <motion.div
+          className="absolute left-[34px] z-20 -translate-x-1/2 -translate-y-1/2"
+          initial={false}
+          animate={{ top: `${packetTop}%` }}
+          transition={{ duration: 0.72, ease: [0.2, 0, 0, 1] }}
+        >
+          <div
+            className={cn(
+              "rounded-[3px] border px-2 py-1.5 text-center backdrop-blur-md",
+              rejected
+                ? "settlement-pipeline border-destructive/50 shadow-rail-negative"
+                : "settlement-pipeline border-accent/50 shadow-rail-positive"
+            )}
+          >
+            <p className={cn("font-mono text-[7px] font-bold tracking-[0.18em] uppercase", rejected ? "text-destructive" : "text-accent")}>
+              Pay
+            </p>
+            <p className="mt-0.5 font-mono text-[10px] font-semibold text-white">{amountLabel}</p>
+          </div>
+        </motion.div>
+
+        {/* Vertical gates */}
+        {gates.map((gate, index) => (
+          <MobileGateRow
+            key={gate.key}
+            state={gateState(index, activeStep, approved, running, rejectedReason)}
+            icon={gate.icon}
+            label={gate.label}
+          />
+        ))}
+      </div>
+
+      {/* ── DESKTOP: HUD header ── */}
+      <div className="hidden items-center gap-3 border-b border-accent/[0.07] bg-accent/[0.025] px-5 py-3 sm:flex">
         <div className="size-1.5 shrink-0 rounded-full bg-accent shadow-glow-positive" />
         <span className="shrink-0 font-mono text-[9px] font-bold tracking-[0.2em] uppercase">
           x402 Settlement Pipeline
@@ -254,12 +373,9 @@ export function SettlementScene({
         </span>
       </div>
 
-      {/* Pipeline */}
-      <div className="relative h-56 overflow-hidden px-6">
-        {/* Track background */}
+      {/* ── DESKTOP: horizontal pipeline ── */}
+      <div className="relative hidden h-56 overflow-hidden px-6 sm:block">
         <div className="absolute top-[112px] right-4 left-[22%] h-px bg-white/[0.06]" />
-
-        {/* Track fill */}
         <motion.div
           className={cn(
             "absolute top-[112px] h-px",
@@ -271,8 +387,6 @@ export function SettlementScene({
           animate={{ left: "22%", width: `${Math.max(0, packetLeft - 22)}%` }}
           transition={{ duration: 0.55, ease: [0.2, 0, 0, 1] }}
         />
-
-        {/* Packet */}
         <motion.div
           className="absolute top-[112px] z-20 -translate-x-1/2 -translate-y-1/2"
           initial={false}
@@ -287,21 +401,12 @@ export function SettlementScene({
                 : "settlement-pipeline border-accent/50 shadow-rail-positive"
             )}
           >
-            <p
-              className={cn(
-                "font-mono text-[7px] font-bold tracking-[0.18em] uppercase",
-                rejected ? "text-destructive" : "text-accent"
-              )}
-            >
+            <p className={cn("font-mono text-[7px] font-bold tracking-[0.18em] uppercase", rejected ? "text-destructive" : "text-accent")}>
               Payment
             </p>
-            <p className="mt-0.5 font-mono text-xs font-semibold text-white">
-              {amountLabel}
-            </p>
+            <p className="mt-0.5 font-mono text-xs font-semibold text-white">{amountLabel}</p>
           </div>
         </motion.div>
-
-        {/* Agent + Gates */}
         <div className="relative z-10 flex h-full w-full">
           <AgentActor
             reasoning={agentReasoning}
@@ -309,52 +414,35 @@ export function SettlementScene({
             blocked={rejected}
           />
           <div className="flex min-w-0 flex-1 pl-10">
-            {gates.map((gate, index) => {
-              const state = gateState(
-                index,
-                activeStep,
-                approved,
-                running,
-                rejectedReason
-              )
-              return (
-                <GateModule
-                  key={gate.key}
-                  state={state}
-                  icon={gate.icon}
-                  label={gate.label}
-                />
-              )
-            })}
+            {gates.map((gate, index) => (
+              <GateModule
+                key={gate.key}
+                state={gateState(index, activeStep, approved, running, rejectedReason)}
+                icon={gate.icon}
+                label={gate.label}
+              />
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Payment footer */}
-      <div className="flex flex-wrap items-center gap-4 border-t border-border bg-surface-sunken px-5 py-4">
+      {/* ── DESKTOP: footer ── */}
+      <div className="hidden flex-wrap items-center gap-4 border-t border-border bg-surface-sunken px-5 py-4 sm:flex">
         <div className="grid size-9 shrink-0 place-items-center rounded-sm bg-muted text-muted-foreground">
           <Bot className="size-4" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2.5">
-            <span className="text-sm font-semibold text-foreground">
-              {agentLabel}
-            </span>
-            <span
-              className={cn(
-                "inline-flex items-center rounded-[2px] px-2 py-0.5 text-[11px] font-semibold",
-                statusTone
-              )}
-            >
+            <span className="text-sm font-semibold text-foreground">{agentLabel}</span>
+            <span className={cn("inline-flex items-center rounded-[2px] px-2 py-0.5 text-[11px] font-semibold", statusTone)}>
               {agentStatus}
             </span>
           </div>
           <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground sm:text-xs">
-            {normalizedRoute} · {amountLabel.replace("$", "")} USDC · Base
-            Sepolia
+            {normalizedRoute} · {amountLabel.replace("$", "")} USDC · Base Sepolia
           </p>
         </div>
-        {action ? <div className="shrink-0">{action}</div> : null}
+        {action && <div className="shrink-0">{action}</div>}
       </div>
     </section>
   )
