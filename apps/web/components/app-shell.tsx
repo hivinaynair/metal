@@ -100,15 +100,24 @@ export function AppShell({ children }: { children: ReactNode }) {
             Metal
           </Link>
           <nav className="ml-auto flex items-center gap-3 overflow-x-auto text-xs text-muted-foreground">
-            {nav.slice(0, 4).map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="whitespace-nowrap"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {nav.slice(0, 4).map((item) => {
+              const active =
+                item.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(item.href)
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "whitespace-nowrap",
+                    active ? "font-medium text-foreground" : ""
+                  )}
+                >
+                  {item.label}
+                </Link>
+              )
+            })}
           </nav>
         </header>
         {children}
