@@ -6,7 +6,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@workspace/ui/components/select"
 import { cn } from "@workspace/ui/lib/utils"
 import { demoAgents } from "@/lib/demo-scenarios"
@@ -31,7 +30,7 @@ export function ScenarioPicker({
           disabled={loading}
         >
           <SelectTrigger className="w-full">
-            <SelectValue />
+            {SCENARIOS[selectedIndex]?.title}
           </SelectTrigger>
           <SelectContent>
             {SCENARIOS.map((scenario, index) => {
