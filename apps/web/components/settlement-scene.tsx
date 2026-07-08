@@ -1,6 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
+import { useState } from "react"
 import type { ReactNode } from "react"
 import {
   Bot,
@@ -91,22 +92,21 @@ function AgentActor({
   active: boolean
   blocked: boolean
 }) {
+  const [robotLoaded, setRobotLoaded] = useState(false)
   const latestReasoning = reasoning?.replace(/\s+/g, " ").trim().slice(-100)
 
   return (
     <div className="relative h-full w-44 shrink-0">
-      <div className="settlement-panel shadow-rail-panel absolute top-5 left-0 z-40 w-56 rounded-md border border-white/[0.14] px-3 py-2 text-left backdrop-blur-md">
+      <div
+        className="settlement-panel shadow-rail-panel absolute top-5 left-0 z-40 w-56 rounded-md border border-white/[0.14] px-3 py-2 text-left backdrop-blur-md transition-opacity duration-700"
+        style={{ opacity: robotLoaded ? 1 : 0 }}
+      >
         <p className="line-clamp-2 font-mono text-[0.68rem] leading-[1.45] text-white/85">
-          {latestReasoning ||
-            "Im ready to make the payment!"}
+          {latestReasoning || "Im ready to make the payment!"}
         </p>
       </div>
-      <div
-        className={cn(
-          "relative h-full w-full translate-x-4 overflow-visible",
-        )}
-      >
-        <AgentSplineModel active={active} blocked={blocked} />
+      <div className="relative h-full w-full translate-x-4 overflow-visible">
+        <AgentSplineModel active={active} blocked={blocked} onLoad={() => setRobotLoaded(true)} />
       </div>
     </div>
   )
@@ -237,7 +237,7 @@ export function SettlementScene({
         : "bg-warning-surface text-warning"
 
   return (
-    <section className="settlement-pipeline settlement-pipeline-shadow overflow-hidden rounded-sm border border-accent/10 text-foreground">
+    <section className="settlement-pipeline settlement-pipeline-shadow min-w-[620px] overflow-hidden rounded-sm border border-accent/10 text-foreground">
       {/* HUD header */}
       <div className="flex items-center gap-3 border-b border-accent/[0.07] bg-accent/[0.025] px-5 py-3">
         <div className="size-1.5 shrink-0 rounded-full bg-accent shadow-glow-positive" />

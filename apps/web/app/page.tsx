@@ -79,48 +79,50 @@ export default function Page() {
         }}
       />
 
-      <SettlementScene
-        agentLabel={selectedScenario.displayAgent}
-        agentStatus={
-          selectedAgent.status === "approved"
-            ? "Trusted"
-            : selectedScenario.title
-        }
-        agentReasoning={agentReasoning}
-        amountLabel={
-          result?.route.price ?? fallbackRouteForAgent(selectedAgent).price
-        }
-        routeLabel={
-          result?.route.path ?? fallbackRouteForAgent(selectedAgent).path
-        }
-        mandateLimit={selectedAgent.mandateLimit}
-        activeStep={activeStep}
-        running={loading}
-        approved={Boolean(approved)}
-        rejectedReason={error}
-        settlementTx={result?.settlementTxUrl}
-        attestationTx={result?.attestationTxUrl}
-        action={
-          <Button
-            size="lg"
-            onClick={startRun}
-            disabled={loading}
-            className="border border-foreground bg-foreground text-background hover:bg-foreground/85"
-          >
-            {loading ? (
-              <>
-                <Zap className="h-4 w-4 animate-pulse" />
-                Running
-              </>
-            ) : (
-              <>
-                <Play className="h-4 w-4" />
-                Run payment
-              </>
-            )}
-          </Button>
-        }
-      />
+      <div className="overflow-x-auto">
+        <SettlementScene
+          agentLabel={selectedScenario.displayAgent}
+          agentStatus={
+            selectedAgent.status === "approved"
+              ? "Trusted"
+              : selectedScenario.title
+          }
+          agentReasoning={agentReasoning}
+          amountLabel={
+            result?.route.price ?? fallbackRouteForAgent(selectedAgent).price
+          }
+          routeLabel={
+            result?.route.path ?? fallbackRouteForAgent(selectedAgent).path
+          }
+          mandateLimit={selectedAgent.mandateLimit}
+          activeStep={activeStep}
+          running={loading}
+          approved={Boolean(approved)}
+          rejectedReason={error}
+          settlementTx={result?.settlementTxUrl}
+          attestationTx={result?.attestationTxUrl}
+          action={
+            <Button
+              size="lg"
+              onClick={startRun}
+              disabled={loading}
+              className="border border-foreground bg-foreground text-background hover:bg-foreground/85"
+            >
+              {loading ? (
+                <>
+                  <Zap className="h-4 w-4 animate-pulse" />
+                  Running
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4" />
+                  Run payment
+                </>
+              )}
+            </Button>
+          }
+        />
+      </div>
 
       <section className="grid min-w-0 items-stretch gap-4 overflow-x-auto pb-1 lg:grid-cols-[minmax(360px,1.05fr)_minmax(420px,1fr)_320px]">
         <DashboardPanel
