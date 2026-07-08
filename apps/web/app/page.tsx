@@ -124,7 +124,7 @@ export default function Page() {
         />
       </div>
 
-      <section className="grid min-w-0 items-stretch gap-4 overflow-x-auto pb-1 lg:grid-cols-[minmax(360px,1.05fr)_minmax(420px,1fr)_320px]">
+      <section className="grid grid-cols-1 min-w-0 items-stretch gap-4 pb-1 lg:grid-cols-[minmax(360px,1.05fr)_minmax(420px,1fr)_320px] lg:overflow-x-auto">
         <DashboardPanel
           title="Decision log"
           icon={<MessageSquareText className="size-4" />}
