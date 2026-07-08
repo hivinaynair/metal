@@ -21,9 +21,11 @@ function normalizeSplineSceneUrl(url: string) {
 export function AgentSplineModel({
   active,
   blocked,
+  onLoad,
 }: {
   active: boolean
   blocked: boolean
+  onLoad?: () => void
 }) {
   const sceneUrl = normalizeSplineSceneUrl(AGENT_SCENE_URL)
   const [loaded, setLoaded] = useState(false)
@@ -40,7 +42,10 @@ export function AgentSplineModel({
       <Spline
         scene={sceneUrl}
         className="h-full w-full"
-        onLoad={() => setLoaded(true)}
+        onLoad={() => {
+          setLoaded(true)
+          onLoad?.()
+        }}
       />
     </div>
   )
