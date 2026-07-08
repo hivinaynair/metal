@@ -209,7 +209,7 @@ function MobileGateRow({
   const skipped = state === "skipped"
 
   return (
-    <div className={cn("flex flex-1 items-center gap-4 px-4", skipped && "opacity-30")}>
+    <div className={cn("flex flex-1 items-center gap-3 pl-[calc(50%-18px)]", skipped && "opacity-30")}>
       <div
         className={cn(
           "relative z-10 flex h-10 w-9 shrink-0 items-center justify-center rounded-[3px] border",
@@ -307,54 +307,62 @@ export function SettlementScene({
       </div>
 
       {/* ── MOBILE: vertical pipeline ── */}
-      <div className="relative flex h-80 flex-col py-4 sm:hidden">
-        {/* Track background — centered on gate icons (px-4 + w-9/2 = 16+18 = 34px) */}
-        <div className="absolute top-4 bottom-4 left-[34px] w-px bg-white/[0.06]" />
+      <div className="flex flex-col sm:hidden">
+        {/* Robot */}
+        <div className="relative h-44 overflow-hidden border-b border-accent/[0.07]">
+          <AgentSplineModel active={activeStep > 0} blocked={rejected} />
+        </div>
 
-        {/* Track fill */}
-        <motion.div
-          className={cn(
-            "absolute top-4 left-[34px] w-px",
-            rejected
-              ? "bg-gradient-to-b from-destructive/90 to-destructive/20 shadow-glow-negative"
-              : "bg-gradient-to-b from-accent/90 to-accent/20 shadow-glow-positive"
-          )}
-          initial={false}
-          animate={{ height: `${Math.max(0, packetTop - 6)}%` }}
-          transition={{ duration: 0.55, ease: [0.2, 0, 0, 1] }}
-        />
+        {/* Gates */}
+        <div className="relative flex h-80 flex-col py-4">
+          {/* Track background — centered */}
+          <div className="absolute top-4 bottom-4 left-1/2 w-px -translate-x-1/2 bg-white/[0.06]" />
 
-        {/* Packet */}
-        <motion.div
-          className="absolute left-[34px] z-20 -translate-x-1/2 -translate-y-1/2"
-          initial={false}
-          animate={{ top: `${packetTop}%` }}
-          transition={{ duration: 0.72, ease: [0.2, 0, 0, 1] }}
-        >
-          <div
+          {/* Track fill */}
+          <motion.div
             className={cn(
-              "rounded-[3px] border px-2 py-1.5 text-center backdrop-blur-md",
+              "absolute top-4 left-1/2 w-px -translate-x-1/2",
               rejected
-                ? "settlement-pipeline border-destructive/50 shadow-rail-negative"
-                : "settlement-pipeline border-accent/50 shadow-rail-positive"
+                ? "bg-gradient-to-b from-destructive/90 to-destructive/20 shadow-glow-negative"
+                : "bg-gradient-to-b from-accent/90 to-accent/20 shadow-glow-positive"
             )}
-          >
-            <p className={cn("font-mono text-[7px] font-bold tracking-[0.18em] uppercase", rejected ? "text-destructive" : "text-accent")}>
-              Pay
-            </p>
-            <p className="mt-0.5 font-mono text-[10px] font-semibold text-white">{amountLabel}</p>
-          </div>
-        </motion.div>
-
-        {/* Vertical gates */}
-        {gates.map((gate, index) => (
-          <MobileGateRow
-            key={gate.key}
-            state={gateState(index, activeStep, approved, running, rejectedReason)}
-            icon={gate.icon}
-            label={gate.label}
+            initial={false}
+            animate={{ height: `${Math.max(0, packetTop - 6)}%` }}
+            transition={{ duration: 0.55, ease: [0.2, 0, 0, 1] }}
           />
-        ))}
+
+          {/* Packet */}
+          <motion.div
+            className="absolute left-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
+            initial={false}
+            animate={{ top: `${packetTop}%` }}
+            transition={{ duration: 0.72, ease: [0.2, 0, 0, 1] }}
+          >
+            <div
+              className={cn(
+                "rounded-[3px] border px-2 py-1.5 text-center backdrop-blur-md",
+                rejected
+                  ? "settlement-pipeline border-destructive/50 shadow-rail-negative"
+                  : "settlement-pipeline border-accent/50 shadow-rail-positive"
+              )}
+            >
+              <p className={cn("font-mono text-[7px] font-bold tracking-[0.18em] uppercase", rejected ? "text-destructive" : "text-accent")}>
+                Pay
+              </p>
+              <p className="mt-0.5 font-mono text-[10px] font-semibold text-white">{amountLabel}</p>
+            </div>
+          </motion.div>
+
+          {/* Vertical gates — icon centered on track */}
+          {gates.map((gate, index) => (
+            <MobileGateRow
+              key={gate.key}
+              state={gateState(index, activeStep, approved, running, rejectedReason)}
+              icon={gate.icon}
+              label={gate.label}
+            />
+          ))}
+        </div>
       </div>
 
       {/* ── DESKTOP: HUD header ── */}
