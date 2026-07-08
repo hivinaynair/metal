@@ -10,6 +10,7 @@ import { cn } from "@workspace/ui/lib/utils"
 import { TooltipProvider } from "@workspace/ui/components/tooltip"
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://metal-web.vercel.app"),
   title: "Metal",
   description: "Global infrastructure for tokenized financial products",
   openGraph: {
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
     type: "website",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Metal",
     description: "Global infrastructure for tokenized financial products",
   },

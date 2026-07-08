@@ -1,6 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
+import { useState } from "react"
 import { Bot } from "lucide-react"
 
 import { cn } from "@workspace/ui/lib/utils"
@@ -25,17 +26,21 @@ export function AgentSplineModel({
   blocked: boolean
 }) {
   const sceneUrl = normalizeSplineSceneUrl(AGENT_SCENE_URL)
+  const [loaded, setLoaded] = useState(false)
 
   if (!sceneUrl) {
     return <AgentFallback active={active} blocked={blocked} />
   }
 
-
   return (
-    <div className="absolute left-1/2 top-1/2 h-[300px] w-[200px] -translate-x-1/2 -translate-y-[50%] scale-80">
+    <div
+      className="absolute left-1/2 top-1/2 h-[300px] w-[200px] -translate-x-1/2 -translate-y-[50%] scale-80 transition-opacity duration-700"
+      style={{ opacity: loaded ? 1 : 0 }}
+    >
       <Spline
         scene={sceneUrl}
         className="h-full w-full"
+        onLoad={() => setLoaded(true)}
       />
     </div>
   )
