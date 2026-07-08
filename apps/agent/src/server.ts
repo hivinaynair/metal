@@ -87,7 +87,7 @@ app.post("/run", async (c) => {
   }
 
   const validated = validateRunRequest(body, appUrl)
-  if (!validated.ok) {
+  if (validated.ok === false) {
     return c.json({ error: validated.error }, 400)
   }
 
