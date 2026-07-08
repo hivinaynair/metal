@@ -12,7 +12,7 @@ export function PageFrame({
   return (
     <main
       className={cn(
-        "metal-grid min-h-svh min-w-0 overflow-x-hidden px-4 py-[26px] sm:px-6 lg:px-[30px] lg:pb-11",
+        "metal-grid min-h-svh min-w-0 overflow-x-clip px-4 py-[26px] sm:px-6 lg:px-[30px] lg:pb-11",
         className
       )}
     >
@@ -37,7 +37,7 @@ export function PageHead({
       <div className="max-w-3xl">
         <p className="metal-eyebrow mb-2.5">{eyebrow}</p>
         {title ? (
-          <h1 className="font-serif text-[34px] leading-[1.05] tracking-tight text-foreground">
+          <h1 className="font-serif text-[26px] sm:text-[34px] leading-[1.05] tracking-tight text-foreground">
             {title}
           </h1>
         ) : null}
