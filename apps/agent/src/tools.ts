@@ -30,8 +30,19 @@ function extractAuthorizationNonce(paymentPayload: unknown) {
   return typeof authorization?.nonce === "string" ? authorization.nonce : undefined
 }
 
-// Build tools for the agent. Keep this narrow so optional AgentKit providers are not loaded at startup.
-export async function buildTools(cdpAccount: EvmServerAccount, opts?: { mandateHeader?: string }) {
+export interface X402FetchResult {
+  httpStatus: number
+  body: unknown
+  txHash?: string
+  authorizationNonce?: string
+  basescan?: string
+}
+
+export async function performX402Fetch(
+  cdpAccount: EvmServerAccount,
+  url: string,
+  opts?: { mandateHeader?: string },
+): Promise<X402FetchResult> {
   let authorizationNonce: string | undefined
   const observingFetch: typeof fetch = async (input, init) => {
     const request = new Request(input, init)
@@ -56,6 +67,38 @@ export async function buildTools(cdpAccount: EvmServerAccount, opts?: { mandateH
     ],
   })
 
+  const headers: Record<string, string> = {}
+  if (opts?.mandateHeader) headers["X-AP2-Mandate"] = opts.mandateHeader
+
+  const response = await fetchWithPayment(url, Object.keys(headers).length ? { headers } : undefined)
+  const paymentHeader = response.headers.get("PAYMENT-RESPONSE")
+  let txHash: string | undefined
+
+  if (paymentHeader) {
+    const decoded = decodePaymentResponseHeader(paymentHeader)
+    const d = decoded as Record<string, unknown>
+    txHash = (d.transaction as string | undefined) ?? (d.txHash as string | undefined)
+  }
+
+  let body: unknown
+  const contentType = response.headers.get("content-type") ?? ""
+  if (contentType.includes("application/json")) {
+    body = await response.json()
+  } else {
+    body = { error: summarizeNonJsonResponse(url, response, await response.text()) }
+  }
+
+  return {
+    httpStatus: response.status,
+    body,
+    txHash,
+    authorizationNonce,
+    basescan: txHash ? `${BASE_SEPOLIA_EXPLORER}/tx/${txHash}` : undefined,
+  }
+}
+
+// Build tools for the agent. Keep this narrow so optional AgentKit providers are not loaded at startup.
+export async function buildTools(cdpAccount: EvmServerAccount, opts?: { mandateHeader?: string }) {
   const x402FetchTool = tool({
     description:
       "Fetch a URL that may be gated behind an x402 paywall. Handles payment automatically. Returns the response body, HTTP status, and the transaction hash if payment was made.",
@@ -63,33 +106,7 @@ export async function buildTools(cdpAccount: EvmServerAccount, opts?: { mandateH
       url: z.string().describe("The URL to fetch"),
     }),
     execute: async ({ url }) => {
-      const headers: Record<string, string> = {}
-      if (opts?.mandateHeader) headers["X-AP2-Mandate"] = opts.mandateHeader
-
-      const response = await fetchWithPayment(url, Object.keys(headers).length ? { headers } : undefined)
-      const paymentHeader = response.headers.get("PAYMENT-RESPONSE")
-      let txHash: string | undefined
-
-      if (paymentHeader) {
-        const decoded = decodePaymentResponseHeader(paymentHeader)
-        const d = decoded as Record<string, unknown>
-        txHash = (d.transaction as string | undefined) ?? (d.txHash as string | undefined)
-      }
-
-      let body: unknown
-      const contentType = response.headers.get("content-type") ?? ""
-      if (contentType.includes("application/json")) {
-        body = await response.json()
-      } else {
-        body = { error: summarizeNonJsonResponse(url, response, await response.text()) }
-      }
-      return {
-        httpStatus: response.status,
-        body,
-        txHash,
-        authorizationNonce,
-        basescan: txHash ? `${BASE_SEPOLIA_EXPLORER}/tx/${txHash}` : undefined,
-      }
+      return performX402Fetch(cdpAccount, url, opts)
     },
   })
 

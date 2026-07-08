@@ -1,12 +1,10 @@
 import { Hono } from "hono"
 import { serve } from "@hono/node-server"
-import { streamText } from "ai"
-import { anthropic } from "@ai-sdk/anthropic"
 import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
 import { AgentId, type DecisionRecord } from "@workspace/shared/types"
 import { getAp2CredentialForAgent } from "./credentials.js"
 import { validateRunRequest } from "./run-request.js"
-import { buildTools } from "./tools.js"
+import { performX402Fetch } from "./tools.js"
 import { gateStepsForResult } from "./gate-steps.js"
 import type { CdpClient } from "@coinbase/cdp-sdk"
 
@@ -18,6 +16,16 @@ const AGENT_PROMPT: Record<AgentId, string> = {
   [AgentId.AGENT_2]: `You are metal-agent-2, a financial agent on Base Sepolia. Call x402Fetch to fetch the premium report. Report exactly what error the facilitator returned.`,
   [AgentId.AGENT_3]: `You are metal-agent-3, a financial agent on Base Sepolia. Call x402Fetch to fetch the premium report. Report exactly what error the facilitator returned.`,
   [AgentId.GHOST]: `You are metal-agent-ghost on Base Sepolia. Call x402Fetch to fetch the settlement risk report. Report exactly what error the facilitator returned.`,
+}
+
+function errorFromBody(body: unknown): string | undefined {
+  if (!body || typeof body !== "object") return undefined
+  const record = body as Record<string, unknown>
+  for (const key of ["error", "reason", "message"]) {
+    const value = record[key]
+    if (typeof value === "string" && value.trim()) return value
+  }
+  return undefined
 }
 
 let _cdp: CdpClient | undefined
@@ -98,8 +106,6 @@ app.post("/run", async (c) => {
     return c.json({ error: "mandate_not_registered" }, 503)
   }
 
-  const tools = await buildTools(account, { mandateHeader: credential.header })
-
   const stream = new ReadableStream({
     async start(controller) {
       const enc = new TextEncoder()
@@ -115,35 +121,21 @@ app.post("/run", async (c) => {
       let responseError: string | undefined
 
       try {
-        const result = streamText({
-          model: anthropic("claude-sonnet-4-6"),
-          tools,
-          system: "You are a financial compliance agent with a crypto wallet on Base Sepolia.",
-          prompt: `${AGENT_PROMPT[agentId]}\n\nUse this exact URL when calling x402Fetch: ${targetUrl}`,
-          maxSteps: 4,
-        })
+        send({ type: "token", text: `${AGENT_PROMPT[agentId]}\n` })
+        send({ type: "gate", step: 1 })
 
-        for await (const chunk of result.fullStream) {
-          if (chunk.type === "text-delta") {
-            send({ type: "token", text: chunk.textDelta })
-          } else if (chunk.type === "tool-call" && chunk.toolName === "x402Fetch") {
-            // Gate 1: agent is submitting payment to the 402 endpoint / facilitator
-            send({ type: "gate", step: 1 })
-          } else if (chunk.type === "tool-result" && chunk.toolName === "x402Fetch") {
-            const r = chunk.result as {
-              authorizationNonce?: string
-              txHash?: string
-              httpStatus?: number
-              body?: { error?: string }
-            }
-            if (r.authorizationNonce) authorizationNonce = r.authorizationNonce
-            if (r.txHash) settlementTxHash = r.txHash
-            if (r.httpStatus) httpStatus = r.httpStatus
-            if (r.body?.error) responseError = r.body.error
-          }
+        const r = await performX402Fetch(account, targetUrl, { mandateHeader: credential.header })
+        authorizationNonce = r.authorizationNonce
+        settlementTxHash = r.txHash
+        httpStatus = r.httpStatus
+        responseError = errorFromBody(r.body)
+        if (!responseError && r.httpStatus >= 400) {
+          responseError = `http_${r.httpStatus}`
         }
       } catch (err) {
-        send({ type: "token", text: `\n[Agent error: ${String(err)}]` })
+        httpStatus = 500
+        responseError = err instanceof Error ? err.message : String(err)
+        send({ type: "token", text: `\n[Agent error: ${responseError}]` })
       }
 
       // Emit facilitator gate steps based on the settlement outcome.
