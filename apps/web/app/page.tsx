@@ -106,16 +106,16 @@ export default function Page() {
               size="sm"
               onClick={startRun}
               disabled={loading}
-              className="border border-foreground bg-foreground text-background hover:bg-foreground/85"
+              className="h-8 px-3 text-xs border border-foreground bg-foreground text-background hover:bg-foreground/85"
             >
               {loading ? (
                 <>
-                  <Zap className="h-4 w-4 animate-pulse" />
+                  <Zap className="h-3 w-3 animate-pulse" />
                   Running
                 </>
               ) : (
                 <>
-                  <Play className="h-4 w-4" />
+                  <Play className="h-3 w-3" />
                   Run payment
                 </>
               )}
