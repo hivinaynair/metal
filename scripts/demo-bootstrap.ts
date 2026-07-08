@@ -87,6 +87,32 @@ async function main() {
     const addressLower = address.toLowerCase()
     console.log(`\n[bootstrap] Processing ${agentId} (${addressLower})`)
 
+    // ── Fund agent wallet ───────────────────────────────────────────────────
+    const USDC_ADDRESS = "0x036CbD53842c5426634e7929541eC2318f3dCF7e" as const
+    for (const token of ["usdc"] as const) {
+      try {
+        const { transactionHash } = await cdp.evm.requestFaucet({
+          address: address as `0x${string}`,
+          network: "base-sepolia",
+          token,
+        })
+        console.log(`[bootstrap]   Funded ${token.toUpperCase()}: https://sepolia.basescan.org/tx/${transactionHash}`)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.warn(`[bootstrap]   Faucet ${token.toUpperCase()} skipped (${msg})`)
+      }
+    }
+
+    // ── Print USDC balance ──────────────────────────────────────────────────
+    const usdcBalance = await publicClient.readContract({
+      address: USDC_ADDRESS,
+      abi: [{ name: "balanceOf", type: "function", inputs: [{ name: "", type: "address" }], outputs: [{ name: "", type: "uint256" }], stateMutability: "view" }],
+      functionName: "balanceOf",
+      args: [address as `0x${string}`],
+    })
+    const usdcFormatted = (Number(usdcBalance) / 1_000_000).toFixed(6)
+    console.log(`[bootstrap]   USDC balance: $${usdcFormatted}`)
+
     // ── ERC-8004 registration ───────────────────────────────────────────────
     let onChainId: bigint
 

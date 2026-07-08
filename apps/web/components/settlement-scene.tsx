@@ -138,10 +138,11 @@ function GateModule({
       <span
         className={cn(
           "relative z-10 font-mono text-[9px] font-bold tracking-[0.14em] uppercase",
-          active && "text-accent",
+          state === "running" && "text-accent",
+          state === "approved" && "text-white",
           blocked && "text-destructive",
           skipped && "text-white/50",
-          !active && !blocked && !skipped && "text-white/60"
+          state === "idle" && "text-white/60"
         )}
       >
         {label}

@@ -21,6 +21,11 @@ describe("gateStepsForResult", () => {
     expect(gateStepsForResult("policy_amount_exceeded", undefined)).toEqual([2, 3, 4])
   })
 
+  it("stops at settlement gate for invalid_exact_evm errors", () => {
+    expect(gateStepsForResult("invalid_exact_evm_insufficient_balance", undefined)).toEqual([2, 3, 4, 5])
+    expect(gateStepsForResult("invalid_exact_evm_some_other_error", undefined)).toEqual([2, 3, 4, 5])
+  })
+
   it("emits no gates for unknown errors", () => {
     expect(gateStepsForResult("some_unknown_error", undefined)).toEqual([])
   })

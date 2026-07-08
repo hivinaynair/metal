@@ -6,6 +6,7 @@ export function settlementFailureStep(error?: string | null) {
   if (error === "identity_not_found") return 2
   if (error && MANDATE_FAILURES.has(error)) return 3
   if (error === "policy_amount_exceeded") return 4
+  if (error && error.startsWith("invalid_exact_evm_")) return 5
   return error ? 4 : 0
 }
 
