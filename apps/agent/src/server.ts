@@ -128,7 +128,7 @@ app.post("/run", async (c) => {
         authorizationNonce = r.authorizationNonce
         settlementTxHash = r.txHash
         httpStatus = r.httpStatus
-        responseError = errorFromBody(r.body)
+        responseError = r.paymentRequiredError ?? errorFromBody(r.body)
         if (!responseError && r.httpStatus >= 400) {
           responseError = `http_${r.httpStatus}`
         }

@@ -1,7 +1,7 @@
 import { tool } from "ai"
 import { z } from "zod"
 import { wrapFetchWithPaymentFromConfig, decodePaymentResponseHeader } from "@x402/fetch"
-import { decodePaymentSignatureHeader } from "@x402/core/http"
+import { decodePaymentRequiredHeader, decodePaymentSignatureHeader } from "@x402/core/http"
 import { ExactEvmScheme } from "@x402/evm"
 import { BASE_SEPOLIA_CAIP2, BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
 import type { EvmServerAccount } from "@coinbase/cdp-sdk"
@@ -35,6 +35,7 @@ export interface X402FetchResult {
   body: unknown
   txHash?: string
   authorizationNonce?: string
+  paymentRequiredError?: string
   basescan?: string
 }
 
@@ -72,12 +73,18 @@ export async function performX402Fetch(
 
   const response = await fetchWithPayment(url, Object.keys(headers).length ? { headers } : undefined)
   const paymentHeader = response.headers.get("PAYMENT-RESPONSE")
+  const paymentRequiredHeader = response.headers.get("PAYMENT-REQUIRED") ?? response.headers.get("X-PAYMENT-REQUIRED")
   let txHash: string | undefined
+  let paymentRequiredError: string | undefined
 
   if (paymentHeader) {
     const decoded = decodePaymentResponseHeader(paymentHeader)
     const d = decoded as Record<string, unknown>
     txHash = (d.transaction as string | undefined) ?? (d.txHash as string | undefined)
+  }
+  if (paymentRequiredHeader) {
+    const decoded = decodePaymentRequiredHeader(paymentRequiredHeader)
+    paymentRequiredError = decoded.error
   }
 
   let body: unknown
@@ -93,6 +100,7 @@ export async function performX402Fetch(
     body,
     txHash,
     authorizationNonce,
+    paymentRequiredError,
     basescan: txHash ? `${BASE_SEPOLIA_EXPLORER}/tx/${txHash}` : undefined,
   }
 }
