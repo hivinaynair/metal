@@ -115,15 +115,15 @@ export function FeedTable({ rows, agentNames = {} }: FeedTableProps) {
         </Button>
       </div>
 
-      <div className="overflow-hidden">
+      <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Time</TableHead>
               <TableHead>Agent</TableHead>
-              <TableHead>Resource</TableHead>
+              <TableHead className="hidden sm:table-cell">Resource</TableHead>
               <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="text-center">Identity</TableHead>
+              <TableHead className="hidden text-center sm:table-cell">Identity</TableHead>
               <TableHead>Decision</TableHead>
               <TableHead className="text-right">Proof</TableHead>
             </TableRow>
@@ -165,13 +165,13 @@ export function FeedTable({ rows, agentNames = {} }: FeedTableProps) {
                       <span className="text-muted-foreground">unknown</span>
                     )}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
+                  <TableCell className="hidden font-mono text-xs text-muted-foreground sm:table-cell">
                     /api/trigger-payment
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs">
                     ${amountUsd}
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="hidden text-center sm:table-cell">
                     {row.identityStatus !== 0 ? (
                       <CheckCircle2 className="mx-auto size-4 text-positive" />
                     ) : (
