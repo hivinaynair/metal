@@ -1,7 +1,9 @@
 import { describe, it, expect, mock } from "bun:test"
-import { onBeforeVerify, type VerifyDeps } from "./verify.js"
+import { buildVerifyRejectionPaymentHash, onBeforeVerify, type VerifyDeps } from "./verify.js"
 import type { AgentProfile } from "@workspace/shared/types"
 import type { SignedMandate } from "@workspace/shared/mandate"
+import { serializeMandateHeader } from "@workspace/shared/mandate-header"
+import { requestCtx } from "../lib/request-context.js"
 
 const PAYER = "0xe9F97E2F7c6DCB8FCdBCDFBA074334D22a6c3117" as `0x${string}`
 const DELEGATOR = "0xAa870A9C6FEd34B8aC01Da17d675d748f238a420" as `0x${string}`
@@ -26,17 +28,21 @@ const VALID_PROFILE: AgentProfile = {
 }
 
 const DEFAULT_AMOUNT_ATOMIC = "10000"
+const AUTH_NONCE = "0xabc123"
 
 function makeCtx(amountAtomic = DEFAULT_AMOUNT_ATOMIC) {
   return {
-    paymentPayload: { payload: { from: PAYER }, accepted: { amount: amountAtomic } },
+    paymentPayload: {
+      resource: "http://localhost:3000/api/settlement-risk-report",
+      payload: { from: PAYER, authorization: { nonce: AUTH_NONCE } },
+      accepted: { amount: amountAtomic },
+    },
     requirements: { amount: amountAtomic },
   } as any
 }
 
 function happyDeps(overrides: Partial<VerifyDeps> = {}): VerifyDeps {
   return {
-    getMandate: async () => ({ mandate: VALID_MANDATE, agentId: AGENT_ID }),
     verifyMandateSignature: mock(async () => true),
     lookupIdentity: mock(async () => VALID_PROFILE),
     registryAddress: REGISTRY,
@@ -45,18 +51,42 @@ function happyDeps(overrides: Partial<VerifyDeps> = {}): VerifyDeps {
   }
 }
 
+function withMandateHeader<T>(
+  fn: () => Promise<T>,
+  mandate: SignedMandate = VALID_MANDATE,
+  agentId = AGENT_ID,
+) {
+  return requestCtx.run({
+    mandateJson: serializeMandateHeader({ mandate, agentId }),
+  }, fn)
+}
+
 describe("onBeforeVerify", () => {
-  it("aborts when no mandate registered for payer", async () => {
-    const result = await onBeforeVerify(makeCtx(), happyDeps({
-      getMandate: async () => undefined,
-    }))
+  it("builds deterministic rejection hashes from authorization nonce", () => {
+    const input = {
+      amountAtomic: 500000n,
+      authorizationNonce: AUTH_NONCE,
+      payer: PAYER,
+      reason: "identity_not_found",
+      resource: "http://localhost:3000/api/settlement-risk-report",
+    }
+    expect(buildVerifyRejectionPaymentHash(input)).toBe(buildVerifyRejectionPaymentHash(input))
+    expect(buildVerifyRejectionPaymentHash(input)).not.toBe(
+      buildVerifyRejectionPaymentHash({ ...input, reason: "mandate_amount_exceeded" })
+    )
+  })
+
+  it("aborts when mandate header is missing", async () => {
+    const result = await onBeforeVerify(makeCtx(), happyDeps())
     expect(result).toEqual({ abort: true, reason: "mandate_not_registered" })
   })
 
   it("aborts when mandate signature is invalid", async () => {
-    const result = await onBeforeVerify(makeCtx(), happyDeps({
-      verifyMandateSignature: mock(async () => false),
-    }))
+    const result = await withMandateHeader(() =>
+      onBeforeVerify(makeCtx(), happyDeps({
+        verifyMandateSignature: mock(async () => false),
+      }))
+    )
     expect(result).toEqual({ abort: true, reason: "mandate_signature_invalid" })
   })
 
@@ -65,34 +95,58 @@ describe("onBeforeVerify", () => {
       ...VALID_MANDATE,
       payload: { ...VALID_MANDATE.payload, expiry: 1n },
     }
-    const result = await onBeforeVerify(makeCtx(), happyDeps({
-      getMandate: async () => ({ mandate: expired, agentId: AGENT_ID }),
-    }))
+    const result = await withMandateHeader(() =>
+      onBeforeVerify(makeCtx(), happyDeps()),
+      expired,
+    )
     expect(result).toEqual({ abort: true, reason: "mandate_expired" })
   })
 
   it("aborts when payment amount exceeds mandate maxAmountUsdc", async () => {
-    const result = await onBeforeVerify(makeCtx("101000000"), happyDeps())
+    const result = await withMandateHeader(() =>
+      onBeforeVerify(makeCtx("101000000"), happyDeps())
+    )
     expect(result).toEqual({ abort: true, reason: "mandate_amount_exceeded" })
   })
 
   it("aborts when agent not found in ERC-8004 (lookup returns null)", async () => {
-    const result = await onBeforeVerify(makeCtx(), happyDeps({
-      lookupIdentity: mock(async () => null),
-    }))
+    const result = await withMandateHeader(() =>
+      onBeforeVerify(makeCtx(), happyDeps({
+        lookupIdentity: mock(async () => null),
+      }))
+    )
+    expect(result).toEqual({ abort: true, reason: "identity_not_found" })
+  })
+
+  it("checks ERC-8004 identity before amount for the zero-limit ghost mandate", async () => {
+    const ghostMandate: SignedMandate = {
+      ...VALID_MANDATE,
+      payload: { ...VALID_MANDATE.payload, maxAmountUsdc: 0n, nonce: 0n },
+    }
+    const result = await withMandateHeader(() =>
+      onBeforeVerify(makeCtx("500000"), happyDeps({
+        lookupIdentity: mock(async () => null),
+      })),
+      ghostMandate,
+      0n,
+    )
     expect(result).toEqual({ abort: true, reason: "identity_not_found" })
   })
 
   it("aborts when ERC-8004 wallet does not match payer", async () => {
     const wrongWallet = "0x0000000000000000000000000000000000000001" as `0x${string}`
-    const result = await onBeforeVerify(makeCtx(), happyDeps({
-      lookupIdentity: mock(async () => ({ ...VALID_PROFILE, wallet: wrongWallet })),
-    }))
+    const result = await withMandateHeader(() =>
+      onBeforeVerify(makeCtx(), happyDeps({
+        lookupIdentity: mock(async () => ({ ...VALID_PROFILE, wallet: wrongWallet })),
+      }))
+    )
     expect(result).toEqual({ abort: true, reason: "identity_not_found" })
   })
 
   it("returns undefined when all checks pass", async () => {
-    const result = await onBeforeVerify(makeCtx(), happyDeps())
+    const result = await withMandateHeader(() =>
+      onBeforeVerify(makeCtx(), happyDeps())
+    )
     expect(result).toBeUndefined()
   })
 })

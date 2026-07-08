@@ -67,7 +67,7 @@ Compliance console. Three pages:
 
 **Key API routes:**
 - `POST /api/trigger-payment` — calls `initAgents()` (CDP setup, mandate registration), then delegates to `AGENT_URL/run` (streams SSE back)
-- `GET /api/settlement-risk-report` — x402-gated at $0.01, returns stub JSON
+- `GET /api/settlement-risk-report` — x402-gated at $0.50, returns stub JSON
 - `GET /api/premium-risk-report` — x402-gated at $5.00, returns stub JSON
 - `GET /api/agent/[address]` — ERC-8004 agent metadata endpoint
 
@@ -100,10 +100,10 @@ Real Claude-powered agent. Serves both as a CLI REPL and an HTTP server for the 
 
 | Slot | Agent | Mandate | Route | Fails at | Outcome |
 |------|-------|---------|-------|----------|---------|
-| A | metal-agent-1 | $1 | Basic $0.01 | — | Approved, real settlement |
+| A | metal-agent-1 | $1 | Basic $0.50 | — | Approved, real settlement |
 | B | metal-agent-2 | $1 | Premium $5 | Mandate ($5 > $1) | `mandate_amount_exceeded` |
 | C | metal-agent-3 | $10 | Premium $5 | Policy ($5 > $2 ceiling) | `policy_amount_exceeded` |
-| D | metal-agent-ghost | none | Basic $0.01 | Identity (not in ERC-8004) | `identity_not_found` |
+| D | metal-agent-ghost | zero-limit AP2 header | Basic $0.50 | Identity (not in ERC-8004) | `identity_not_found` |
 
 Each scenario uses a real CDP wallet. The agent reasons aloud before attempting payment.
 

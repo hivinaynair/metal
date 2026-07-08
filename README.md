@@ -7,7 +7,7 @@ Metal's thesis: identity, authorization, policy, and attestation enforce complia
 | Primitive | Standard | Implementation |
 |-----------|----------|----------------|
 | Identity | [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) | Live registry at `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
-| Authorization | AP2 mandate | EIP-712 signed delegation, verified in facilitator before settlement |
+| Authorization | AP2 mandate | Agent-held EIP-712 signed delegation, verified in facilitator before settlement |
 | Policy | Amount threshold | `POLICY_MAX_AMOUNT_USDC` ceiling enforced in `onBeforeSettle` |
 | Attestation | On-chain | `AttestationRegistry` at `0xe81ea4bd57eb034047c8f0fb016d74485239d76d` |
 | Settlement | [x402](https://x402.org) | `@x402/evm` exact scheme, Base Sepolia USDC |
@@ -32,16 +32,18 @@ bare-metal/
 ## How it Works
 
 ```
-Agent wants to pay $0.01 for /api/settlement-risk-report
+Agent wants to pay $0.50 for /api/settlement-risk-report
+  → agent loads its AP2 credential for its CDP wallet
   → x402 challenge issued
   → Facilitator /verify:
-      1. ERC-8004 lookup — is this agent registered?
-      2. AP2 mandate — is the EIP-712 signature valid, not expired, amount within limit?
-      3. Policy check — is amount below the settlement ceiling?
+      1. AP2 mandate header — is there an explicit signed authorization artifact?
+      2. ERC-8004 lookup — is this agent registered?
+      3. AP2 limits — is the EIP-712 signature valid, not expired, amount within limit?
+      4. Policy check — is amount below the settlement ceiling?
       ↳ reject at first failure, funds never move
   → Facilitator /settle:
-      4. USDC settles on Base Sepolia
-      5. AttestationRegistry.attest() — tamper-evident on-chain record
+      5. USDC settles on Base Sepolia
+      6. AttestationRegistry.attest() — tamper-evident on-chain record
   → Compliance console shows trace + both Basescan links
 ```
 
@@ -49,12 +51,12 @@ Agent wants to pay $0.01 for /api/settlement-risk-report
 
 | Slot | Agent | Mandate | Route | Fails at |
 |------|-------|---------|-------|----------|
-| A | metal-agent-1 | $1 | Basic $0.01 | — (approved, real settlement) |
+| A | metal-agent-1 | $1 | Basic $0.50 | — (approved, real settlement) |
 | B | metal-agent-2 | $1 | Premium $5 | Mandate exceeded ($5 > $1) |
 | C | metal-agent-3 | $10 | Premium $5 | Policy ceiling ($5 > $2) |
-| D | metal-agent-ghost | none | Basic $0.01 | Identity not found in ERC-8004 |
+| D | metal-agent-ghost | zero-limit AP2 header | Basic $0.50 | Identity not found in ERC-8004 |
 
-Each uses a real CDP wallet. The Claude agent reasons aloud before attempting payment — its reasoning streams live into the UI.
+Each uses a real CDP wallet. The agent service retrieves its own AP2 credential and every paid request carries an explicit `X-AP2-Mandate` header. The Claude agent reasons aloud before attempting payment — its reasoning streams live into the UI.
 
 ## Setup
 
@@ -108,14 +110,14 @@ Agent wallets are created and funded automatically on first request to the web c
 
 ```bash
 bun --filter agent dev                     # interactive REPL — ask it to fetch a report
-bun --filter agent dev happy-path          # one-shot: pays $0.01, prints reasoning + tx hashes
+bun --filter agent dev happy-path          # one-shot: pays $0.50, prints reasoning + tx hashes
 bun --filter agent dev mandate-exceeded    # one-shot: blocked at mandate gate, agent explains why
 bun --filter agent dev policy-exceeded     # one-shot: blocked at policy ceiling
 bun --filter agent dev ghost               # one-shot: blocked at identity gate
 bun --filter agent dev serve               # HTTP server mode (used by web console)
 ```
 
-The CLI agent uses a real CDP wallet, verifies its mandate and identity, and pays via x402. Both the settlement tx and attestation tx are logged with Basescan links.
+The CLI agent uses a real CDP wallet, verifies its mandate and identity, and pays via x402. Approved settlements are attested on-chain and logged with Basescan links; rejected gate decisions are recorded in Postgres with the policy snapshot used for the decision.
 
 ### Deploy contracts (if redeploying)
 
@@ -124,4 +126,4 @@ bun --filter @workspace/scripts deploy-contracts   # deploys AttestationRegistry
 bun --filter @workspace/scripts fund-wallet        # funds FACILITATOR_PRIVATE_KEY with Base Sepolia ETH
 ```
 
-Mandates are signed and registered automatically by `apps/web`'s `initAgents()` on first run.
+Mandates are signed by `demo:bootstrap`, registered with the facilitator, and deposited into the agent credential store so the agent can present its own AP2 credential at runtime.

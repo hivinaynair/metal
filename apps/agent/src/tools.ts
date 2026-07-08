@@ -1,6 +1,7 @@
 import { tool } from "ai"
 import { z } from "zod"
 import { wrapFetchWithPaymentFromConfig, decodePaymentResponseHeader } from "@x402/fetch"
+import { decodePaymentSignatureHeader } from "@x402/core/http"
 import { ExactEvmScheme } from "@x402/evm"
 import { BASE_SEPOLIA_CAIP2, BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
 import type { EvmServerAccount } from "@coinbase/cdp-sdk"
@@ -23,9 +24,29 @@ function summarizeNonJsonResponse(url: string, response: Response, text: string)
     : `Upstream returned ${contentType} for ${url} (${response.status} ${response.statusText})`
 }
 
+function extractAuthorizationNonce(paymentPayload: unknown) {
+  const payload = (paymentPayload as { payload?: unknown }).payload as Record<string, unknown> | undefined
+  const authorization = payload?.authorization as Record<string, unknown> | undefined
+  return typeof authorization?.nonce === "string" ? authorization.nonce : undefined
+}
+
 // Build tools for the agent. Keep this narrow so optional AgentKit providers are not loaded at startup.
 export async function buildTools(cdpAccount: EvmServerAccount, opts?: { mandateHeader?: string }) {
-  const fetchWithPayment = wrapFetchWithPaymentFromConfig(fetch, {
+  let authorizationNonce: string | undefined
+  const observingFetch: typeof fetch = async (input, init) => {
+    const request = new Request(input, init)
+    const paymentSignature = request.headers.get("PAYMENT-SIGNATURE") ?? request.headers.get("X-PAYMENT")
+    if (paymentSignature) {
+      try {
+        authorizationNonce = extractAuthorizationNonce(decodePaymentSignatureHeader(paymentSignature))
+      } catch {
+        authorizationNonce = undefined
+      }
+    }
+    return fetch(request)
+  }
+
+  const fetchWithPayment = wrapFetchWithPaymentFromConfig(observingFetch, {
     schemes: [
       {
         network: BASE_SEPOLIA_CAIP2,
@@ -66,6 +87,7 @@ export async function buildTools(cdpAccount: EvmServerAccount, opts?: { mandateH
         httpStatus: response.status,
         body,
         txHash,
+        authorizationNonce,
         basescan: txHash ? `${BASE_SEPOLIA_EXPLORER}/tx/${txHash}` : undefined,
       }
     },

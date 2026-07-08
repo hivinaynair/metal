@@ -9,6 +9,18 @@ export function buildProofBundle(
   const agent = result?.agent ?? selectedAgent
   const route = result?.route ?? fallbackRouteForAgent(selectedAgent)
 
+  if (result?.decisionProof) {
+    return JSON.stringify(
+      {
+        ...result.decisionProof,
+        settlementTxUrl: result.settlementTxUrl ?? null,
+        attestationTxUrl: result.attestationTxUrl ?? null,
+      },
+      null,
+      2
+    )
+  }
+
   return JSON.stringify(
     {
       agentId: agent.id,

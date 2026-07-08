@@ -1,26 +1,24 @@
-import { AgentId, AGENT_ROUTE } from "@workspace/shared/types"
-import { reportRoutes, demoAgents } from "@/lib/demo-scenarios"
+import {
+  DEMO_AGENT_ROUTE,
+  DEMO_SCENARIO_AGENTS,
+  getDemoReportRoute,
+} from "@workspace/shared/demo"
+import { demoAgents } from "@/lib/demo-scenarios"
 import { isMandateFailure } from "@/lib/settlement-status"
 import { env } from "@/env"
-
-const SCENARIO_AGENT: AgentId[] = [
-  AgentId.AGENT_1,
-  AgentId.AGENT_2,
-  AgentId.AGENT_3,
-  AgentId.GHOST,
-]
-
 
 export async function POST(request: Request) {
   let scenarioIndex = 0
   try {
     const body = await request.json() as { scenarioIndex?: unknown }
     if (typeof body.scenarioIndex === "number" && Number.isInteger(body.scenarioIndex)) {
-      scenarioIndex = Math.min(Math.max(body.scenarioIndex, 0), SCENARIO_AGENT.length - 1)
+      scenarioIndex = Math.min(Math.max(body.scenarioIndex, 0), DEMO_SCENARIO_AGENTS.length - 1)
     }
   } catch { /* no body */ }
 
-  const agentId = SCENARIO_AGENT[scenarioIndex]!
+  const agentId = DEMO_SCENARIO_AGENTS[scenarioIndex]!
+  const route = getDemoReportRoute(DEMO_AGENT_ROUTE[agentId])
+  const targetUrl = `${new URL(request.url).origin}${route.path}`
 
   // Delegate payment + reasoning to the agent server
   let agentRes: Response
@@ -28,7 +26,10 @@ export async function POST(request: Request) {
     agentRes = await fetch(`${env.AGENT_URL}/run`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ agentId }),
+      body: JSON.stringify({
+        agentId,
+        targetUrl,
+      }),
     })
   } catch (err) {
     return new Response(`Agent server unreachable: ${String(err)}`, { status: 503 })
@@ -44,8 +45,6 @@ export async function POST(request: Request) {
   }
 
   // Web-side display metadata
-  const routeId = AGENT_ROUTE[agentId]
-  const route = reportRoutes.find((r) => r.id === routeId)!
   const demoAgent = demoAgents.find((a) => a.id === agentId)
   const slot = (["A", "B", "C", "D"] as const)[scenarioIndex]
 
@@ -76,10 +75,8 @@ export async function POST(request: Request) {
               await writer.write(enc.encode(line + "\n\n"))
             } else if (event.type === "done") {
               const agentResult = event.result ?? {}
-              const mandateValid = Boolean(
-                demoAgent?.mandateLimit !== "none" &&
-                !isMandateFailure(agentResult["error"]),
-              )
+              const error = agentResult["error"]
+              const mandateValid = !isMandateFailure(error)
               const enriched = {
                 type: "done",
                 result: {
@@ -89,7 +86,7 @@ export async function POST(request: Request) {
                   route: { id: route.id, path: route.path, price: route.priceLabel },
                   mandateValid,
                   ...agentResult,
-                  body: agentResult["error"] ? { error: agentResult["error"] } : undefined,
+                  body: error ? { error } : undefined,
                 },
               }
               await writer.write(enc.encode(`data: ${JSON.stringify(enriched)}\n\n`))

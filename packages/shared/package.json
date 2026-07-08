@@ -13,6 +13,21 @@
       "bun": "./src/mandate.ts",
       "default": "./dist/mandate.js"
     },
+    "./mandate-header": {
+      "types": "./src/mandate-header.ts",
+      "bun": "./src/mandate-header.ts",
+      "default": "./dist/mandate-header.js"
+    },
+    "./decision-record": {
+      "types": "./src/decision-record.ts",
+      "bun": "./src/decision-record.ts",
+      "default": "./dist/decision-record.js"
+    },
+    "./demo": {
+      "types": "./src/demo.ts",
+      "bun": "./src/demo.ts",
+      "default": "./dist/demo.js"
+    },
     "./abis": {
       "types": "./src/abis.ts",
       "bun": "./src/abis.ts",

@@ -5,6 +5,7 @@ import type { SignedMandate } from "@workspace/shared/mandate"
 export interface MandateEntry {
   mandate: SignedMandate
   agentId: bigint
+  agentName: string
 }
 
 let _db: ReturnType<typeof createDb> | undefined
@@ -25,6 +26,7 @@ export async function getMandate(agent: string): Promise<MandateEntry | undefine
   const rows = await db
     .select({
       agentId: schema.agents.agentId,
+      agentName: schema.agents.name,
       delegatorAddress: schema.mandates.delegatorAddress,
       maxAmountUsdc: schema.mandates.maxAmountUsdc,
       expiry: schema.mandates.expiry,
@@ -41,6 +43,7 @@ export async function getMandate(agent: string): Promise<MandateEntry | undefine
   const row = rows[0]!
   return {
     agentId: row.agentId,
+    agentName: row.agentName,
     mandate: {
       payload: {
         agent: agent as `0x${string}`,

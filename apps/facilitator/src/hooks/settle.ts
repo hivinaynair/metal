@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm"
 import { ATTESTATION_REGISTRY_ABI } from "@workspace/shared/abis"
 import { IdentityStatus, Decision } from "@workspace/shared/types"
 import { createDb, schema } from "@workspace/shared/db"
+import { buildDecisionRecord } from "@workspace/shared/decision-record"
 import { walletClient, account } from "../lib/clients.js"
 import { getMandate } from "../lib/mandate-store.js"
 import { getPayerAddress } from "../lib/mandate.js"
@@ -40,14 +41,27 @@ export async function onBeforeSettle({
   if (paymentAmountAtomic > policyMaxAtomic) {
     const payer = getPayerAddress(paymentPayload.payload)
     if (payer) {
-      const mandate = await getMandate(payer)
-      const identityStatus = mandate ? IdentityStatus.Verified : IdentityStatus.NotFound
+      const mandateEntry = await getMandate(payer)
+      const identityStatus = mandateEntry ? IdentityStatus.Verified : IdentityStatus.NotFound
       const authNonce = extractAuthNonce(paymentPayload.payload) ?? ""
       const paymentHash = keccak256(
         new TextEncoder().encode(
           `${payer}-${paymentAmountAtomic}-${authNonce}`
         ) as unknown as `0x${string}`
       )
+      const decisionRecord = buildDecisionRecord({
+        agentId: mandateEntry?.agentName ?? mandateEntry?.agentId,
+        amountAtomic: paymentAmountAtomic,
+        decision: Decision.Rejected,
+        identityStatus,
+        mandate: mandateEntry?.mandate,
+        payer,
+        paymentHash,
+        authorizationNonce: authNonce || null,
+        policyMaxAtomic,
+        resource: paymentPayload.resource,
+        rejectionReason: "policy_amount_exceeded",
+      })
       try {
         await getDb().insert(schema.settlementAttestations).values({
           paymentHash,
@@ -55,6 +69,8 @@ export async function onBeforeSettle({
           attestationTx: null,
           payerAddress: payer,
           amountUsdc: paymentAmountAtomic,
+          policyMaxAmountUsdc: policyMaxAtomic,
+          decisionRecord,
           identityStatus,
           decision: Decision.Rejected,
           authorizationNonce: authNonce || null,
@@ -77,9 +93,10 @@ export async function onAfterSettle({
   if (!payer) return
 
   const amountUsdcAtomic = BigInt(paymentPayload.accepted.amount)
+  const policyMaxAtomic = BigInt(Math.round(getPolicyMaxAmountUsdc() * 1_000_000))
   const paymentHash = keccak256(result.transaction as `0x${string}`)
-  const mandate = await getMandate(payer)
-  const identityStatus = mandate ? IdentityStatus.Verified : IdentityStatus.NotFound
+  const mandateEntry = await getMandate(payer)
+  const identityStatus = mandateEntry ? IdentityStatus.Verified : IdentityStatus.NotFound
 
   const db = getDb()
   let attestationTx: string | null = null
@@ -99,6 +116,20 @@ export async function onAfterSettle({
   }
 
   const authorizationNonce = extractAuthNonce(paymentPayload.payload) ?? null
+  const decisionRecord = buildDecisionRecord({
+    agentId: mandateEntry?.agentName ?? mandateEntry?.agentId,
+    amountAtomic: amountUsdcAtomic,
+    decision: Decision.Approved,
+    identityStatus,
+    mandate: mandateEntry?.mandate,
+    payer,
+    paymentHash,
+    authorizationNonce,
+    policyMaxAtomic,
+    resource: paymentPayload.resource,
+    settlementTxHash: result.transaction as string,
+    attestationTxHash: attestationTx,
+  })
 
   try {
     await db.insert(schema.settlementAttestations).values({
@@ -107,6 +138,8 @@ export async function onAfterSettle({
       attestationTx,
       payerAddress: payer,
       amountUsdc: amountUsdcAtomic,
+      policyMaxAmountUsdc: policyMaxAtomic,
+      decisionRecord,
       identityStatus,
       decision: Decision.Approved,
       authorizationNonce,

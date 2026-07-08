@@ -30,24 +30,24 @@ function toPolicyAgent(
 }
 
 function toProofRun(
-  attestations: Awaited<ReturnType<typeof getAttestations>>,
-  policyMax: number
+  attestations: Awaited<ReturnType<typeof getAttestations>>
 ): PolicyProofRun | null {
   const blocked = attestations.find((attestation) => attestation.decision !== 0)
   if (!blocked) return null
 
   const amount = Number(formatUsdc(blocked.amountUsdc))
+  const policySnapshot = Number(formatUsdc(blocked.policyMaxAmountUsdc))
   const failedRule =
     blocked.identityStatus === 0
       ? "requireIdentity"
-      : amount > policyMax
+      : amount > policySnapshot
         ? "maxAmountUsdc"
         : "preSettlementPolicy"
 
   return {
     failedRule,
     amount: `${amount.toFixed(2)} USDC`,
-    limit: `${policyMax.toFixed(2)} USDC`,
+    limit: `${policySnapshot.toFixed(2)} USDC`,
     settlementTx: blocked.settlementTx || "none",
   }
 }
@@ -94,7 +94,7 @@ export default async function PolicyPage() {
         agents={agents.map(toPolicyAgent)}
         resources={resources}
         initialMaxAmountUsdc={policyMax}
-        proofRun={toProofRun(attestations, policyMax)}
+        proofRun={toProofRun(attestations)}
       />
     </PageFrame>
   )

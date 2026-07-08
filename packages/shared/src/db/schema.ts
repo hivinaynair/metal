@@ -1,4 +1,4 @@
-import { pgTable, text, bigint, timestamp, serial, integer } from "drizzle-orm/pg-core"
+import { bigint, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
 
 export const agents = pgTable("agents", {
   address: text("address").primaryKey(),
@@ -17,6 +17,21 @@ export const mandates = pgTable("mandates", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 })
 
+export const agentCredentials = pgTable("agent_credentials", {
+  id: serial("id").primaryKey(),
+  agentAddress: text("agent_address").notNull().references(() => agents.address),
+  agentName: text("agent_name").notNull(),
+  credentialType: text("credential_type").notNull(),
+  credentialJson: jsonb("credential_json").notNull(),
+  expiresAt: bigint("expires_at", { mode: "bigint" }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  agentCredentialUnique: uniqueIndex("agent_credentials_agent_type_idx").on(
+    table.agentAddress,
+    table.credentialType,
+  ),
+}))
+
 export const settlementAttestations = pgTable("settlement_attestations", {
   id: serial("id").primaryKey(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -25,6 +40,8 @@ export const settlementAttestations = pgTable("settlement_attestations", {
   attestationTx: text("attestation_tx"),
   payerAddress: text("payer_address").notNull(),
   amountUsdc: bigint("amount_usdc", { mode: "bigint" }).notNull(),
+  policyMaxAmountUsdc: bigint("policy_max_amount_usdc", { mode: "bigint" }).default(2000000n).notNull(),
+  decisionRecord: jsonb("decision_record"),
   identityStatus: integer("identity_status").notNull(),
   decision: integer("decision").notNull(),
   authorizationNonce: text("authorization_nonce"),

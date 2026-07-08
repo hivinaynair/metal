@@ -1,4 +1,5 @@
 import { demoAgents } from "@/lib/demo-scenarios"
+import type { DecisionProof } from "@workspace/shared/types"
 
 export const SCENARIOS = [
   {
@@ -45,11 +46,14 @@ export interface TriggerResult {
   agentUri?: string
   mandateDelegator?: string
   mandateValid?: boolean
+  authorizationNonce?: string
   policyThreshold?: string
+  proofLookupError?: string
   settlementTxHash?: string
   settlementTxUrl?: string
   attestationTxHash?: string
   attestationTxUrl?: string
+  decisionProof?: DecisionProof
   body?: { error?: string }
 }
 

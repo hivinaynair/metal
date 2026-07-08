@@ -119,11 +119,10 @@ Returns real CDP wallet addresses, real `agentId`s, real delegator addresses, re
 
 ```
 POST /api/trigger-payment (web)
-  → initAgents()              ← web: CDP setup, mandate registration, Postgres population
-  → getMandateHeader(address) ← web: provides signed mandate for the scenario's agent
   → POST AGENT_URL/run        ← web hands off entirely — no direct x402 payment
-      { scenarioIndex, mandateHeader }
+      { agentId, targetUrl }
         → agent picks named CDP account (metal-agent-1 etc.)
+        → agent loads AP2 credential for its own wallet
         → streams generateText() tokens back as SSE:
             data: { type: "token", text: "..." }   ← reasoning tokens, one per chunk
         → Claude calls x402Fetch tool (with mandate header)
@@ -141,7 +140,7 @@ Hono HTTP server. Started via `bun --filter agent dev serve`.
 
 ```
 POST /run
-  body: { scenarioIndex: 0|1|2|3, mandateHeader?: string }
+  body: { agentId: AgentId, targetUrl: string }
   response: text/event-stream
     data: { type: "token", text: "..." }     ← reasoning, streamed
     data: { type: "done", result: { settlementTx?, attestationTx?, httpStatus, error? } }
@@ -150,21 +149,22 @@ GET /health → 200
 ```
 
 Account map:
-- 0 → `metal-agent-1` (mandate $1, route basic $0.01)
+- 0 → `metal-agent-1` (mandate $1, route basic $0.50)
 - 1 → `metal-agent-2` (mandate $1, route premium $5)
 - 2 → `metal-agent-3` (mandate $10, route premium $5)
-- 3 → `metal-agent-ghost` (no mandate, not in ERC-8004)
+- 3 → `metal-agent-ghost` (zero-limit AP2 mandate header, not in ERC-8004)
 
 Uses `cdp.evm.getOrCreateAccount({ name })` — same deterministic accounts as web's `initAgents`.
+Loads the AP2 credential for that CDP wallet from `agent_credentials`, presents it as `X-AP2-Mandate`, and never accepts a mandate minted by the web request path.
 
 After `streamText` completes, query Postgres for `attestation_tx` by `payment_hash = keccak256(settlementTx)` and include in the `done` event.
 
 **System prompts per scenario:**
 
-- A: *"You are metal-agent-1, registered in ERC-8004. Mandate from delegator authorizes up to $1 USDC. Policy ceiling is $2. Fetch the settlement risk report ($0.01). Check your wallet, confirm you're authorized, then fetch it."*
+- A: *"You are metal-agent-1, registered in ERC-8004. Mandate from delegator authorizes up to $1 USDC. Policy ceiling is $2. Fetch the settlement risk report ($0.50). Check your wallet, confirm you're authorized, then fetch it."*
 - B: *"You are metal-agent-2. Mandate authorizes up to $1 USDC. Policy ceiling is $2. Attempt to fetch the premium report ($5.00). Try, then explain what blocked you."*
 - C: *"You are metal-agent-3. Mandate authorizes up to $10 USDC. Policy ceiling enforced at the settlement layer is $2. Attempt to fetch the premium report ($5.00). Try, then explain what the facilitator rejected."*
-- D: *"You are metal-agent-ghost. You have no mandate and are not registered in ERC-8004. Attempt to fetch the settlement risk report. Try, then explain what blocked you at the identity gate."*
+- D: *"You are metal-agent-ghost. You carry a zero-limit AP2 mandate header but are not registered in ERC-8004. Attempt to fetch the settlement risk report. Try, then explain what blocked you at the identity gate."*
 
 `maxSteps: 4` to keep latency under 15s.
 
@@ -177,8 +177,8 @@ x402Fetch tool also captures and returns `httpStatus` alongside `txHash` and `bo
 ### Update: `apps/web/app/api/trigger-payment/route.ts`
 
 - Remove all viem account signing + `wrapFetchWithPaymentFromConfig` logic
-- After `initAgents()`, get `mandateHeader` for the scenario's agent address
-- Call `POST ${env.AGENT_URL}/run` with `{ scenarioIndex, mandateHeader }`
+- Resolve the scenario to `{ agentId, targetUrl }`
+- Call `POST ${env.AGENT_URL}/run` with `{ agentId, targetUrl }`
 - Pipe the SSE stream straight through as the route response (`text/event-stream`)
 - Add `AGENT_URL` to `apps/web/env.ts` as required string
 
@@ -246,5 +246,5 @@ One-shot mode: pick named CDP account, `buildTools` with mandate from `demo/agen
 | Attestation tx write is async — Postgres row may not exist when trigger-payment queries it | Poll with small retry (3× 500ms) after getting settlement tx, or include attestation tx in agent `done` event after agent queries Postgres |
 | SSE piping through Next.js App Router | Use `ReadableStream` + `TransformStream` — well-supported |
 | Agent server cold start on Vercel | Health-check ping before demo; or deploy to Railway for persistent process |
-| `buildTools` mandate header for ghost scenario | Ghost has no mandate header; x402Fetch fires without it → identity rejected at gate 2. Agent explains the failure from the error response. |
+| `buildTools` mandate header for ghost scenario | Ghost carries a zero-limit AP2 mandate header; facilitator checks ERC-8004 before mandate amount, so it rejects at identity. |
 | One-shot CLI mandate for non-ghost scenarios | Scenario A uses `demo/agentkit-mandate.json`. B/C fail at mandate/policy before mandate validity matters for the narrative. |

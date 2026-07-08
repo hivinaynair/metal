@@ -3,7 +3,9 @@ import { x402Facilitator } from "@x402/core/facilitator"
 import { parsePaymentPayload, parsePaymentRequirements } from "@x402/core/schemas"
 import type { PaymentPayload, PaymentRequirements } from "@x402/core/types"
 import { ExactEvmScheme } from "@x402/evm/exact/facilitator"
+import { desc, eq } from "drizzle-orm"
 import { BASE_SEPOLIA_CAIP2 } from "@workspace/shared/chains"
+import { createDb, schema } from "@workspace/shared/db"
 import { facilitatorSigner } from "./lib/clients.js"
 import { verifyDeps } from "./lib/deps.js"
 import { onBeforeVerify } from "./hooks/verify.js"
@@ -13,6 +15,7 @@ import mandatesRouter from "./routes/mandates.js"
 import { getPolicyMaxAmountUsdc, setPolicyMaxAmountUsdc } from "./lib/policy-store.js"
 import type { Context } from "hono"
 import { isRecord, parseBigIntField, readJsonObject } from "./lib/http.js"
+import { keccak256 } from "viem"
 
 interface ParsedPaymentRequirements {
   scheme: string
@@ -93,6 +96,16 @@ facilitator
 // Hono app
 const app = new Hono()
 
+let _db: ReturnType<typeof createDb> | undefined
+function getDb() {
+  if (!_db) {
+    const url = process.env.DATABASE_URL
+    if (!url) throw new Error("Missing env var: DATABASE_URL")
+    _db = createDb(url)
+  }
+  return _db
+}
+
 app.get("/supported", (c) => c.json(facilitator.getSupported()))
 
 app.post("/verify", async (c) => {
@@ -121,6 +134,43 @@ app.post("/settle", async (c) => {
   } catch (error) {
     return c.json({ error: error instanceof Error ? error.message : String(error) }, 500)
   }
+})
+
+app.get("/decision-records/by-settlement/:txHash", async (c) => {
+  const txHash = c.req.param("txHash")
+  if (!txHash.startsWith("0x")) {
+    return c.json({ error: "txHash must be hex" }, 400)
+  }
+  const paymentHash = keccak256(txHash as `0x${string}`)
+  const rows = await getDb()
+    .select({ decisionRecord: schema.settlementAttestations.decisionRecord })
+    .from(schema.settlementAttestations)
+    .where(eq(schema.settlementAttestations.paymentHash, paymentHash))
+    .limit(1)
+  return c.json({ decisionRecord: rows[0]?.decisionRecord ?? null })
+})
+
+app.get("/decision-records/by-auth-nonce/:nonce", async (c) => {
+  const nonce = c.req.param("nonce")
+  const rows = await getDb()
+    .select({ decisionRecord: schema.settlementAttestations.decisionRecord })
+    .from(schema.settlementAttestations)
+    .where(eq(schema.settlementAttestations.authorizationNonce, nonce))
+    .orderBy(desc(schema.settlementAttestations.createdAt))
+    .limit(1)
+  return c.json({ decisionRecord: rows[0]?.decisionRecord ?? null })
+})
+
+app.get("/decision-records/latest", async (c) => {
+  const payer = c.req.query("payer")?.toLowerCase()
+  if (!payer) return c.json({ error: "payer is required" }, 400)
+  const rows = await getDb()
+    .select({ decisionRecord: schema.settlementAttestations.decisionRecord })
+    .from(schema.settlementAttestations)
+    .where(eq(schema.settlementAttestations.payerAddress, payer))
+    .orderBy(desc(schema.settlementAttestations.createdAt))
+    .limit(1)
+  return c.json({ decisionRecord: rows[0]?.decisionRecord ?? null })
 })
 
 app.get("/policy", (c) => c.json({ maxAmountUsdc: getPolicyMaxAmountUsdc() }))

@@ -8,7 +8,6 @@ import {
 } from "@workspace/ui/components/sheet"
 import { Badge } from "@workspace/ui/components/badge"
 import { Separator } from "@workspace/ui/components/separator"
-import { POLICY_MAX_AMOUNT_USDC } from "@/lib/demo-scenarios"
 import { formatUsdc, truncateAddress } from "@/lib/format"
 import { TracePanel } from "@/components/trace-panel"
 import type { TraceStep } from "@/components/trace-panel"
@@ -19,6 +18,7 @@ interface DetailSheetProps {
   row: {
     payer: string
     amountUsdc: bigint
+    policyMaxAmountUsdc: bigint
     identityStatus: number
     decision: number
     timestamp: number
@@ -37,6 +37,7 @@ function buildSteps(row: NonNullable<DetailSheetProps["row"]>): TraceStep[] {
   const approved = row.decision === DECISION_APPROVED
   const identityOk = row.identityStatus !== 0
   const amountUsd = formatUsdc(row.amountUsdc)
+  const policyMaxUsd = formatUsdc(row.policyMaxAmountUsdc)
 
   function stepStatus(n: number): TraceStep["status"] {
     if (approved) return "approved"
@@ -69,7 +70,7 @@ function buildSteps(row: NonNullable<DetailSheetProps["row"]>): TraceStep[] {
       id: 4,
       label: "Policy Check",
       status: stepStatus(4),
-      detail: `ceiling $${POLICY_MAX_AMOUNT_USDC} · payment $${amountUsd}`,
+      detail: `ceiling $${policyMaxUsd} · payment $${amountUsd}`,
     },
     {
       id: 5,

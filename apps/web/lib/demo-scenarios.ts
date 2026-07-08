@@ -1,27 +1,12 @@
-export const POLICY_MAX_AMOUNT_USDC = 2
+import {
+  DEMO_POLICY_MAX_AMOUNT_USDC,
+  DEMO_REPORT_ROUTES,
+  getDemoReportRoute,
+  type DemoReportRoute,
+} from "@workspace/shared/demo"
 
-export const reportRoutes = [
-  {
-    id: "basic",
-    path: "/api/settlement-risk-report",
-    priceLabel: "$0.50",
-    price: "$0.50",
-    amountAtomic: "500000",
-    title: "Settlement Risk Report",
-    riskLevel: "MEDIUM",
-    recommendation: "Reduce exposure by 20% before settlement window.",
-  },
-  {
-    id: "premium",
-    path: "/api/premium-risk-report",
-    priceLabel: "$5.00",
-    price: "$5.00",
-    amountAtomic: "5000000",
-    title: "Premium Risk Report",
-    riskLevel: "HIGH",
-    recommendation: "Pause settlement and require human approval.",
-  },
-] as const
+export const POLICY_MAX_AMOUNT_USDC = DEMO_POLICY_MAX_AMOUNT_USDC
+export const reportRoutes = DEMO_REPORT_ROUTES
 
 export const demoAgents = [
   {
@@ -66,8 +51,8 @@ export const demoAgents = [
   },
 ] as const
 
-export type ReportRouteId = (typeof reportRoutes)[number]["id"]
+export type ReportRouteId = DemoReportRoute["id"]
 
 export function getReportRoute(id: ReportRouteId) {
-  return reportRoutes.find((route) => route.id === id) ?? reportRoutes[0]
+  return getDemoReportRoute(id)
 }

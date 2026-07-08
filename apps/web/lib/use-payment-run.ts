@@ -46,6 +46,9 @@ export function usePaymentRun({
         body: JSON.stringify({ scenarioIndex: selectedIndex }),
       })
 
+      if (!response.ok) {
+        throw new Error(await response.text())
+      }
       if (!response.body) throw new Error("No response stream")
 
       const reader = response.body.getReader()

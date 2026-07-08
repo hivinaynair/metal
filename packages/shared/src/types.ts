@@ -7,14 +7,6 @@ export enum AgentId {
 
 export type ReportRouteId = "basic" | "premium"
 
-// Maps each agent to the report route it is authorized to access
-export const AGENT_ROUTE: Record<AgentId, ReportRouteId> = {
-  [AgentId.AGENT_1]: "basic",
-  [AgentId.AGENT_2]: "premium",
-  [AgentId.AGENT_3]: "premium",
-  [AgentId.GHOST]: "basic",
-}
-
 // Mirrors AttestationRegistry.sol enums
 export enum IdentityStatus {
   NotFound = 0,
@@ -44,4 +36,31 @@ export interface MandatePayload {
 export interface SignedMandate {
   payload: MandatePayload
   signature: `0x${string}`
+}
+
+export interface DecisionProof {
+  agentId: string
+  payer?: string
+  paymentHash?: string
+  authorizationNonce?: string
+  route: { path: string; price: string }
+  mandate: {
+    source: "x-ap2-mandate-header"
+    delegator: string
+    maxAmountUsdc: string
+    valid: boolean
+  }
+  policy: {
+    maxAmountUsdc: string
+    decision: "approved" | "rejected"
+  }
+  failureGate?: "identity" | "mandate" | "policy" | "settlement" | "attestation"
+  rejectionReason?: string
+  settlementTxHash?: string
+  attestationTxHash?: string
+}
+
+export type DecisionRecord = DecisionProof & {
+  amountUsdc: string
+  identityStatus: IdentityStatus
 }

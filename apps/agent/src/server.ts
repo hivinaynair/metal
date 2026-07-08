@@ -2,11 +2,10 @@ import { Hono } from "hono"
 import { serve } from "@hono/node-server"
 import { streamText } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
-import { eq } from "drizzle-orm"
-import { keccak256 } from "viem"
-import { createDb, schema } from "@workspace/shared/db"
 import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
-import { AgentId, AGENT_ROUTE } from "@workspace/shared/types"
+import { AgentId, type DecisionRecord } from "@workspace/shared/types"
+import { getAp2CredentialForAgent } from "./credentials.js"
+import { validateRunRequest } from "./run-request.js"
 import { buildTools } from "./tools.js"
 import type { CdpClient } from "@coinbase/cdp-sdk"
 
@@ -20,14 +19,6 @@ const AGENT_PROMPT: Record<AgentId, string> = {
   [AgentId.GHOST]: `You are metal-agent-ghost on Base Sepolia. Call x402Fetch to fetch the settlement risk report. Report exactly what error the facilitator returned.`,
 }
 
-const ROUTE_PATH: Record<"basic" | "premium", string> = {
-  basic: "/api/reports/basic",
-  premium: "/api/reports/premium",
-}
-
-// Mandate headers loaded from DB at startup, keyed by AgentId
-const mandateHeaders = new Map<AgentId, string>()
-
 let _cdp: CdpClient | undefined
 async function getCdp() {
   if (!_cdp) {
@@ -37,62 +28,36 @@ async function getCdp() {
   return _cdp
 }
 
-let _db: ReturnType<typeof createDb> | undefined
-function getDb() {
-  const url = process.env.DATABASE_URL
-  if (!url) throw new Error("Missing env var: DATABASE_URL")
-  if (!_db) _db = createDb(url)
-  return _db
-}
+// Poll facilitator for its canonical decision record. The settlement hook can lag the x402 response.
+async function getDecisionRecord(
+  {
+    authorizationNonce,
+    payer,
+    settlementTxHash,
+  }: {
+    authorizationNonce?: string
+    payer: string
+    settlementTxHash?: string
+  },
+  retries = 5,
+): Promise<DecisionRecord | undefined> {
+  const baseUrl = process.env.FACILITATOR_URL?.replace(/\/+$/, "")
+  if (!baseUrl) return undefined
 
-// Poll Postgres for attestation tx — onAfterSettle is async so it may lag the settlement
-async function getAttestationTx(settlementTxHash: string, retries = 5): Promise<string | null> {
-  const paymentHash = keccak256(settlementTxHash as `0x${string}`)
   for (let i = 0; i < retries; i++) {
-    const rows = await getDb()
-      .select({ attestationTx: schema.settlementAttestations.attestationTx })
-      .from(schema.settlementAttestations)
-      .where(eq(schema.settlementAttestations.paymentHash, paymentHash))
-      .limit(1)
-    if (rows[0]?.attestationTx) return rows[0].attestationTx
+    const path = settlementTxHash
+      ? `/decision-records/by-settlement/${settlementTxHash}`
+      : authorizationNonce
+        ? `/decision-records/by-auth-nonce/${encodeURIComponent(authorizationNonce)}`
+        : `/decision-records/latest?payer=${encodeURIComponent(payer.toLowerCase())}`
+    const response = await fetch(`${baseUrl}${path}`).catch(() => undefined)
+    const body = response?.ok
+      ? await response.json().catch(() => undefined) as { decisionRecord?: DecisionRecord | null } | undefined
+      : undefined
+    if (body?.decisionRecord) return body.decisionRecord
     await new Promise((r) => setTimeout(r, 800))
   }
-  return null
-}
-
-// Load mandate headers from DB into memory on startup
-async function loadMandates() {
-  const rows = await getDb()
-    .select({
-      name:             schema.agents.name,
-      erc8004AgentId:   schema.agents.agentId,
-      agentAddress:     schema.mandates.agentAddress,
-      delegatorAddress: schema.mandates.delegatorAddress,
-      maxAmountUsdc:    schema.mandates.maxAmountUsdc,
-      expiry:           schema.mandates.expiry,
-      nonce:            schema.mandates.nonce,
-      signature:        schema.mandates.signature,
-    })
-    .from(schema.mandates)
-    .innerJoin(schema.agents, eq(schema.mandates.agentAddress, schema.agents.address))
-
-  for (const row of rows) {
-    const agentId = Object.values(AgentId).find((id) => id === row.name)
-    if (!agentId) continue
-    const header = JSON.stringify({
-      agentId: row.erc8004AgentId.toString(),
-      payload: {
-        agent:          row.agentAddress,
-        delegator:      row.delegatorAddress,
-        maxAmountUsdc:  row.maxAmountUsdc.toString(),
-        expiry:         row.expiry.toString(),
-        nonce:          row.nonce.toString(),
-      },
-      signature: row.signature,
-    })
-    mandateHeaders.set(agentId, header)
-  }
-  console.log(`[Metal Agent] Loaded ${mandateHeaders.size} mandate(s) from DB`)
+  return undefined
 }
 
 const app = new Hono()
@@ -112,24 +77,27 @@ app.get("/agents", async (c) => {
 })
 
 app.post("/run", async (c) => {
-  const body = await c.req.json<{ agentId?: AgentId }>()
-  const agentId = body.agentId && Object.values(AgentId).includes(body.agentId)
-    ? body.agentId
-    : AgentId.AGENT_1
-
-  const mandateHeader = mandateHeaders.get(agentId)
-  if (!mandateHeader) {
-    return c.json({ error: "bootstrap not run — no mandate found for agent" }, 503)
-  }
-
   const appUrl = process.env.APP_URL
   if (!appUrl) return c.json({ error: "Missing env var: APP_URL" }, 500)
 
-  const route = AGENT_ROUTE[agentId]
-  const targetUrl = `${appUrl}${ROUTE_PATH[route]}`
+  const body = await c.req.json().catch(() => undefined)
+  if (!body || typeof body !== "object") {
+    return c.json({ error: "JSON body is required" }, 400)
+  }
 
+  const validated = validateRunRequest(body, appUrl)
+  if (!validated.ok) {
+    return c.json({ error: validated.error }, 400)
+  }
+
+  const { agentId, targetUrl } = validated.value
   const account = await (await getCdp()).evm.getOrCreateAccount({ name: agentId })
-  const tools = await buildTools(account, { mandateHeader })
+  const credential = await getAp2CredentialForAgent(account.address)
+  if (!credential) {
+    return c.json({ error: "mandate_not_registered" }, 503)
+  }
+
+  const tools = await buildTools(account, { mandateHeader: credential.header })
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -141,6 +109,7 @@ app.post("/run", async (c) => {
       send({ type: "gate", step: 0 })
 
       let settlementTxHash: string | undefined
+      let authorizationNonce: string | undefined
       let httpStatus: number | undefined
       let responseError: string | undefined
 
@@ -160,7 +129,13 @@ app.post("/run", async (c) => {
             // Gate 1: agent is submitting payment to the 402 endpoint / facilitator
             send({ type: "gate", step: 1 })
           } else if (chunk.type === "tool-result" && chunk.toolName === "x402Fetch") {
-            const r = chunk.result as { txHash?: string; httpStatus?: number; body?: { error?: string } }
+            const r = chunk.result as {
+              authorizationNonce?: string
+              txHash?: string
+              httpStatus?: number
+              body?: { error?: string }
+            }
+            if (r.authorizationNonce) authorizationNonce = r.authorizationNonce
             if (r.txHash) settlementTxHash = r.txHash
             if (r.httpStatus) httpStatus = r.httpStatus
             if (r.body?.error) responseError = r.body.error
@@ -170,11 +145,13 @@ app.post("/run", async (c) => {
         send({ type: "token", text: `\n[Agent error: ${String(err)}]` })
       }
 
-      // Fetch attestation tx from Postgres (give facilitator time to write it)
-      let attestationTxHash: string | null = null
-      if (settlementTxHash) {
-        attestationTxHash = await getAttestationTx(settlementTxHash)
-      }
+      const decisionRecord = await getDecisionRecord({
+        authorizationNonce,
+        payer: account.address,
+        settlementTxHash,
+      })
+      const attestationTxHash = decisionRecord?.attestationTxHash
+      const policyMaxAmountUsdc = decisionRecord?.policy.maxAmountUsdc
 
       send({
         type: "done",
@@ -187,6 +164,10 @@ app.post("/run", async (c) => {
           attestationTxUrl: attestationTxHash ? `${BASE_SEPOLIA_EXPLORER}/tx/${attestationTxHash}` : undefined,
           httpStatus,
           error: responseError,
+          authorizationNonce,
+          policyThreshold: policyMaxAmountUsdc ? `$${policyMaxAmountUsdc}` : undefined,
+          proofLookupError: decisionRecord ? undefined : "decision_record_not_found",
+          decisionProof: decisionRecord,
         },
       })
 
@@ -204,7 +185,6 @@ app.post("/run", async (c) => {
 })
 
 export async function startServer() {
-  await loadMandates()
   serve({ fetch: app.fetch, port: PORT }, () => {
     console.log(`[Metal Agent] HTTP server running on port ${PORT}`)
   })

@@ -22,6 +22,7 @@ import { eq } from "drizzle-orm"
 import { AgentId } from "@workspace/shared/types"
 import { registerInErc8004 } from "@workspace/shared/erc8004"
 import { MANDATE_EIP712_DOMAIN, MANDATE_EIP712_TYPES } from "@workspace/shared/mandate"
+import { toSerializedMandateHeader } from "@workspace/shared/mandate-header"
 import { createDb, schema } from "@workspace/shared/db"
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -56,6 +57,8 @@ const MAX_AMOUNT: Record<AgentId, bigint> = {
   [AgentId.AGENT_3]: 10n,
   [AgentId.GHOST]: 0n,
 }
+
+const AP2_CREDENTIAL_TYPE = "ap2_mandate"
 
 // ─── Main ──────────────────────────────────────────────────────────────────
 
@@ -93,6 +96,9 @@ async function main() {
 
     if (agentRow) {
       onChainId = agentRow.agentId
+      await db.update(schema.agents)
+        .set({ name: agentId })
+        .where(eq(schema.agents.address, addressLower))
       console.log(`[bootstrap]   ERC-8004 already registered — agentId: ${onChainId}`)
     } else if (NO_REGISTER.has(agentId)) {
       console.log(`[bootstrap]   Skipping ERC-8004 registration for ${agentId}`)
@@ -118,59 +124,93 @@ async function main() {
       where: eq(schema.mandates.agentAddress, addressLower),
     })
 
-    if (mandateRow) {
-      console.log(`[bootstrap]   Mandate already exists — skipping`)
-      continue
-    }
-
-    const mandatePayload = {
+    let mandatePayload = {
       agent: address as `0x${string}`,
       delegator: delegator.address,
       maxAmountUsdc: MAX_AMOUNT[agentId],
       expiry: MANDATE_FAR_FUTURE_EXPIRY,
       nonce: onChainId,
     }
+    let signature: `0x${string}`
 
-    const signature = await delegator.signTypedData({
-      domain: MANDATE_EIP712_DOMAIN,
-      types: MANDATE_EIP712_TYPES,
-      primaryType: "MandatePayload",
-      message: mandatePayload,
-    })
+    if (mandateRow) {
+      console.log(`[bootstrap]   Mandate already exists — rehydrating credential`)
+      mandatePayload = {
+        agent: address as `0x${string}`,
+        delegator: mandateRow.delegatorAddress as `0x${string}`,
+        maxAmountUsdc: mandateRow.maxAmountUsdc,
+        expiry: mandateRow.expiry,
+        nonce: mandateRow.nonce,
+      }
+      signature = mandateRow.signature as `0x${string}`
+    } else {
+      signature = await delegator.signTypedData({
+        domain: MANDATE_EIP712_DOMAIN,
+        types: MANDATE_EIP712_TYPES,
+        primaryType: "MandatePayload",
+        message: mandatePayload,
+      })
 
-    // Register with facilitator
-    const facilitatorRes = await fetch(`${FACILITATOR_URL}/mandates`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        agentId: onChainId.toString(),
-        mandate: {
-          payload: {
-            agent: mandatePayload.agent,
-            delegator: mandatePayload.delegator,
-            maxAmountUsdc: mandatePayload.maxAmountUsdc.toString(),
-            expiry: mandatePayload.expiry.toString(),
-            nonce: mandatePayload.nonce.toString(),
+      // Register with facilitator
+      const facilitatorRes = await fetch(`${FACILITATOR_URL}/mandates`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          agentId: onChainId.toString(),
+          mandate: {
+            payload: {
+              agent: mandatePayload.agent,
+              delegator: mandatePayload.delegator,
+              maxAmountUsdc: mandatePayload.maxAmountUsdc.toString(),
+              expiry: mandatePayload.expiry.toString(),
+              nonce: mandatePayload.nonce.toString(),
+            },
+            signature,
           },
-          signature,
-        },
-      }),
-    })
+        }),
+      })
 
-    if (!facilitatorRes.ok && facilitatorRes.status !== 409) {
-      throw new Error(`Mandate registration failed for ${agentId}: ${facilitatorRes.status} ${await facilitatorRes.text()}`)
+      if (!facilitatorRes.ok && facilitatorRes.status !== 409) {
+        throw new Error(`Mandate registration failed for ${agentId}: ${facilitatorRes.status} ${await facilitatorRes.text()}`)
+      }
+
+      await db.insert(schema.mandates).values({
+        agentAddress: addressLower,
+        delegatorAddress: delegator.address,
+        maxAmountUsdc: mandatePayload.maxAmountUsdc,
+        expiry: mandatePayload.expiry,
+        nonce: mandatePayload.nonce,
+        signature,
+      }).onConflictDoNothing()
+
+      console.log(`[bootstrap]   Mandate signed and stored`)
     }
 
-    await db.insert(schema.mandates).values({
+    await db.insert(schema.agentCredentials).values({
       agentAddress: addressLower,
-      delegatorAddress: delegator.address,
-      maxAmountUsdc: mandatePayload.maxAmountUsdc,
-      expiry: mandatePayload.expiry,
-      nonce: mandatePayload.nonce,
-      signature,
+      agentName: agentId,
+      credentialType: AP2_CREDENTIAL_TYPE,
+      credentialJson: toSerializedMandateHeader({
+        agentId: onChainId,
+        mandate: { payload: mandatePayload, signature },
+      }),
+      expiresAt: mandatePayload.expiry,
+    }).onConflictDoUpdate({
+      target: [
+        schema.agentCredentials.agentAddress,
+        schema.agentCredentials.credentialType,
+      ],
+      set: {
+        agentName: agentId,
+        credentialJson: toSerializedMandateHeader({
+          agentId: onChainId,
+          mandate: { payload: mandatePayload, signature },
+        }),
+        expiresAt: mandatePayload.expiry,
+      },
     })
 
-    console.log(`[bootstrap]   Mandate signed and stored`)
+    console.log(`[bootstrap]   Agent AP2 credential ready`)
   }
 
   console.log("\n[bootstrap] Done.")

@@ -3,6 +3,7 @@ import { Decision, IdentityStatus } from "@workspace/shared/types"
 
 // ── Provide DATABASE_URL so getDb() lazy init doesn't throw ────────────────
 process.env.DATABASE_URL = "postgresql://fake"
+process.env.POLICY_MAX_AMOUNT_USDC = "10"
 
 // ── Mock the DB module before importing settle ──────────────────────────────
 const mockInsertValues = mock(async () => {})
@@ -49,6 +50,7 @@ const SETTLEMENT_TX = "0xsettlementtxhash"
 
 function makePayload(nonce?: string) {
   return {
+    resource: "http://localhost:3000/api/premium-risk-report",
     payload: { from: PAYER, authorization: { from: PAYER, nonce } },
     accepted: { amount: "10000000", network: NETWORK, scheme: "exact", asset: "usdc", payTo: PAYER, maxTimeoutSeconds: 60 },
   }
@@ -103,7 +105,15 @@ describe("onBeforeSettle", () => {
       requirements: makeRequirements("20000000") as any,
     })
     expect(mockInsertValues).toHaveBeenCalledWith(
-      expect.objectContaining({ authorizationNonce: AUTH_NONCE, decision: Decision.Rejected })
+      expect.objectContaining({
+        authorizationNonce: AUTH_NONCE,
+        decision: Decision.Rejected,
+        decisionRecord: expect.objectContaining({
+          payer: PAYER,
+          rejectionReason: "policy_amount_exceeded",
+        }),
+        policyMaxAmountUsdc: 10000000n,
+      })
     )
   })
 })
@@ -119,6 +129,11 @@ describe("onAfterSettle", () => {
         settlementTx: SETTLEMENT_TX,
         authorizationNonce: AUTH_NONCE,
         decision: Decision.Approved,
+        decisionRecord: expect.objectContaining({
+          payer: PAYER,
+          settlementTxHash: SETTLEMENT_TX,
+        }),
+        policyMaxAmountUsdc: 10000000n,
       })
     )
   })

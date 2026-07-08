@@ -103,7 +103,7 @@ function AgentActor({
       </div>
       <div
         className={cn(
-          "relative h-full w-full translate-x-6 overflow-visible",
+          "relative h-full w-full translate-x-4 overflow-visible",
         )}
       >
         <AgentSplineModel active={active} blocked={blocked} />

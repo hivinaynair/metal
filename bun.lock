@@ -6,6 +6,7 @@
       "name": "next-monorepo",
       "dependencies": {
         "@coinbase/cdp-sdk": "^1.51.2",
+        "@workspace/shared": "workspace:*",
         "@x402/evm": "^2.17.0",
         "@x402/fetch": "^2.17.0",
       },
@@ -28,6 +29,7 @@
         "@coinbase/cdp-sdk": "^1.51.2",
         "@hono/node-server": "^1.13.7",
         "@workspace/shared": "workspace:*",
+        "@x402/core": "^2.17.0",
         "@x402/evm": "^2.17.0",
         "@x402/fetch": "^2.17.0",
         "ai": "^4.0.0",
