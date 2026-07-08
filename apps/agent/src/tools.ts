@@ -2,13 +2,6 @@ import { tool } from "ai"
 import { z } from "zod"
 import { wrapFetchWithPaymentFromConfig, decodePaymentResponseHeader } from "@x402/fetch"
 import { ExactEvmScheme } from "@x402/evm"
-import {
-  AgentKit,
-  CdpEvmWalletProvider,
-  walletActionProvider,
-  erc20ActionProvider,
-} from "@coinbase/agentkit"
-import { getVercelAITools } from "@coinbase/agentkit-vercel-ai-sdk"
 import { BASE_SEPOLIA_CAIP2, BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
 import type { EvmServerAccount } from "@coinbase/cdp-sdk"
 
@@ -30,26 +23,8 @@ function summarizeNonJsonResponse(url: string, response: Response, text: string)
     : `Upstream returned ${contentType} for ${url} (${response.status} ${response.statusText})`
 }
 
-// Build all tools for the agent — AgentKit built-ins + custom x402FetchTool.
+// Build tools for the agent. Keep this narrow so optional AgentKit providers are not loaded at startup.
 export async function buildTools(cdpAccount: EvmServerAccount, opts?: { mandateHeader?: string }) {
-  const walletProvider = await CdpEvmWalletProvider.configureWithWallet({
-    apiKeyId: process.env.CDP_API_KEY_ID ?? process.env.CDP_API_KEY_NAME,
-    apiKeySecret: process.env.CDP_API_KEY_SECRET,
-    walletSecret: process.env.CDP_WALLET_SECRET,
-    networkId: "base-sepolia",
-    address: cdpAccount.address,
-  })
-
-  const agentkit = await AgentKit.from({
-    walletProvider,
-    actionProviders: [
-      walletActionProvider(),
-      erc20ActionProvider(),
-    ],
-  })
-
-  const agentKitTools = getVercelAITools(agentkit)
-
   const fetchWithPayment = wrapFetchWithPaymentFromConfig(fetch, {
     schemes: [
       {
@@ -96,5 +71,5 @@ export async function buildTools(cdpAccount: EvmServerAccount, opts?: { mandateH
     },
   })
 
-  return { ...agentKitTools, x402Fetch: x402FetchTool }
+  return { x402Fetch: x402FetchTool }
 }

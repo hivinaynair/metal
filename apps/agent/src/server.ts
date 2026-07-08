@@ -4,10 +4,10 @@ import { streamText } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
 import { eq } from "drizzle-orm"
 import { keccak256 } from "viem"
-import { CdpClient } from "@coinbase/cdp-sdk"
 import { createDb, schema } from "@workspace/shared/db"
 import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
 import { buildTools } from "./tools.js"
+import type { CdpClient } from "@coinbase/cdp-sdk"
 
 const PORT = Number(process.env.PORT ?? 3002)
 
@@ -32,8 +32,11 @@ const SCENARIOS = [
 ] as const
 
 let _cdp: CdpClient | undefined
-function getCdp() {
-  if (!_cdp) _cdp = new CdpClient()
+async function getCdp() {
+  if (!_cdp) {
+    const { CdpClient } = await import("@coinbase/cdp-sdk")
+    _cdp = new CdpClient()
+  }
   return _cdp
 }
 
@@ -70,7 +73,7 @@ app.post("/run", async (c) => {
   const scenario = SCENARIOS[index]!
   const targetUrl = typeof body.targetUrl === "string" ? body.targetUrl : undefined
 
-  const account = await getCdp().evm.getOrCreateAccount({ name: scenario.name })
+  const account = await (await getCdp()).evm.getOrCreateAccount({ name: scenario.name })
   const tools = await buildTools(account, { mandateHeader: body.mandateHeader })
 
   const stream = new ReadableStream({
