@@ -65,7 +65,7 @@ export function fallbackRouteForAgent(agent: DemoAgent) {
   return {
     id: premium ? "premium" : "basic",
     path: premium ? "/api/premium-risk-report" : "/api/settlement-risk-report",
-    price: agent.route.includes("$5") ? "$5.00" : "$0.50",
+    price: agent.route.includes("$2") ? "$2.00" : "$0.50",
   }
 }
 

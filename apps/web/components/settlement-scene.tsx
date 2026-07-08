@@ -136,7 +136,7 @@ function GateModule({
     <div className="flex flex-1 flex-col items-center gap-2 pt-16">
       <span
         className={cn(
-          "relative z-10 font-mono text-[9px] font-bold tracking-[0.14em] uppercase",
+          "relative z-10 font-mono text-xs font-bold tracking-[0.14em] uppercase",
           state === "running" && "text-accent",
           state === "approved" && "text-white",
           blocked && "text-destructive",
