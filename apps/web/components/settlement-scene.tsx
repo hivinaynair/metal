@@ -95,7 +95,7 @@ function AgentActor({
 
   return (
     <div className="relative h-full w-44 shrink-0">
-      <div className="absolute top-5 left-0 z-40 w-56 rounded-md border border-white/[0.14] bg-[#11151c]/95 px-3 py-2 text-left shadow-[0_14px_34px_rgba(0,0,0,0.42),0_0_24px_rgba(63,224,208,0.08)] backdrop-blur-md">
+      <div className="settlement-panel shadow-rail-panel absolute top-5 left-0 z-40 w-56 rounded-md border border-white/[0.14] px-3 py-2 text-left backdrop-blur-md">
         <p className="line-clamp-2 font-mono text-[0.68rem] leading-[1.45] text-white/85">
           {latestReasoning ||
             "Im ready to make the payment!"}
@@ -126,8 +126,8 @@ function GateModule({
   const skipped = state === "skipped"
 
   const flangeClass = cn(
-    "absolute -right-2 -left-2 h-[5px] rounded-[2px] border bg-gradient-to-b from-[#141a1f] to-[#0a0d0f]",
-    active && "border-accent/20 shadow-[0_0_6px_rgba(63,224,208,0.1)]",
+    "settlement-flange absolute -right-2 -left-2 h-[5px] rounded-[2px] border",
+    active && "border-accent/20 shadow-glow-positive",
     blocked && "border-destructive/20",
     !active && !blocked && "border-white/[0.05]"
   )
@@ -138,7 +138,7 @@ function GateModule({
       <span
         className={cn(
           "relative z-10 font-mono text-[9px] font-bold tracking-[0.14em] uppercase",
-          active && "text-[#3fe0d0]",
+          active && "text-accent",
           blocked && "text-destructive",
           skipped && "text-white/50",
           !active && !blocked && !skipped && "text-white/60"
@@ -157,31 +157,19 @@ function GateModule({
         {/* Icon block */}
         <div
           className={cn(
-            "relative flex h-14 w-9 items-center justify-center rounded-[3px] border bg-gradient-to-b from-[#0e1215] to-[#080b0d]",
+            "settlement-gate relative flex h-14 w-9 items-center justify-center rounded-[3px] border",
             active &&
-              "border-accent/25 shadow-[0_0_16px_rgba(63,224,208,0.12),inset_0_0_12px_rgba(63,224,208,0.05)]",
+              "border-accent/25 shadow-glow-positive",
             blocked &&
-              "border-destructive/25 shadow-[0_0_16px_rgba(239,96,96,0.12),inset_0_0_12px_rgba(239,96,96,0.05)]",
+              "border-destructive/25 shadow-glow-negative",
             !active && !blocked && "border-white/[0.06]"
           )}
         >
           {active && (
-            <div
-              className="absolute inset-0 rounded-[3px] opacity-40 blur-sm"
-              style={{
-                background:
-                  "radial-gradient(circle at 50% 50%, rgba(63,224,208,0.15), transparent 70%)",
-              }}
-            />
+            <div className="gate-glow-positive absolute inset-0 rounded-[3px] opacity-40 blur-sm" />
           )}
           {blocked && (
-            <div
-              className="absolute inset-0 rounded-[3px] opacity-40 blur-sm"
-              style={{
-                background:
-                  "radial-gradient(circle at 50% 50%, rgba(239,96,96,0.15), transparent 70%)",
-              }}
-            />
+            <div className="gate-glow-negative absolute inset-0 rounded-[3px] opacity-40 blur-sm" />
           )}
           <Icon
             className={cn(
@@ -197,10 +185,10 @@ function GateModule({
         {(state === "approved" || state === "rejected") && (
           <span
             className={cn(
-              "absolute -top-2 -right-2 grid size-[18px] place-items-center rounded-full border-2 border-[#060709]",
+              "absolute -top-2 -right-2 grid size-[18px] place-items-center rounded-full border-2 border-surface-sunken",
               state === "approved"
-                ? "bg-emerald-500 shadow-[0_0_8px_rgba(52,211,153,0.5)]"
-                : "bg-destructive shadow-[0_0_8px_rgba(239,96,96,0.5)]"
+                ? "bg-positive shadow-glow-positive"
+                : "bg-destructive shadow-glow-negative"
             )}
           >
             {state === "approved" ? (
@@ -242,16 +230,16 @@ export function SettlementScene({
     .replace("/api/premium-risk-report", "GET /v1/bulk-feed")
   const statusTone =
     agentStatus === "Trusted" || agentStatus === "approved"
-      ? "bg-[var(--positive-surface)] text-[var(--positive)]"
+      ? "bg-positive-surface text-positive"
       : agentStatus === "rejected"
-        ? "bg-[var(--negative-surface)] text-[var(--negative)]"
-        : "bg-[var(--warning-surface)] text-[var(--warning)]"
+        ? "bg-negative-surface text-negative"
+        : "bg-warning-surface text-warning"
 
   return (
-    <section className="overflow-hidden rounded-sm border border-accent/10 bg-[#060709] text-foreground">
+    <section className="settlement-pipeline settlement-pipeline-shadow overflow-hidden rounded-sm border border-accent/10 text-foreground">
       {/* HUD header */}
-      <div className="flex items-center gap-3 border-b border-accent/[0.07] bg-accent/[0.025] px-5 py-2.5">
-        <div className="size-1.5 shrink-0 rounded-full bg-accent shadow-[0_0_6px_theme(colors.accent/DEFAULT)]" />
+      <div className="flex items-center gap-3 border-b border-accent/[0.07] bg-accent/[0.025] px-5 py-3">
+        <div className="size-1.5 shrink-0 rounded-full bg-accent shadow-glow-positive" />
         <span className="shrink-0 font-mono text-[9px] font-bold tracking-[0.2em] uppercase">
           x402 Settlement Pipeline
         </span>
@@ -275,8 +263,8 @@ export function SettlementScene({
           className={cn(
             "absolute top-[112px] h-px",
             rejected
-              ? "bg-gradient-to-r from-destructive/90 to-destructive/20 shadow-[0_0_6px_rgba(239,96,96,0.5)]"
-              : "bg-gradient-to-r from-accent/90 to-accent/20 shadow-[0_0_6px_rgba(63,224,208,0.5)]"
+              ? "bg-gradient-to-r from-destructive/90 to-destructive/20 shadow-glow-negative"
+              : "bg-gradient-to-r from-accent/90 to-accent/20 shadow-glow-positive"
           )}
           initial={false}
           animate={{ left: "22%", width: `${Math.max(0, packetLeft - 22)}%` }}
@@ -294,8 +282,8 @@ export function SettlementScene({
             className={cn(
               "rounded-[3px] border px-3 py-2 text-center backdrop-blur-md",
               rejected
-                ? "border-destructive/50 bg-[#060709]/90 shadow-[0_0_20px_rgba(239,96,96,0.18),0_8px_24px_rgba(0,0,0,0.6)]"
-                : "border-accent/50 bg-[#060709]/90 shadow-[0_0_20px_rgba(63,224,208,0.18),0_8px_24px_rgba(0,0,0,0.6)]"
+                ? "settlement-pipeline border-destructive/50 shadow-rail-negative"
+                : "settlement-pipeline border-accent/50 shadow-rail-positive"
             )}
           >
             <p
@@ -342,7 +330,7 @@ export function SettlementScene({
       </div>
 
       {/* Payment footer */}
-      <div className="flex flex-wrap items-center gap-4 border-t border-border bg-[#050607] px-5 py-4">
+      <div className="flex flex-wrap items-center gap-4 border-t border-border bg-surface-sunken px-5 py-4">
         <div className="grid size-9 shrink-0 place-items-center rounded-sm bg-muted text-muted-foreground">
           <Bot className="size-4" />
         </div>

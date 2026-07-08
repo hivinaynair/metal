@@ -83,8 +83,8 @@ export default async function PolicyPage() {
         title="Compliance as executable logic"
         question="Change the active institution policy. The next payment must pass it before settlement."
         right={
-          <div className="metal-card flex items-center gap-2 px-4 py-2 font-mono text-sm text-[var(--text-secondary)]">
-            <span className="size-2 rounded-full bg-[var(--positive)]" />
+          <div className="metal-card flex items-center gap-2 px-4 py-2 font-mono text-sm text-text-secondary">
+            <span className="size-2 rounded-full bg-positive" />
             mode: strict
           </div>
         }

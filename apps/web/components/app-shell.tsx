@@ -26,7 +26,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="dark flex min-h-svh bg-background text-foreground">
-      <aside className="hidden w-[244px] shrink-0 border-r border-sidebar-border bg-sidebar lg:flex lg:flex-col">
+      <aside className="sticky top-0 hidden h-svh w-[244px] shrink-0 overflow-hidden border-r border-sidebar-border bg-sidebar lg:flex lg:flex-col">
         <div className="px-5 py-5">
           <Link href="/" className="flex items-center gap-2.5 border-0">
             <Image
@@ -39,7 +39,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             />
             <span className="font-serif text-[21px] tracking-tight">Metal</span>
           </Link>
-          <p className="mt-3.5 font-serif text-[15px] leading-tight text-[var(--text-secondary)]">
+          <p className="mt-3.5 font-serif text-[15px] leading-tight text-text-secondary">
             Compliance before
             <br />
             settlement, not after.
@@ -62,7 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   "group flex items-center gap-[11px] rounded-sm border-0 px-3 py-2.5 text-left transition-colors",
                   active
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-[var(--text-tertiary)] hover:bg-sidebar-accent/60 hover:text-[var(--text-secondary)]"
+                    : "text-text-tertiary hover:bg-sidebar-accent/60 hover:text-text-secondary"
                 )}
               >
                 <Icon className="size-[17px] shrink-0" />
@@ -70,7 +70,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <span className="block text-sm font-medium">
                     {item.label}
                   </span>
-                  <span className="block truncate text-[11px] text-[var(--text-disabled)] group-hover:text-[var(--text-tertiary)]">
+                  <span className="block truncate text-[11px] text-text-disabled group-hover:text-text-tertiary">
                     {item.sub}
                   </span>
                 </span>
@@ -82,12 +82,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mt-auto border-t border-sidebar-border p-4">
           <Badge
             variant="secondary"
-            className="gap-2 bg-transparent px-0 py-0 font-mono text-[11px] text-[var(--text-secondary)]"
+            className="gap-2 overflow-visible bg-transparent px-0 py-0 font-mono text-[11px] text-text-secondary"
           >
-            <span className="size-[7px] rounded-full bg-[var(--positive)] shadow-[0_0_0_3px_var(--positive-surface)]" />
+            <span className="status-dot-live size-2.5 rounded-full" />
             Live · Base Sepolia
           </Badge>
-          <p className="mt-2.5 text-[11px] leading-normal text-[var(--text-tertiary)]">
+          <p className="mt-2.5 text-[11px] leading-normal text-text-tertiary">
             A settlement-layer compliance demo for tokenized, agent-native
             payments.
           </p>

@@ -9,7 +9,6 @@ import { PacketPanel } from "@/components/packet-panel"
 import { PageFrame, PageHead } from "@/components/page-chrome"
 import { ScenarioPicker } from "@/components/scenario-picker"
 import { SettlementScene } from "@/components/settlement-scene"
-import { TopStatus } from "@/components/top-status"
 import { demoAgents } from "@/lib/demo-scenarios"
 import { buildProofBundle } from "@/lib/payment-proof"
 import {
@@ -65,10 +64,8 @@ export default function Page() {
   return (
     <PageFrame>
       <PageHead
-        eyebrow="The live rail"
+        eyebrow="The Bare-Metal rail"
         title="Compliance before settlement"
-        question="Send a payment through the rail. Each gate approves, blocks, or skips — a rejected flow physically stops before it can settle."
-        right={<TopStatus />}
       />
 
       <ScenarioPicker

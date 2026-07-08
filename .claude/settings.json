@@ -93,7 +93,11 @@
       "Read(//Users/vinay/.config/vercel/**)",
       "Read(//Users/vinay/**)",
       "Bash(vercel ls:*)",
-      "Bash(grep -n \"from \"\".*.ts\"\"\" /Users/vinay/bare-metal/apps/agent/src/*.ts)"
+      "Bash(grep -n \"from \"\".*.ts\"\"\" /Users/vinay/bare-metal/apps/agent/src/*.ts)",
+      "Bash(grep -v '^[[:space:]]*$')",
+      "Bash(git check-ignore:*)",
+      "Bash(cat /Users/vinay/bare-metal/.worktrees/agent-init-refactor/.env*)",
+      "Bash(grep -A 50 '\"\"globalEnv\"\"' /Users/vinay/bare-metal/.worktrees/agent-init-refactor/turbo.json)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",

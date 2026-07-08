@@ -42,7 +42,7 @@ export function PageHead({
           </h1>
         ) : null}
         {question ? (
-          <p className="mt-2.5 max-w-[620px] text-sm leading-normal text-[var(--text-tertiary)]">
+          <p className="mt-2.5 max-w-[620px] text-sm leading-normal text-text-tertiary">
             {question}
           </p>
         ) : null}

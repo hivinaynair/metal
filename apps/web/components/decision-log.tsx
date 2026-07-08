@@ -120,7 +120,7 @@ export function DecisionLog({
           >
             <span className="mt-0.5">
               {approved ? (
-                <CheckCircle2 className="size-4 text-[var(--positive)]" />
+                <CheckCircle2 className="size-4 text-positive" />
               ) : rejected ? (
                 <XCircle className="size-4 text-destructive" />
               ) : runningStep ? (

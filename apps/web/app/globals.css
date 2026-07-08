@@ -7,6 +7,25 @@
   --font-heading: var(--font-serif);
 }
 
+@theme inline {
+  --color-positive: var(--positive);
+  --color-positive-surface: var(--positive-surface);
+  --color-negative: var(--negative);
+  --color-negative-surface: var(--negative-surface);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-info: var(--info);
+  --color-info-surface: var(--info-surface);
+  --color-surface-inset: var(--bg-inset);
+  --color-surface-raised: var(--bg-raised);
+  --color-surface-sunken: var(--bg-sunken);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-disabled: var(--text-disabled);
+  --color-field: var(--field-bg);
+  --color-field-border: var(--field-border);
+}
+
 @layer base {
   html {
     background: var(--background);
@@ -58,21 +77,101 @@
     letter-spacing: -0.01em;
   }
 
-  .policy-range::-webkit-slider-thumb {
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 999px;
-    background: var(--text-primary);
-    border: 2px solid var(--surface-card);
-    box-shadow: 0 1px 4px rgb(0 0 0 / 50%);
+  .settlement-pipeline {
+    background: #060709;
   }
 
-  .policy-range::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 999px;
-    background: var(--text-primary);
-    border: 2px solid var(--surface-card);
+  .settlement-pipeline-shadow {
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 6%),
+      0 0 28px rgb(111 168 255 / 9%),
+      0 22px 64px rgb(51 192 138 / 4%);
+  }
+
+  .settlement-panel {
+    background: rgb(17 21 28 / 95%);
+  }
+
+  .settlement-flange {
+    background: linear-gradient(180deg, #141a1f, #0a0d0f);
+  }
+
+  .settlement-gate {
+    background: linear-gradient(180deg, #0e1215, #080b0d);
+  }
+
+  .status-dot-live {
+    display: inline-block;
+    flex-shrink: 0;
+    background:
+      radial-gradient(circle at 35% 35%, #c9ffe5 0 16%, transparent 17%),
+      #33c08a;
+    background-color: #33c08a !important;
+    box-shadow:
+      0 0 0 3px rgb(51 192 138 / 22%),
+      0 0 12px rgb(51 192 138 / 85%),
+      0 0 24px rgb(51 192 138 / 42%);
+  }
+
+  .agent-head {
+    background: linear-gradient(145deg, #f4f4f4, #b8b8c8);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 90%),
+      0 8px 18px rgb(0 0 0 / 25%);
+  }
+
+  .agent-core {
+    background: radial-gradient(
+      circle at 65% 28%,
+      rgb(255 255 255 / 90%),
+      rgb(132 104 255 / 92%) 28%,
+      rgb(105 86 228 / 94%) 52%,
+      rgb(245 245 245 / 95%) 53%
+    );
+    box-shadow:
+      inset 0 0 18px rgb(255 255 255 / 70%),
+      0 16px 24px rgb(0 0 0 / 24%);
+  }
+
+  .gate-glow-positive {
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgb(63 224 208 / 15%),
+      transparent 70%
+    );
+  }
+
+  .gate-glow-negative {
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgb(239 96 96 / 15%),
+      transparent 70%
+    );
+  }
+
+  .shadow-glow-positive {
+    box-shadow: 0 0 18px rgb(63 224 208 / 32%);
+  }
+
+  .shadow-glow-negative {
+    box-shadow: 0 0 18px rgb(239 96 96 / 32%);
+  }
+
+  .shadow-rail-panel {
+    box-shadow:
+      0 14px 34px rgb(0 0 0 / 42%),
+      0 0 24px rgb(63 224 208 / 8%);
+  }
+
+  .shadow-rail-positive {
+    box-shadow:
+      0 0 20px rgb(63 224 208 / 18%),
+      0 8px 24px rgb(0 0 0 / 60%);
+  }
+
+  .shadow-rail-negative {
+    box-shadow:
+      0 0 20px rgb(239 96 96 / 18%),
+      0 8px 24px rgb(0 0 0 / 60%);
   }
 }

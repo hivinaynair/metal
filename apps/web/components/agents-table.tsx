@@ -4,13 +4,17 @@ import { useMemo, useState } from "react"
 import {
   AlertTriangle,
   Bot,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Search,
 } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@workspace/ui/components/native-select"
 import { cn } from "@workspace/ui/lib/utils"
 
 const PAGE_SIZE = 6
@@ -31,10 +35,10 @@ type StatusFilter = "All statuses" | AgentsTableRow["status"]
 type RegistrationFilter = "All" | "Registered" | "Unregistered"
 
 const statusStyles: Record<AgentsTableRow["status"], string> = {
-  Trusted: "bg-[var(--positive-surface)] text-[var(--positive)]",
-  "Mandate capped": "bg-[var(--warning-surface)] text-[var(--warning)]",
-  "Policy blocked": "bg-[var(--negative-surface)] text-[var(--negative)]",
-  "Expired mandate": "bg-[var(--warning-surface)] text-[var(--warning)]",
+  Trusted: "bg-positive-surface text-positive",
+  "Mandate capped": "bg-warning-surface text-warning",
+  "Policy blocked": "bg-negative-surface text-negative",
+  "Expired mandate": "bg-warning-surface text-warning",
 }
 
 function shortAddress(address: string) {
@@ -68,25 +72,20 @@ function FilterSelect<T extends string>({
   className?: string
 }) {
   return (
-    <label
+    <NativeSelect
+      value={value}
+      onChange={(event) => onChange(event.target.value as T)}
       className={cn(
-        "relative block h-10 w-full min-w-40 rounded-sm border border-[var(--field-border)] bg-[var(--field-bg)] text-sm text-foreground transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20",
+        "h-10 w-full min-w-40 rounded-sm border border-field-border bg-field px-4 transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20",
         className
       )}
     >
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value as T)}
-        className="h-full w-full appearance-none bg-transparent px-4 pr-10 outline-none"
-      >
-        {options.map((option) => (
-          <option key={option} value={option} className="bg-[var(--bg-raised)]">
-            {option}
-          </option>
-        ))}
-      </select>
-      <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
-    </label>
+      {options.map((option) => (
+        <NativeSelectOption key={option} value={option}>
+          {option}
+        </NativeSelectOption>
+      ))}
+    </NativeSelect>
   )
 }
 
@@ -98,7 +97,7 @@ function AgentIcon({ agent }: { agent: AgentsTableRow }) {
     <span
       className={cn(
         "grid size-9 place-items-center rounded-[2px] bg-muted text-muted-foreground",
-        warning && "text-[var(--negative)]"
+        warning && "text-negative"
       )}
     >
       {warning ? (
@@ -184,13 +183,13 @@ export function AgentsTable({ agents }: { agents: AgentsTableRow[] }) {
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
-        <label className="flex h-10 w-full max-w-[280px] items-center gap-3 rounded-sm border border-[var(--field-border)] bg-[var(--field-bg)] px-4 text-sm text-muted-foreground transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
+        <label className="flex h-10 w-full max-w-[280px] items-center gap-3 rounded-sm border border-field-border bg-field px-4 text-sm text-muted-foreground transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
           <Search className="size-4 shrink-0" />
-          <input
+          <Input
             value={query}
             onChange={(event) => updateQuery(event.target.value)}
             placeholder="Search name, wallet, ERC-8004 id..."
-            className="min-w-0 flex-1 bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
+            className="h-auto min-w-0 flex-1 border-0 bg-transparent p-0 text-foreground placeholder:text-muted-foreground"
           />
         </label>
         <FilterSelect
@@ -260,7 +259,7 @@ export function AgentsTable({ agents }: { agents: AgentsTableRow[] }) {
                     className={cn(
                       "px-3 py-4 font-mono text-muted-foreground",
                       agent.status === "Expired mandate" &&
-                        "text-[var(--negative)]"
+                        "text-negative"
                     )}
                   >
                     {agent.expiry}

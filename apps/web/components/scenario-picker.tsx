@@ -1,5 +1,6 @@
 "use client"
 
+import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 import { demoAgents } from "@/lib/demo-scenarios"
 import { SCENARIOS } from "@/lib/payment-demo"
@@ -20,12 +21,14 @@ export function ScenarioPicker({
         const agent = demoAgents.find((a) => a.id === scenario.agentId)!
         const selected = index === selectedIndex
         return (
-          <button
+          <Button
             key={scenario.slot}
+            variant="ghost"
+            size="sm"
             disabled={loading}
             onClick={() => onSelect(index)}
             className={cn(
-              "inline-flex items-center gap-2 rounded-sm px-3 py-2 text-left text-sm font-medium transition",
+              "justify-start gap-2 rounded-sm text-left",
               selected
                 ? "bg-muted text-foreground"
                 : "bg-transparent text-muted-foreground hover:text-foreground",
@@ -40,7 +43,7 @@ export function ScenarioPicker({
               )}
             />
             {scenario.title}
-          </button>
+          </Button>
         )
       })}
     </div>

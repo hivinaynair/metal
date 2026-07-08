@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table"
+import { cn } from "@workspace/ui/lib/utils"
 import { formatUsdc } from "@/lib/format"
 import { DetailSheet } from "@/components/detail-sheet"
 import type { AttestationRow } from "@/lib/attestations"
@@ -86,17 +87,20 @@ export function FeedTable({ rows, agentNames = {} }: FeedTableProps) {
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="metal-inset flex gap-0.5 p-0.5">
           {filters.map((f) => (
-            <button
+            <Button
               key={f.id}
+              variant="ghost"
+              size="sm"
               onClick={() => setFilter(f.id)}
-              className={`rounded-[2px] px-3 py-1.5 text-[12.5px] font-medium transition-colors ${
+              className={cn(
+                "h-auto rounded-[2px] px-3 py-1.5 text-[12.5px] font-medium",
                 filter === f.id
                   ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
-              }`}
+              )}
             >
               {f.label}
-            </button>
+            </Button>
           ))}
         </div>
         <Button
@@ -169,7 +173,7 @@ export function FeedTable({ rows, agentNames = {} }: FeedTableProps) {
                   </TableCell>
                   <TableCell className="text-center">
                     {row.identityStatus !== 0 ? (
-                      <CheckCircle2 className="mx-auto size-4 text-[var(--positive)]" />
+                      <CheckCircle2 className="mx-auto size-4 text-positive" />
                     ) : (
                       <X className="mx-auto size-4 text-destructive" />
                     )}
@@ -178,7 +182,7 @@ export function FeedTable({ rows, agentNames = {} }: FeedTableProps) {
                     <Badge
                       variant={approved ? "secondary" : "destructive"}
                       className={
-                        approved ? "text-[var(--positive)]" : undefined
+                        approved ? "text-positive" : undefined
                       }
                     >
                       <span className="size-1.5 rounded-full bg-current" />

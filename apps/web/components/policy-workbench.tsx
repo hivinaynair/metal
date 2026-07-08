@@ -5,7 +5,6 @@ import { useMemo, useState } from "react"
 import {
   ArrowRight,
   Check,
-  ChevronDown,
   ChevronRight,
   Minus,
   Save,
@@ -16,6 +15,12 @@ import {
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button, buttonVariants } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@workspace/ui/components/native-select"
+import { Slider } from "@workspace/ui/components/slider"
 import { Switch } from "@workspace/ui/components/switch"
 import { cn } from "@workspace/ui/lib/utils"
 import {
@@ -47,25 +52,18 @@ function FieldSelect<T extends string>({
   return (
     <label className="grid gap-2">
       <span className="metal-eyebrow">{label}</span>
-      <span className="relative block h-10 rounded-sm border border-[var(--field-border)] bg-[var(--field-bg)] text-sm text-foreground transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
-        <select
-          value={value}
-          onChange={(event) => onChange(event.target.value as T)}
-          disabled={disabled}
-          className="h-full w-full appearance-none bg-transparent px-4 pr-10 outline-none disabled:opacity-60"
-        >
-          {options.map((option) => (
-            <option
-              key={option}
-              value={option}
-              className="bg-[var(--bg-raised)]"
-            >
-              {getLabel(option)}
-            </option>
-          ))}
-        </select>
-        <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
-      </span>
+      <NativeSelect
+        value={value}
+        onChange={(event) => onChange(event.target.value as T)}
+        disabled={disabled}
+        className="h-10 w-full rounded-sm border border-field-border bg-field px-4 transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20"
+      >
+        {options.map((option) => (
+          <NativeSelectOption key={option} value={option}>
+            {getLabel(option)}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
     </label>
   )
 }
@@ -100,7 +98,7 @@ function RuleRow({
   onCheckedChange: (value: boolean) => void
 }) {
   return (
-    <label className="flex items-center gap-3 py-2.5 text-sm text-[var(--text-secondary)]">
+    <label className="flex items-center gap-3 py-2.5 text-sm text-text-secondary">
       <Switch checked={checked} onCheckedChange={onCheckedChange} />
       {label}
     </label>
@@ -124,7 +122,7 @@ function ProofStat({
       <span
         className={cn(
           "font-mono text-sm font-semibold text-foreground",
-          danger && "text-[var(--negative)]"
+          danger && "text-negative"
         )}
       >
         {children}
@@ -158,7 +156,7 @@ function PolicyJson({
   )
 
   return (
-    <pre className="mt-2 max-w-[420px] overflow-auto rounded-sm border border-border bg-[var(--bg-inset)] p-4 font-mono text-xs leading-6 text-[var(--text-secondary)]">
+    <pre className="mt-2 max-w-[420px] overflow-auto rounded-sm border border-border bg-surface-inset p-4 font-mono text-xs leading-6 text-text-secondary">
       {json}
     </pre>
   )
@@ -205,8 +203,6 @@ export function PolicyWorkbench({
     { label: "Valid mandate required", enabled: requireMandate },
     { label: "Settlement only after all checks pass", enabled: settleOnPass },
   ]
-
-  const rangePct = Math.min(100, Math.max(0, (maxAmountUsdc / 25) * 100))
 
   const canEvaluate = Boolean(selectedAgent)
   const railScenarioIndex =
@@ -269,7 +265,7 @@ export function PolicyWorkbench({
               onChange={() => undefined}
             />
 
-            <div className="rounded-sm border border-border bg-[var(--bg-inset)] p-5">
+            <div className="rounded-sm border border-border bg-surface-inset p-5">
               <div className="mb-4 flex items-end justify-between gap-4">
                 <span className="metal-eyebrow">Max transaction amount</span>
                 <div className="flex items-baseline gap-2 font-mono">
@@ -287,17 +283,18 @@ export function PolicyWorkbench({
                 >
                   <Minus className="size-4" />
                 </Button>
-                <input
-                  type="range"
-                  min="0.1"
-                  max="25"
-                  step="0.1"
-                  value={maxAmountUsdc}
-                  onChange={(event) => setMax(Number(event.target.value))}
-                  className="policy-range h-1.5 flex-1 cursor-pointer appearance-none rounded-full outline-none"
-                  style={{
-                    background: `linear-gradient(90deg, var(--text-primary) 0%, var(--text-primary) ${rangePct}%, var(--bg-base) ${rangePct}%, var(--bg-base) 100%)`,
+                <Slider
+                  min={0.1}
+                  max={25}
+                  step={0.1}
+                  value={[maxAmountUsdc]}
+                  onValueChange={(nextValue) => {
+                    const value = Array.isArray(nextValue)
+                      ? nextValue[0]
+                      : nextValue
+                    if (typeof value === "number") setMax(value)
                   }}
+                  className="flex-1"
                 />
                 <Button
                   variant="outline"
@@ -309,17 +306,19 @@ export function PolicyWorkbench({
               </div>
               <div className="mt-4 grid grid-cols-5 gap-2">
                 {[0.3, 1, 2, 5, 10].map((value) => (
-                  <button
+                  <Button
                     key={value}
+                    variant="outline"
+                    size="sm"
                     onClick={() => setMax(value)}
                     className={cn(
-                      "rounded-[2px] border border-border py-2 font-mono text-xs text-muted-foreground transition-colors hover:text-foreground",
+                      "h-auto rounded-[2px] py-2 font-mono text-xs text-muted-foreground",
                       maxAmountUsdc === value &&
                         "border-transparent bg-muted text-foreground"
                     )}
                   >
                     {value}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -349,11 +348,11 @@ export function PolicyWorkbench({
                   <div
                     key={rule.label}
                     className={cn(
-                      "flex items-center gap-2 text-sm text-[var(--text-secondary)]",
+                      "flex items-center gap-2 text-sm text-text-secondary",
                       !rule.enabled && "opacity-40"
                     )}
                   >
-                    <Check className="size-4 text-[var(--positive)]" />
+                    <Check className="size-4 text-positive" />
                     {rule.label}
                   </div>
                 ))}
@@ -415,15 +414,15 @@ export function PolicyWorkbench({
                 />
                 <label className="grid gap-2">
                   <span className="metal-eyebrow">Amount</span>
-                  <span className="flex h-10 items-center gap-2 rounded-sm border border-[var(--field-border)] bg-[var(--field-bg)] px-4 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
+                  <span className="flex h-10 items-center gap-2 rounded-sm border border-field-border bg-field px-4 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
                     <span className="font-mono text-muted-foreground">$</span>
-                    <input
+                    <Input
                       value={amount}
                       onChange={(event) => {
                         setAmount(event.target.value)
                         setResult(null)
                       }}
-                      className="min-w-0 flex-1 bg-transparent font-mono text-sm outline-none"
+                      className="h-auto min-w-0 flex-1 border-0 bg-transparent p-0 font-mono text-sm"
                     />
                   </span>
                 </label>
@@ -458,8 +457,8 @@ export function PolicyWorkbench({
                   className={cn(
                     "rounded-sm border p-5",
                     result.pass
-                      ? "border-[color-mix(in_srgb,var(--positive)_45%,transparent)] bg-[var(--positive-surface)] text-[var(--positive)]"
-                      : "border-[color-mix(in_srgb,var(--negative)_45%,transparent)] bg-[var(--negative-surface)] text-[var(--negative)]"
+                      ? "border-positive/45 bg-positive-surface text-positive"
+                      : "border-negative/45 bg-negative-surface text-negative"
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -467,8 +466,8 @@ export function PolicyWorkbench({
                       className={cn(
                         "grid size-9 place-items-center rounded-full text-white",
                         result.pass
-                          ? "bg-[var(--positive)]"
-                          : "bg-[var(--negative)]"
+                          ? "bg-positive"
+                          : "bg-negative"
                       )}
                     >
                       {result.pass ? (
@@ -516,9 +515,10 @@ export function PolicyWorkbench({
           </div>
 
           <div>
-            <button
+            <Button
+              variant="outline"
               onClick={() => setShowJson((value) => !value)}
-              className="inline-flex items-center gap-2 rounded-sm border border-border bg-card px-4 py-2 font-mono text-sm text-[var(--text-secondary)] transition-colors hover:text-foreground"
+              className="font-mono text-text-secondary"
             >
               <ChevronRight
                 className={cn(
@@ -527,7 +527,7 @@ export function PolicyWorkbench({
                 )}
               />
               View policy.json
-            </button>
+            </Button>
             {showJson ? (
               <PolicyJson
                 maxAmountUsdc={maxAmountUsdc}
@@ -544,12 +544,12 @@ export function PolicyWorkbench({
         <div className="flex flex-wrap items-center gap-6">
           <div className="min-w-[260px] flex-1">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="size-4 text-[var(--positive)]" />
+              <ShieldCheck className="size-4 text-positive" />
               <h2 className="text-sm font-semibold">Server-side enforcement</h2>
             </div>
             <p className="mt-2 max-w-[430px] text-sm leading-6 text-muted-foreground">
               The most recent blocked run was refused{" "}
-              <b className="text-[var(--text-secondary)]">
+              <b className="text-text-secondary">
                 before a settlement transaction existed.
               </b>
             </p>
