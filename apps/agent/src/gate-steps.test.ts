@@ -1,0 +1,31 @@
+import { describe, expect, it } from "bun:test"
+import { gateStepsForResult } from "./gate-steps.js"
+
+describe("gateStepsForResult", () => {
+  it("emits settlement gates on success", () => {
+    expect(gateStepsForResult(undefined, "0xabc")).toEqual([2, 3, 4, 5])
+  })
+
+  it("stops at identity gate for identity_not_found", () => {
+    expect(gateStepsForResult("identity_not_found", undefined)).toEqual([2])
+  })
+
+  it("stops at AP2 gate for mandate failures", () => {
+    expect(gateStepsForResult("mandate_amount_exceeded", undefined)).toEqual([2, 3])
+    expect(gateStepsForResult("mandate_not_registered", undefined)).toEqual([2, 3])
+    expect(gateStepsForResult("mandate_signature_invalid", undefined)).toEqual([2, 3])
+    expect(gateStepsForResult("mandate_expired", undefined)).toEqual([2, 3])
+  })
+
+  it("stops at policy gate for policy_amount_exceeded", () => {
+    expect(gateStepsForResult("policy_amount_exceeded", undefined)).toEqual([2, 3, 4])
+  })
+
+  it("emits no gates for unknown errors", () => {
+    expect(gateStepsForResult("some_unknown_error", undefined)).toEqual([])
+  })
+
+  it("emits no gates when there is no error and no settlement tx", () => {
+    expect(gateStepsForResult(undefined, undefined)).toEqual([])
+  })
+})

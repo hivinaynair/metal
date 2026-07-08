@@ -43,6 +43,11 @@
       "bun": "./src/chains.ts",
       "default": "./dist/chains.js"
     },
+    "./settlement-errors": {
+      "types": "./src/settlement-errors.ts",
+      "bun": "./src/settlement-errors.ts",
+      "default": "./dist/settlement-errors.js"
+    },
     "./erc8004": {
       "types": "./src/erc8004.ts",
       "bun": "./src/erc8004.ts",

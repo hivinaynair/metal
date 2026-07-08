@@ -7,6 +7,7 @@ import { AgentId, type DecisionRecord } from "@workspace/shared/types"
 import { getAp2CredentialForAgent } from "./credentials.js"
 import { validateRunRequest } from "./run-request.js"
 import { buildTools } from "./tools.js"
+import { gateStepsForResult } from "./gate-steps.js"
 import type { CdpClient } from "@coinbase/cdp-sdk"
 
 const PORT = Number(process.env.PORT ?? 3002)
@@ -145,12 +146,24 @@ app.post("/run", async (c) => {
         send({ type: "token", text: `\n[Agent error: ${String(err)}]` })
       }
 
+      // Emit facilitator gate steps based on the settlement outcome.
+      // Paced at 120ms each so the UI animation has time to render each step.
+      for (const step of gateStepsForResult(responseError, settlementTxHash)) {
+        send({ type: "gate", step })
+        await new Promise((r) => setTimeout(r, 120))
+      }
+
       const decisionRecord = await getDecisionRecord({
         authorizationNonce,
         payer: account.address,
         settlementTxHash,
       })
       const attestationTxHash = decisionRecord?.attestationTxHash
+
+      // Step 6 (attestation) emitted here, not in gateStepsForResult, because it depends on async polling
+      if (!responseError && attestationTxHash) {
+        send({ type: "gate", step: 6 })
+      }
       const policyMaxAmountUsdc = decisionRecord?.policy.maxAmountUsdc
 
       send({

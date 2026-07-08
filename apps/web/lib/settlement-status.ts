@@ -1,19 +1,12 @@
-const MANDATE_FAILURES = new Set([
-  "mandate_not_registered",
-  "mandate_signature_invalid",
-  "mandate_expired",
-  "mandate_amount_exceeded",
-])
+import { MANDATE_FAILURES, isMandateFailure } from "@workspace/shared/settlement-errors"
+
+export { isMandateFailure }
 
 export function settlementFailureStep(error?: string | null) {
   if (error === "identity_not_found") return 2
   if (error && MANDATE_FAILURES.has(error)) return 3
   if (error === "policy_amount_exceeded") return 4
   return error ? 4 : 0
-}
-
-export function isMandateFailure(error?: unknown) {
-  return typeof error === "string" && MANDATE_FAILURES.has(error)
 }
 
 export function resultFailureStep(result: {
