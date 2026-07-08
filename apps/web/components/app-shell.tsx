@@ -99,7 +99,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link href="/" className="border-0 font-serif text-xl tracking-tight">
             Metal
           </Link>
-          <nav className="ml-auto flex items-center gap-3 overflow-x-auto text-xs text-muted-foreground">
+          <nav className="ml-auto flex items-center gap-4 overflow-x-auto text-xs text-muted-foreground">
             {nav.slice(0, 4).map((item) => {
               const active =
                 item.href === "/"

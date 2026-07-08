@@ -37,15 +37,17 @@ export function ScenarioPicker({
               const agent = demoAgents.find((a) => a.id === scenario.agentId)!
               return (
                 <SelectItem key={scenario.slot} value={String(index)}>
-                  <span
-                    className={cn(
-                      "size-2 shrink-0 rounded-full",
-                      agent.status === "approved"
-                        ? "bg-emerald-400"
-                        : "bg-destructive"
-                    )}
-                  />
-                  {scenario.title}
+                  <span className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "size-2 shrink-0 rounded-full",
+                        agent.status === "approved"
+                          ? "bg-emerald-400"
+                          : "bg-destructive"
+                      )}
+                    />
+                    {scenario.title}
+                  </span>
                 </SelectItem>
               )
             })}
@@ -67,7 +69,7 @@ export function ScenarioPicker({
               disabled={loading}
               onClick={() => onSelect(index)}
               className={cn(
-                "justify-start gap-2 rounded-sm text-left",
+                "justify-start gap-2 rounded-sm text-left items-center",
                 selected
                   ? "bg-muted text-foreground"
                   : "bg-transparent text-muted-foreground hover:text-foreground",
