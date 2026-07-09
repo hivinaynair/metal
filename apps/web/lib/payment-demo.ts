@@ -1,5 +1,5 @@
 import { demoAgents } from "@/lib/demo-scenarios"
-import type { DecisionProof } from "@workspace/shared/types"
+import type { DecisionProof, RawMandate, X402Challenge } from "@workspace/shared/types"
 
 export const SCENARIOS = [
   {
@@ -54,6 +54,8 @@ export interface TriggerResult {
   attestationTxHash?: string
   attestationTxUrl?: string
   decisionProof?: DecisionProof
+  rawMandate?: RawMandate
+  x402Challenge?: X402Challenge
   body?: { error?: string }
 }
 
