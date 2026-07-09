@@ -110,7 +110,7 @@ export function buildTraceSteps(result: {
     // animating — show steps 1..animStep as running/approved
     return [
       { id: 0, label: "Agent", status: animStep > 0 ? "approved" : "pending" },
-      { id: 1, label: "402", status: animStep > 1 ? "approved" : animStep === 1 ? "running" : "pending" },
+      { id: 1, label: "x402", status: animStep > 1 ? "approved" : animStep === 1 ? "running" : "pending" },
       { id: 2, label: "ERC-8004", status: animStep > 2 ? "approved" : animStep === 2 ? "running" : "pending" },
       { id: 3, label: "AP2", status: animStep > 3 ? "approved" : animStep === 3 ? "running" : "pending" },
       { id: 4, label: "Policy", status: animStep > 4 ? "approved" : animStep === 4 ? "running" : "pending" },

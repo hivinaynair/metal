@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Copy, MessageSquareText, Play, Wallet, Zap } from "lucide-react"
+import { Copy, ExternalLink, MessageSquareText, Play, Wallet, Zap } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { DashboardPanel } from "@/components/dashboard-panel"
 import { DecisionLog } from "@/components/decision-log"
@@ -142,16 +142,29 @@ export default function Page() {
           title="Proof / evidence"
           icon={<Wallet className="size-4" />}
           action={
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={copyProof}
-              disabled={!result}
-              className="h-10 text-muted-foreground"
-            >
-              <Copy className="h-4 w-4" />
-              {copyState === "copied" ? "Copied" : "Copy"}
-            </Button>
+            <div className="flex gap-2">
+              {result?.settlementTxUrl && (
+                <a
+                  href={result.settlementTxUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 h-10 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Basescan
+                </a>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyProof}
+                disabled={!result}
+                className="h-10 text-muted-foreground"
+              >
+                <Copy className="h-4 w-4" />
+                {copyState === "copied" ? "Copied" : "Copy"}
+              </Button>
+            </div>
           }
         >
           {result ? (

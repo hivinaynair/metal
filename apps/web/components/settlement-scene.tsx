@@ -23,7 +23,7 @@ import { settlementFailureStep } from "@/lib/settlement-status"
 export type GateState = "idle" | "running" | "approved" | "rejected" | "skipped"
 
 const gates = [
-  { key: "challenge",   label: "402",         name: "402 Challenge",    icon: Zap },
+  { key: "challenge",   label: "x402",         name: "x402 Challenge",    icon: Zap },
   { key: "identity",    label: "ERC-8004",     name: "ERC-8004 Identity", icon: ShieldCheck },
   { key: "mandate",     label: "AP2",          name: "AP2 Mandate",      icon: FileText },
   { key: "policy",      label: "Policy",       name: "Policy Check",     icon: Settings },
