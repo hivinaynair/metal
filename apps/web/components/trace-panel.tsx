@@ -121,6 +121,16 @@ export function buildTraceSteps(result: {
   httpStatus: number
   route: { path: string; price: string }
   agent: { id: string; mandateLimit: string } | null
+  payer?: string
+  agentUri?: string
+  rawMandate?: RawMandate
+  x402Challenge?: X402Challenge
+  decisionProof?: {
+    agentId?: string
+    mandate?: { delegator: string; maxAmountUsdc: string; valid?: boolean }
+    policy?: { maxAmountUsdc: string; decision: string }
+    identityStatus?: number
+  }
   settlementTxHash?: string
   settlementTxUrl?: string
   attestationTxHash?: string
@@ -163,12 +173,22 @@ export function buildTraceSteps(result: {
       label: "Agent",
       status: "approved",
       detail: result.agent ? result.agent.id : undefined,
+      rawData: result.payer ? {
+        gate: "agent" as const,
+        address: result.payer,
+        uri: result.agentUri ?? "",
+        capabilities: ["payment", "settlement"],
+      } : undefined,
     },
     {
       id: 1,
       label: "402",
       status: stepStatus(1),
       detail: `${result.route.path} · ${result.route.price}`,
+      rawData: result.x402Challenge ? {
+        gate: "x402" as const,
+        challenge: result.x402Challenge,
+      } : undefined,
     },
     {
       id: 2,
@@ -177,18 +197,34 @@ export function buildTraceSteps(result: {
       detail: result.agent
         ? `${result.agent.id} · ${failStep === 2 ? "not registered" : "registered"}`
         : undefined,
+      rawData: result.payer ? {
+        gate: "erc8004" as const,
+        address: result.payer,
+        agentId: result.decisionProof?.agentId,
+        identityStatus: result.decisionProof?.identityStatus,
+      } : undefined,
     },
     {
       id: 3,
       label: "AP2",
       status: stepStatus(3),
       detail: result.agent ? `limit ${result.agent.mandateLimit}` : undefined,
+      rawData: result.rawMandate ? {
+        gate: "ap2" as const,
+        mandate: result.rawMandate,
+      } : undefined,
     },
     {
       id: 4,
       label: "Policy",
       status: stepStatus(4),
       detail: `ceiling $${POLICY_MAX_AMOUNT_USDC} · payment ${result.route.price}`,
+      rawData: {
+        gate: "policy" as const,
+        ceiling: `$${POLICY_MAX_AMOUNT_USDC}`,
+        payment: result.route.price,
+        decision: stepStatus(4) === "approved" ? "approved" : "rejected",
+      },
     },
     {
       id: 5,
@@ -203,6 +239,11 @@ export function buildTraceSteps(result: {
             label: "settlement tx",
           }
         : undefined,
+      rawData: result.settlementTxHash ? {
+        gate: "settlement" as const,
+        txHash: result.settlementTxHash,
+        txUrl: result.settlementTxUrl ?? `${BASE_SEPOLIA_EXPLORER}/tx/${result.settlementTxHash}`,
+      } : undefined,
     },
     {
       id: 6,
@@ -219,6 +260,11 @@ export function buildTraceSteps(result: {
             label: "attestation tx",
           }
         : undefined,
+      rawData: result.attestationTxHash ? {
+        gate: "attestation" as const,
+        txHash: result.attestationTxHash,
+        txUrl: result.attestationTxUrl ?? `${BASE_SEPOLIA_EXPLORER}/tx/${result.attestationTxHash}`,
+      } : undefined,
     },
   ]
 }
