@@ -5,6 +5,7 @@ import { decodePaymentRequiredHeader, decodePaymentSignatureHeader } from "@x402
 import { ExactEvmScheme } from "@x402/evm"
 import { BASE_SEPOLIA_CAIP2, BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
 import type { EvmServerAccount } from "@coinbase/cdp-sdk"
+import type { X402Challenge } from "@workspace/shared/types"
 
 function summarizeNonJsonResponse(url: string, response: Response, text: string) {
   const contentType = response.headers.get("content-type") ?? "unknown content type"
@@ -37,6 +38,7 @@ export interface X402FetchResult {
   authorizationNonce?: string
   paymentRequiredError?: string
   basescan?: string
+  x402Challenge?: X402Challenge
 }
 
 export async function performX402Fetch(
@@ -45,6 +47,7 @@ export async function performX402Fetch(
   opts?: { mandateHeader?: string },
 ): Promise<X402FetchResult> {
   let authorizationNonce: string | undefined
+  let x402Challenge: X402Challenge | undefined
   const observingFetch: typeof fetch = async (input, init) => {
     const request = new Request(input, init)
     const paymentSignature = request.headers.get("PAYMENT-SIGNATURE") ?? request.headers.get("X-PAYMENT")
@@ -55,7 +58,23 @@ export async function performX402Fetch(
         authorizationNonce = undefined
       }
     }
-    return fetch(request)
+    const response = await fetch(request)
+    if (response.status === 402 && !x402Challenge) {
+      const header = response.headers.get("PAYMENT-REQUIRED") ?? response.headers.get("X-PAYMENT-REQUIRED")
+      if (header) {
+        try {
+          const decoded = decodePaymentRequiredHeader(header) as Record<string, unknown>
+          x402Challenge = {
+            scheme: decoded.scheme as string | undefined,
+            network: decoded.network as string | undefined,
+            maxAmountRequired: decoded.maxAmountRequired as string | undefined,
+            resource: decoded.resource as string | undefined,
+            description: decoded.description as string | undefined,
+          }
+        } catch { /* ignore decode errors */ }
+      }
+    }
+    return response
   }
 
   const fetchWithPayment = wrapFetchWithPaymentFromConfig(observingFetch, {
@@ -102,6 +121,7 @@ export async function performX402Fetch(
     authorizationNonce,
     paymentRequiredError,
     basescan: txHash ? `${BASE_SEPOLIA_EXPLORER}/tx/${txHash}` : undefined,
+    x402Challenge,
   }
 }
 
