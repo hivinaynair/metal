@@ -5,13 +5,13 @@ import type { PaymentPayload, PaymentRequirements } from "@x402/core/types"
 import { ExactEvmScheme } from "@x402/evm/exact/facilitator"
 import { desc, eq } from "drizzle-orm"
 import { BASE_SEPOLIA_CAIP2 } from "@workspace/shared/chains"
-import { createDb, schema } from "@workspace/shared/db"
+import { schema } from "@workspace/db"
 import { facilitatorSigner } from "./lib/clients.js"
 import { verifyDeps } from "./lib/deps.js"
+import { getDb } from "./lib/db.js"
 import { onBeforeVerify } from "./hooks/verify.js"
 import { onBeforeSettle, onAfterSettle, onSettleFailure } from "./hooks/settle.js"
 import { requestCtx } from "./lib/request-context.js"
-import mandatesRouter from "./routes/mandates.js"
 import { getPolicyMaxAmountUsdc, setPolicyMaxAmountUsdc } from "./lib/policy-store.js"
 import type { Context } from "hono"
 import { isRecord, parseBigIntField, readJsonObject } from "./lib/http.js"
@@ -96,16 +96,6 @@ facilitator
 // Hono app
 const app = new Hono()
 
-let _db: ReturnType<typeof createDb> | undefined
-function getDb() {
-  if (!_db) {
-    const url = process.env.DATABASE_URL
-    if (!url) throw new Error("Missing env var: DATABASE_URL")
-    _db = createDb(url)
-  }
-  return _db
-}
-
 app.get("/supported", (c) => c.json(facilitator.getSupported()))
 
 app.post("/verify", async (c) => {
@@ -183,7 +173,5 @@ app.post("/policy", async (c) => {
   setPolicyMaxAmountUsdc(body.maxAmountUsdc)
   return c.json({ maxAmountUsdc: getPolicyMaxAmountUsdc() })
 })
-
-app.route("/mandates", mandatesRouter)
 
 export default app

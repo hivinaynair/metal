@@ -11,7 +11,6 @@ const Spline = dynamic(() => import("@splinetool/react-spline"), {
 })
 
 const AGENT_SCENE_URL =
-  process.env.NEXT_PUBLIC_AGENT_SPLINE_SCENE_URL ??
   "https://prod.spline.design/ULW-5X4laAiO8UFv/scene.splinecode"
 
 function normalizeSplineSceneUrl(url: string) {

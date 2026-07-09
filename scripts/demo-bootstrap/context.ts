@@ -2,8 +2,8 @@ import { CdpClient } from "@coinbase/cdp-sdk"
 import { createPublicClient, http, type HttpTransport } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import { baseSepolia } from "viem/chains"
-import { createDb, schema } from "@workspace/shared/db"
-import { DATABASE_URL, DELEGATOR_KEY } from "./config.js"
+import { createDb, schema } from "@workspace/db"
+import { DELEGATOR_KEY } from "./config.js"
 
 export type PublicClient = ReturnType<
   typeof createPublicClient<HttpTransport, typeof baseSepolia>
@@ -12,7 +12,6 @@ export type Database = ReturnType<typeof createDb>
 export type Delegator = ReturnType<typeof privateKeyToAccount>
 
 export type AgentRow = typeof schema.agents.$inferSelect
-export type MandateRow = typeof schema.mandates.$inferSelect
 
 export type BootstrapContext = {
   db: Database
@@ -22,7 +21,7 @@ export type BootstrapContext = {
 }
 
 export function createBootstrapContext(): BootstrapContext {
-  const db = createDb(DATABASE_URL)
+  const db = createDb()
   const cdp = new CdpClient()
   const publicClient = createPublicClient({
     chain: baseSepolia,

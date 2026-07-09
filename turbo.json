@@ -31,6 +31,11 @@
     "typecheck": {
       "dependsOn": ["^typecheck"]
     },
+    "db:push": {
+      "cache": false,
+      "env": ["DATABASE_URL"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"]
+    },
     "dev": {
       "cache": false,
       "persistent": true

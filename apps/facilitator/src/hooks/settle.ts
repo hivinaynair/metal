@@ -2,13 +2,17 @@ import { keccak256 } from "viem"
 import { and, eq } from "drizzle-orm"
 import { ATTESTATION_REGISTRY_ABI } from "@workspace/shared/abis"
 import { IdentityStatus, Decision } from "@workspace/shared/types"
-import { createDb, schema } from "@workspace/shared/db"
+import { schema } from "@workspace/db"
 import { buildDecisionRecord } from "@workspace/shared/decision-record"
+import { parseMandateHeader } from "@workspace/shared/mandate-header"
 import { walletClient, account } from "../lib/clients.js"
-import { getMandate } from "../lib/mandate-store.js"
-import { getPayerAddress } from "../lib/mandate.js"
+import { validateMandateForPayment, buildVerifyRejectionPaymentHash } from "../lib/validate-mandate.js"
+import { verifyDeps } from "../lib/deps.js"
+import { getPayerAddress, extractAuthNonce } from "../lib/mandate.js"
+import { getDb } from "../lib/db.js"
+import { requestCtx } from "../lib/request-context.js"
 import { env } from "../lib/env.js"
-import { getPolicyMaxAmountUsdc } from "../lib/policy-store.js"
+import { getPolicyMaxAtomic } from "../lib/policy-store.js"
 import type {
   FacilitatorSettleContext,
   FacilitatorSettleResultContext,
@@ -16,68 +20,62 @@ import type {
 } from "@x402/core/facilitator"
 import type { SettleResponse } from "@x402/core/types"
 
-let _db: ReturnType<typeof createDb> | undefined
-function getDb() {
-  if (!_db) {
-    const url = process.env.DATABASE_URL
-    if (!url) throw new Error("Missing env var: DATABASE_URL")
-    _db = createDb(url)
-  }
-  return _db
-}
-
-function extractAuthNonce(payload: unknown): string | undefined {
-  const p = payload as Record<string, unknown>
-  const auth = p.authorization as Record<string, unknown> | undefined
-  return auth?.nonce as string | undefined
-}
-
 export async function onBeforeSettle({
   paymentPayload,
   requirements,
 }: FacilitatorSettleContext): Promise<void | { abort: true; reason: string }> {
+  const payer = getPayerAddress(paymentPayload.payload)
+  if (!payer) return
+
   const paymentAmountAtomic = BigInt(requirements.amount)
-  const policyMaxAtomic = BigInt(Math.round(getPolicyMaxAmountUsdc() * 1_000_000))
+  const authorizationNonce = extractAuthNonce(paymentPayload.payload)
+
+  // Independently validate mandate — settle can arrive without a prior /verify
+  const mandateResult = await validateMandateForPayment(
+    { payer, amountAtomic: paymentAmountAtomic, authorizationNonce, resource: paymentPayload.resource },
+    verifyDeps,
+  )
+  if (!mandateResult.ok) return { abort: true, reason: mandateResult.reason }
+
+  // Check facilitator policy ceiling
+  const policyMaxAtomic = getPolicyMaxAtomic()
   if (paymentAmountAtomic > policyMaxAtomic) {
-    const payer = getPayerAddress(paymentPayload.payload)
-    if (payer) {
-      const mandateEntry = await getMandate(payer)
-      const identityStatus = mandateEntry ? IdentityStatus.Verified : IdentityStatus.NotFound
-      const authNonce = extractAuthNonce(paymentPayload.payload) ?? ""
-      const paymentHash = keccak256(
-        new TextEncoder().encode(
-          `${payer}-${paymentAmountAtomic}-${authNonce}`
-        ) as unknown as `0x${string}`
-      )
-      const decisionRecord = buildDecisionRecord({
-        agentId: mandateEntry?.agentName ?? mandateEntry?.agentId,
-        amountAtomic: paymentAmountAtomic,
-        decision: Decision.Rejected,
-        identityStatus,
-        mandate: mandateEntry?.mandate,
-        payer,
+    const { mandateEntry } = mandateResult
+    const paymentHash = buildVerifyRejectionPaymentHash({
+      amountAtomic: paymentAmountAtomic,
+      authorizationNonce,
+      payer,
+      reason: "policy_amount_exceeded",
+      resource: paymentPayload.resource,
+    })
+    const decisionRecord = buildDecisionRecord({
+      agentId: mandateEntry.agentId,
+      amountAtomic: paymentAmountAtomic,
+      decision: Decision.Rejected,
+      identityStatus: IdentityStatus.Verified,
+      mandate: mandateEntry.mandate,
+      payer,
+      paymentHash,
+      authorizationNonce: authorizationNonce ?? null,
+      policyMaxAtomic,
+      resource: paymentPayload.resource,
+      rejectionReason: "policy_amount_exceeded",
+    })
+    try {
+      await getDb().insert(schema.settlementAttestations).values({
         paymentHash,
-        authorizationNonce: authNonce || null,
-        policyMaxAtomic,
-        resource: paymentPayload.resource,
-        rejectionReason: "policy_amount_exceeded",
+        settlementTx: null,
+        attestationTx: null,
+        payerAddress: payer,
+        amountUsdc: paymentAmountAtomic,
+        policyMaxAmountUsdc: policyMaxAtomic,
+        decisionRecord,
+        identityStatus: IdentityStatus.Verified,
+        decision: Decision.Rejected,
+        authorizationNonce: authorizationNonce ?? null,
       })
-      try {
-        await getDb().insert(schema.settlementAttestations).values({
-          paymentHash,
-          settlementTx: null,
-          attestationTx: null,
-          payerAddress: payer,
-          amountUsdc: paymentAmountAtomic,
-          policyMaxAmountUsdc: policyMaxAtomic,
-          decisionRecord,
-          identityStatus,
-          decision: Decision.Rejected,
-          authorizationNonce: authNonce || null,
-        })
-      } catch (err) {
-        console.error("[onBeforeSettle] db insert failed:", err)
-      }
+    } catch (err) {
+      console.error("[onBeforeSettle] db insert failed:", err)
     }
     return { abort: true, reason: "policy_amount_exceeded" }
   }
@@ -93,9 +91,11 @@ export async function onAfterSettle({
   if (!payer) return
 
   const amountUsdcAtomic = BigInt(paymentPayload.accepted.amount)
-  const policyMaxAtomic = BigInt(Math.round(getPolicyMaxAmountUsdc() * 1_000_000))
+  const policyMaxAtomic = getPolicyMaxAtomic()
   const paymentHash = keccak256(result.transaction as `0x${string}`)
-  const mandateEntry = await getMandate(payer)
+
+  const { mandateJson } = requestCtx.get()
+  const mandateEntry = mandateJson ? parseMandateHeader(mandateJson) : undefined
   const identityStatus = mandateEntry ? IdentityStatus.Verified : IdentityStatus.NotFound
 
   const db = getDb()
@@ -117,7 +117,7 @@ export async function onAfterSettle({
 
   const authorizationNonce = extractAuthNonce(paymentPayload.payload) ?? null
   const decisionRecord = buildDecisionRecord({
-    agentId: mandateEntry?.agentName ?? mandateEntry?.agentId,
+    agentId: mandateEntry?.agentId,
     amountAtomic: amountUsdcAtomic,
     decision: Decision.Approved,
     identityStatus,

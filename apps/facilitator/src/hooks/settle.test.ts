@@ -1,5 +1,9 @@
 import { describe, it, expect, mock, beforeEach } from "bun:test"
 import { Decision, IdentityStatus } from "@workspace/shared/types"
+import { serializeMandateHeader } from "@workspace/shared/mandate-header"
+import type { SignedMandate } from "@workspace/shared/mandate"
+import type { AgentProfile } from "@workspace/shared/types"
+import { requestCtx } from "../lib/request-context.js"
 
 // ── Provide DATABASE_URL so getDb() lazy init doesn't throw ────────────────
 process.env.DATABASE_URL = "postgresql://fake"
@@ -14,7 +18,7 @@ const mockSelect = mock(() => ({
   from: () => ({ where: () => ({ limit: mockSelectLimit }) }),
 }))
 
-mock.module("@workspace/shared/db", () => ({
+mock.module("@workspace/db", () => ({
   createDb: () => ({ select: mockSelect, insert: mockInsert }),
   schema: {
     settlementAttestations: { authorizationNonce: "authorization_nonce", decision: "decision" },
@@ -27,8 +31,37 @@ mock.module("../lib/clients.js", () => ({
   account: "0xaccount",
 }))
 
-mock.module("../lib/mandate-store.js", () => ({
-  getMandate: mock(async () => undefined),
+const PAYER = "0xe9F97E2F7c6DCB8FCdBCDFBA074334D22a6c3117" as `0x${string}`
+const DELEGATOR = "0xAa870A9C6FEd34B8aC01Da17d675d748f238a420" as `0x${string}`
+const AGENT_ID = 1n
+
+const VALID_MANDATE: SignedMandate = {
+  payload: {
+    agent: PAYER,
+    delegator: DELEGATOR,
+    maxAmountUsdc: 100n,
+    expiry: 9999999999n,
+    nonce: 0n,
+  },
+  signature: "0x44c8561e7d2102913d710e6602bff7b81a06ab57f81761328d6d60d6d5ec95070cf73e7f3b452afda359fec26af2b7544c4e56c680640156b8a125993e30793b1b",
+}
+
+const VALID_PROFILE: AgentProfile = {
+  agentId: AGENT_ID,
+  wallet: PAYER,
+  agentURI: "http://localhost:3000/api/agent/0xe9F97E2F7c6DCB8FCdBCDFBA074334D22a6c3117",
+}
+
+const mockVerifyMandateSig = mock(async () => true)
+const mockLookupIdentity = mock(async () => VALID_PROFILE)
+
+mock.module("../lib/deps.js", () => ({
+  verifyDeps: {
+    verifyMandateSignature: mockVerifyMandateSig,
+    lookupIdentity: mockLookupIdentity,
+    registryAddress: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+    client: {},
+  },
 }))
 
 mock.module("../lib/env.js", () => ({
@@ -43,7 +76,8 @@ mock.module("drizzle-orm", () => ({
 
 const { onBeforeSettle, onAfterSettle, onSettleFailure } = await import("./settle.js")
 
-const PAYER = "0xe9F97E2F7c6DCB8FCdBCDFBA074334D22a6c3117" as `0x${string}`
+const VALID_MANDATE_JSON = serializeMandateHeader({ agentId: AGENT_ID, mandate: VALID_MANDATE })
+
 const AUTH_NONCE = "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
 const NETWORK = "eip155:84532" as const
 const SETTLEMENT_TX = "0xsettlementtxhash"
@@ -60,29 +94,49 @@ function makeRequirements(amount = "10000000") {
   return { amount, network: NETWORK, scheme: "exact", asset: "usdc", payTo: PAYER, maxTimeoutSeconds: 60 }
 }
 
+function withMandateCtx<T>(fn: () => Promise<T>): Promise<T> {
+  return requestCtx.run({ mandateJson: VALID_MANDATE_JSON }, fn)
+}
+
 beforeEach(() => {
   mockSelect.mockClear()
   mockInsert.mockClear()
   mockInsertValues.mockClear()
   mockSelectLimit.mockClear()
   mockWriteContract.mockClear()
+  mockVerifyMandateSig.mockClear()
+  mockLookupIdentity.mockClear()
   mockSelectLimit.mockImplementation(async () => [])
+  mockVerifyMandateSig.mockImplementation(async () => true)
+  mockLookupIdentity.mockImplementation(async () => VALID_PROFILE)
 })
 
 describe("onBeforeSettle", () => {
   it("does not abort when amount is within policy", async () => {
+    const result = await withMandateCtx(() =>
+      onBeforeSettle({
+        paymentPayload: makePayload(AUTH_NONCE) as any,
+        requirements: makeRequirements("1000") as any,
+      })
+    )
+    expect(result).toBeUndefined()
+  })
+
+  it("aborts with mandate reason when mandate validation fails (no mandate header)", async () => {
     const result = await onBeforeSettle({
       paymentPayload: makePayload(AUTH_NONCE) as any,
       requirements: makeRequirements("1000") as any,
     })
-    expect(result).toBeUndefined()
+    expect(result).toEqual({ abort: true, reason: "mandate_missing" })
   })
 
   it("aborts with policy_amount_exceeded when amount exceeds ceiling", async () => {
-    const result = await onBeforeSettle({
-      paymentPayload: makePayload(AUTH_NONCE) as any,
-      requirements: makeRequirements("20000000") as any,
-    })
+    const result = await withMandateCtx(() =>
+      onBeforeSettle({
+        paymentPayload: makePayload(AUTH_NONCE) as any,
+        requirements: makeRequirements("20000000") as any,
+      })
+    )
     expect(result).toEqual({ abort: true, reason: "policy_amount_exceeded" })
   })
 
@@ -91,8 +145,8 @@ describe("onBeforeSettle", () => {
       paymentPayload: makePayload(AUTH_NONCE) as any,
       requirements: makeRequirements("20000000") as any,
     }
-    await onBeforeSettle(ctx)
-    await onBeforeSettle(ctx)
+    await withMandateCtx(() => onBeforeSettle(ctx))
+    await withMandateCtx(() => onBeforeSettle(ctx))
 
     expect(mockInsertValues).toHaveBeenCalledTimes(2)
     const [first, second] = mockInsertValues.mock.calls
@@ -100,14 +154,17 @@ describe("onBeforeSettle", () => {
   })
 
   it("stores authorizationNonce on policy rejection", async () => {
-    await onBeforeSettle({
-      paymentPayload: makePayload(AUTH_NONCE) as any,
-      requirements: makeRequirements("20000000") as any,
-    })
+    await withMandateCtx(() =>
+      onBeforeSettle({
+        paymentPayload: makePayload(AUTH_NONCE) as any,
+        requirements: makeRequirements("20000000") as any,
+      })
+    )
     expect(mockInsertValues).toHaveBeenCalledWith(
       expect.objectContaining({
         authorizationNonce: AUTH_NONCE,
         decision: Decision.Rejected,
+        identityStatus: IdentityStatus.Verified,
         decisionRecord: expect.objectContaining({
           payer: PAYER,
           rejectionReason: "policy_amount_exceeded",

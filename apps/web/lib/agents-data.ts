@@ -1,19 +1,17 @@
-import { eq } from "drizzle-orm"
-import { createDb, schema } from "@workspace/shared/db"
-import { env } from "@/env"
+import { createDb, schema } from "@workspace/db"
 
 export interface AgentWithMandate {
   address: string
   name: string
   agentId: bigint
-  maxAmountUsdc: bigint
-  delegatorAddress: string
-  expiry: bigint
+  maxAmountUsdc: bigint | null
+  delegatorAddress: string | null
+  expiry: bigint | null
 }
 
 let _db: ReturnType<typeof createDb> | undefined
 function getDb() {
-  if (!_db) _db = createDb(env.DATABASE_URL)
+  if (!_db) _db = createDb()
   return _db
 }
 
@@ -23,12 +21,13 @@ export async function getAgentsWithMandates(): Promise<AgentWithMandate[]> {
       address: schema.agents.address,
       name: schema.agents.name,
       agentId: schema.agents.agentId,
-      maxAmountUsdc: schema.mandates.maxAmountUsdc,
-      delegatorAddress: schema.mandates.delegatorAddress,
-      expiry: schema.mandates.expiry,
     })
     .from(schema.agents)
-    .innerJoin(schema.mandates, eq(schema.agents.address, schema.mandates.agentAddress))
 
-  return rows
+  return rows.map((r) => ({
+    ...r,
+    maxAmountUsdc: null,
+    delegatorAddress: null,
+    expiry: null,
+  }))
 }

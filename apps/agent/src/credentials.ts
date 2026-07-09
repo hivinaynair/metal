@@ -1,45 +1,39 @@
-import { and, eq } from "drizzle-orm"
-import { createDb, schema } from "@workspace/shared/db"
+import { readFileSync } from "node:fs"
+import { resolve } from "node:path"
 import {
   parseSerializedMandateHeader,
   serializeMandateHeader,
 } from "@workspace/shared/mandate-header"
 import type { MandateHeaderValue } from "@workspace/shared/mandate-header"
 
-const AP2_CREDENTIAL_TYPE = "ap2_mandate"
-
-let _db: ReturnType<typeof createDb> | undefined
-function getDb() {
-  const url = process.env.DATABASE_URL
-  if (!url) throw new Error("Missing env var: DATABASE_URL")
-  if (!_db) _db = createDb(url)
-  return _db
+function readMandateFile(): Record<string, unknown> {
+  try {
+    if (process.env.MANDATES_JSON) {
+      return JSON.parse(process.env.MANDATES_JSON) as Record<string, unknown>
+    }
+    const filePath = process.env.MANDATE_FILE ?? resolve(import.meta.dirname, "..", "mandates.json")
+    const raw = readFileSync(filePath, "utf-8")
+    return JSON.parse(raw) as Record<string, unknown>
+  } catch {
+    return {}
+  }
 }
 
-export async function getAp2CredentialForAgent(agentAddress: string): Promise<{
+export function getAp2CredentialForAgent(agentAddress: string): {
   entry: MandateHeaderValue
   header: string
-} | undefined> {
+} | undefined {
   const normalised = agentAddress.toLowerCase()
-  const rows = await getDb()
-    .select({
-      credentialJson: schema.agentCredentials.credentialJson,
-      expiresAt: schema.agentCredentials.expiresAt,
-    })
-    .from(schema.agentCredentials)
-    .where(and(
-      eq(schema.agentCredentials.agentAddress, normalised),
-      eq(schema.agentCredentials.credentialType, AP2_CREDENTIAL_TYPE),
-    ))
-    .limit(1)
+  const file = readMandateFile()
+  const raw = file[normalised]
+  if (!raw) return undefined
 
-  const row = rows[0]
-  if (!row || row.expiresAt < BigInt(Math.floor(Date.now() / 1000))) {
+  const entry = parseSerializedMandateHeader(raw)
+  if (!entry || entry.mandate.payload.agent.toLowerCase() !== normalised) {
     return undefined
   }
 
-  const entry = parseSerializedMandateHeader(row.credentialJson)
-  if (!entry || entry.mandate.payload.agent.toLowerCase() !== normalised) {
+  if (entry.mandate.payload.expiry < BigInt(Math.floor(Date.now() / 1000))) {
     return undefined
   }
 
@@ -48,4 +42,3 @@ export async function getAp2CredentialForAgent(agentAddress: string): Promise<{
     header: serializeMandateHeader(entry),
   }
 }
-

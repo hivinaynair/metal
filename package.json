@@ -9,6 +9,7 @@
     "lint": "turbo run lint",
     "format": "turbo run format",
     "typecheck": "turbo run typecheck",
+    "db:push": "turbo run --cwd packages/db db:push",
     "scripts:deploy-contracts": "bun --env-file=scripts/.env.local scripts/deploy-contracts.ts",
     "scripts:fund-wallet": "bun --env-file=scripts/.env.local scripts/fund-wallet.ts",
     "demo:bootstrap": "bun --env-file=scripts/.env.local scripts/demo-bootstrap/index.ts"

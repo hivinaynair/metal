@@ -5,6 +5,12 @@ import type { SignedMandate } from "@workspace/shared/mandate"
 // USDC has 6 decimals — multiply whole-unit amounts by this to get atomic units
 export const USDC_ATOMIC_FACTOR = 1_000_000n
 
+export function extractAuthNonce(payload: unknown): string | undefined {
+  const p = payload as Record<string, unknown>
+  const auth = p.authorization as Record<string, unknown> | undefined
+  return typeof auth?.nonce === "string" ? auth.nonce : undefined
+}
+
 export function getPayerAddress(
   payload: unknown,
 ): `0x${string}` | undefined {
@@ -14,7 +20,6 @@ export function getPayerAddress(
 }
 
 // Verifies the delegator's EIP-712 signature over a SignedMandate.
-// mandate.payload fields must already be bigint (as stored in mandate-store).
 export function verifyMandateSignature(mandate: SignedMandate): Promise<boolean> {
   return verifyTypedData({
     address: mandate.payload.delegator,

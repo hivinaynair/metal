@@ -6,12 +6,14 @@ import { PageFrame, PageHead } from "@/components/page-chrome"
 function toAgentsTableRow(
   agent: Awaited<ReturnType<typeof getAgentsWithMandates>>[number]
 ): AgentsTableRow {
-  const maxAmountUsdc = Number(agent.maxAmountUsdc)
-  const expirySeconds = Number(agent.expiry)
-  const expired = expirySeconds * 1000 < Date.now()
+  const maxAmountUsdc = agent.maxAmountUsdc !== null ? Number(agent.maxAmountUsdc) : null
+  const expirySeconds = agent.expiry !== null ? Number(agent.expiry) : 0
+  const expired = expirySeconds > 0 && expirySeconds * 1000 < Date.now()
 
   let status: AgentsTableRow["status"] = "Trusted"
-  if (expired) {
+  if (maxAmountUsdc === null) {
+    status = "Trusted"
+  } else if (expired) {
     status = "Expired mandate"
   } else if (maxAmountUsdc < POLICY_MAX_AMOUNT_USDC) {
     status = "Mandate capped"
@@ -24,8 +26,8 @@ function toAgentsTableRow(
     name: agent.name,
     agentId: agent.agentId.toString(),
     erc8004: `0x${agent.agentId.toString(16)}`,
-    delegatorAddress: agent.delegatorAddress,
-    maxAmountUsdc: maxAmountUsdc.toFixed(2),
+    delegatorAddress: agent.delegatorAddress ?? "—",
+    maxAmountUsdc: maxAmountUsdc !== null ? maxAmountUsdc.toFixed(2) : "—",
     expiry:
       expirySeconds > 0
         ? new Date(expirySeconds * 1000).toISOString().slice(0, 10)

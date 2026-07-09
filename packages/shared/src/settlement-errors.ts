@@ -9,8 +9,8 @@ export const GATE_STEP = {
 } as const
 
 export const MANDATE_FAILURES = new Set([
-  "mandate_not_registered",
-  "mandate_signature_invalid",
+  "mandate_missing",
+  "mandate_invalid",
   "mandate_expired",
   "mandate_amount_exceeded",
 ])

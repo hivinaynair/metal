@@ -1,8 +1,7 @@
 import { desc } from "drizzle-orm"
-import { createDb, schema } from "@workspace/shared/db"
+import { createDb, schema } from "@workspace/db"
 import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
 import { DEMO_POLICY_MAX_AMOUNT_USDC } from "@workspace/shared/demo"
-import { env } from "@/env"
 
 export interface AttestationRow {
   paymentHash: string
@@ -32,7 +31,7 @@ interface AttestationDbRow {
 
 let _db: ReturnType<typeof createDb> | undefined
 function getDb() {
-  if (!_db) _db = createDb(env.DATABASE_URL)
+  if (!_db) _db = createDb()
   return _db
 }
 

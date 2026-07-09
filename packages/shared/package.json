@@ -47,11 +47,6 @@
       "types": "./src/settlement-errors.ts",
       "bun": "./src/settlement-errors.ts",
       "default": "./dist/settlement-errors.js"
-    },
-    "./db": {
-      "types": "./src/db/index.ts",
-      "bun": "./src/db/index.ts",
-      "default": "./dist/db/index.js"
     }
   },
   "scripts": {
@@ -64,8 +59,6 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.1.0",
-    "drizzle-orm": "^0.45.2",
     "viem": "^2"
   }
 }

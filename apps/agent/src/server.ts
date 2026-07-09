@@ -127,9 +127,9 @@ app.post("/run", async (c) => {
   const account = await (
     await getCdp()
   ).evm.getOrCreateAccount({ name: agentName })
-  const credential = await getAp2CredentialForAgent(account.address)
+  const credential = getAp2CredentialForAgent(account.address)
   if (!credential) {
-    return c.json({ error: "mandate_not_registered" }, 503)
+    return c.json({ error: "mandate_missing" }, 503)
   }
 
   const stream = new ReadableStream({

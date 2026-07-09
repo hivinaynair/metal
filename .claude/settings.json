@@ -102,7 +102,16 @@
       "Bash(npx turbo:*)",
       "Bash(npx tsc:*)",
       "Bash(open /tmp/mobile-pipeline-options.html)",
-      "Bash(bunx tsc:*)"
+      "Bash(bunx tsc:*)",
+      "WebFetch(domain:www.coinbase.com)",
+      "WebFetch(domain:docs.metamask.io)",
+      "WebFetch(domain:docs.base.org)",
+      "Bash(cat /Users/vinay/bare-metal/apps/web/app/api/agent/[address]/route.ts)",
+      "Bash(pnpm --filter @workspace/facilitator exec bun test src/hooks/verify.test.ts)",
+      "Bash(ls /Users/vinay/bare-metal/.env*)",
+      "Bash(ls /Users/vinay/bare-metal/apps/facilitator/.env*)",
+      "Bash(ls /Users/vinay/bare-metal/packages/db/.env*)",
+      "Bash(bun pm:*)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",

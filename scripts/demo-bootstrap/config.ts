@@ -9,7 +9,6 @@ function requireEnv(name: string): string {
 
 export const AGENT_URL = requireEnv("AGENT_URL")
 export const FACILITATOR_URL = requireEnv("FACILITATOR_URL")
-export const DATABASE_URL = requireEnv("DATABASE_URL")
 export const DELEGATOR_KEY = requireEnv("DELEGATOR_PRIVATE_KEY") as Hex
 
 // Unix timestamp year ~2286: effectively non-expiring for this demo.

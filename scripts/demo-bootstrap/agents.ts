@@ -6,7 +6,7 @@ import {
   ERC20_BALANCE_ABI,
 } from "@workspace/shared/abis"
 import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
-import { schema } from "@workspace/shared/db"
+import { schema } from "@workspace/db"
 import type { DemoAgentName } from "@workspace/shared/types"
 import { AGENT_URL, NO_REGISTER, UNREGISTERED_AGENT_ID } from "./config.js"
 import type {
@@ -15,7 +15,6 @@ import type {
   Database,
   PublicClient,
 } from "./context.js"
-import { upsertAgentCredential } from "./credentials.js"
 import { registerInErc8004 } from "./erc8004.js"
 import { ensureMandate } from "./mandates.js"
 import type { AgentFromServer } from "./types.js"
@@ -44,7 +43,7 @@ export async function bootstrapAgent(
   await fundAgentWithUsdc(context.cdp, address)
   await logUsdcBalance(context.publicClient, address)
 
-  const { agentRow, mandateRow } = await loadSavedRows(context.db, addressLower)
+  const agentRow = await loadAgentRow(context.db, addressLower)
 
   const onChainAgentId = await ensureAgentRegistration({
     db: context.db,
@@ -54,22 +53,12 @@ export async function bootstrapAgent(
     agentRow,
   })
 
-  const mandate = await ensureMandate({
-    db: context.db,
+  await ensureMandate({
     delegator: context.delegator,
     agentName,
     address,
     addressLower,
     onChainAgentId,
-    mandateRow,
-  })
-
-  await upsertAgentCredential({
-    db: context.db,
-    agentName,
-    addressLower,
-    onChainAgentId,
-    mandate,
   })
 
   console.log("[bootstrap]   Agent AP2 credential ready")
@@ -103,17 +92,10 @@ async function logUsdcBalance(publicClient: PublicClient, address: Address) {
   )
 }
 
-async function loadSavedRows(db: Database, addressLower: string) {
-  const [agentRow, mandateRow] = await Promise.all([
-    db.query.agents.findFirst({
-      where: eq(schema.agents.address, addressLower),
-    }),
-    db.query.mandates.findFirst({
-      where: eq(schema.mandates.agentAddress, addressLower),
-    }),
-  ])
-
-  return { agentRow, mandateRow }
+async function loadAgentRow(db: Database, addressLower: string): Promise<AgentRow | undefined> {
+  return db.query.agents.findFirst({
+    where: eq(schema.agents.address, addressLower),
+  })
 }
 
 async function ensureAgentRegistration({

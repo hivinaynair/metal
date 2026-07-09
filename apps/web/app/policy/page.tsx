@@ -14,18 +14,18 @@ import { PageFrame, PageHead } from "@/components/page-chrome"
 function toPolicyAgent(
   agent: Awaited<ReturnType<typeof getAgentsWithMandates>>[number]
 ): PolicyAgent {
-  const expirySeconds = Number(agent.expiry)
+  const expirySeconds = agent.expiry !== null ? Number(agent.expiry) : 0
 
   return {
     address: agent.address,
     name: agent.name,
-    maxAmountUsdc: Number(agent.maxAmountUsdc),
-    delegatorAddress: agent.delegatorAddress,
+    maxAmountUsdc: agent.maxAmountUsdc !== null ? Number(agent.maxAmountUsdc) : 0,
+    delegatorAddress: agent.delegatorAddress ?? "—",
     expiry:
       expirySeconds > 0
         ? new Date(expirySeconds * 1000).toISOString().slice(0, 10)
         : "—",
-    expired: expirySeconds * 1000 < Date.now(),
+    expired: expirySeconds > 0 && expirySeconds * 1000 < Date.now(),
   }
 }
 

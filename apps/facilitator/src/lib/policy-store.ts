@@ -6,6 +6,10 @@ export function getPolicyMaxAmountUsdc() {
   return policyMaxAmountUsdc
 }
 
+export function getPolicyMaxAtomic(): bigint {
+  return BigInt(Math.round(policyMaxAmountUsdc * 1_000_000))
+}
+
 export function setPolicyMaxAmountUsdc(value: number) {
   policyMaxAmountUsdc = value
 }

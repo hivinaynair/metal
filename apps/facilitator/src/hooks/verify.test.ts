@@ -78,7 +78,7 @@ describe("onBeforeVerify", () => {
 
   it("aborts when mandate header is missing", async () => {
     const result = await onBeforeVerify(makeCtx(), happyDeps())
-    expect(result).toEqual({ abort: true, reason: "mandate_not_registered" })
+    expect(result).toEqual({ abort: true, reason: "mandate_missing" })
   })
 
   it("aborts when mandate signature is invalid", async () => {
@@ -87,7 +87,7 @@ describe("onBeforeVerify", () => {
         verifyMandateSignature: mock(async () => false),
       }))
     )
-    expect(result).toEqual({ abort: true, reason: "mandate_signature_invalid" })
+    expect(result).toEqual({ abort: true, reason: "mandate_invalid" })
   })
 
   it("aborts when mandate is expired", async () => {
