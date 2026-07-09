@@ -1,4 +1,4 @@
-export enum AgentId {
+export enum DemoAgentName {
   AGENT_1 = "metal-agent-1",
   AGENT_2 = "metal-agent-2",
   AGENT_3 = "metal-agent-3",

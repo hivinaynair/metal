@@ -3,10 +3,10 @@ import {
   getDemoReportRouteByPath,
   type DemoReportRoute,
 } from "@workspace/shared/demo"
-import { AgentId } from "@workspace/shared/types"
+import { DemoAgentName } from "@workspace/shared/types"
 
 export interface AgentRunRequest {
-  agentId: AgentId
+  agentName: DemoAgentName
   targetUrl: string
 }
 
@@ -15,11 +15,15 @@ export interface ValidatedAgentRunRequest extends AgentRunRequest {
 }
 
 export function validateRunRequest(
-  body: { agentId?: unknown; targetUrl?: unknown },
-  appUrl: string,
-): { ok: true; value: ValidatedAgentRunRequest } | { ok: false; error: string } {
-  if (typeof body.agentId !== "string" || !Object.values(AgentId).includes(body.agentId as AgentId)) {
-    return { ok: false, error: "agentId must be a known demo agent" }
+  body: { agentName?: unknown; targetUrl?: unknown },
+  appUrl: string
+):
+  { ok: true; value: ValidatedAgentRunRequest } | { ok: false; error: string } {
+  if (
+    typeof body.agentName !== "string" ||
+    !Object.values(DemoAgentName).includes(body.agentName as DemoAgentName)
+  ) {
+    return { ok: false, error: "agentName must be a known demo agent" }
   }
   if (typeof body.targetUrl !== "string") {
     return { ok: false, error: "targetUrl is required" }
@@ -46,7 +50,7 @@ export function validateRunRequest(
   return {
     ok: true,
     value: {
-      agentId: body.agentId as AgentId,
+      agentName: body.agentName as DemoAgentName,
       targetUrl: target.toString(),
       route,
     },

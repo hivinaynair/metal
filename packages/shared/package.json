@@ -48,11 +48,6 @@
       "bun": "./src/settlement-errors.ts",
       "default": "./dist/settlement-errors.js"
     },
-    "./erc8004": {
-      "types": "./src/erc8004.ts",
-      "bun": "./src/erc8004.ts",
-      "default": "./dist/erc8004.js"
-    },
     "./db": {
       "types": "./src/db/index.ts",
       "bun": "./src/db/index.ts",

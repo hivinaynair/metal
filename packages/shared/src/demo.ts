@@ -1,12 +1,12 @@
-import { AgentId, type ReportRouteId } from "./types.js"
+import { DemoAgentName, type ReportRouteId } from "./types.js"
 
 export const DEMO_POLICY_MAX_AMOUNT_USDC = 2
 
 export const DEMO_SCENARIO_AGENTS = [
-  AgentId.AGENT_1,
-  AgentId.AGENT_2,
-  AgentId.AGENT_3,
-  AgentId.GHOST,
+  DemoAgentName.AGENT_1,
+  DemoAgentName.AGENT_2,
+  DemoAgentName.AGENT_3,
+  DemoAgentName.GHOST,
 ] as const
 
 export const DEMO_REPORT_ROUTES = [
@@ -32,24 +32,27 @@ export const DEMO_REPORT_ROUTES = [
   },
 ] as const
 
-export const DEMO_AGENT_ROUTE: Record<AgentId, ReportRouteId> = {
-  [AgentId.AGENT_1]: "basic",
-  [AgentId.AGENT_2]: "premium",
-  [AgentId.AGENT_3]: "premium",
-  [AgentId.GHOST]: "basic",
+export const DEMO_AGENT_ROUTE: Record<DemoAgentName, ReportRouteId> = {
+  [DemoAgentName.AGENT_1]: "basic",
+  [DemoAgentName.AGENT_2]: "premium",
+  [DemoAgentName.AGENT_3]: "premium",
+  [DemoAgentName.GHOST]: "basic",
 }
 
 export type DemoReportRoute = (typeof DEMO_REPORT_ROUTES)[number]
 
 export function getDemoReportRoute(id: ReportRouteId) {
-  return DEMO_REPORT_ROUTES.find((route) => route.id === id) ?? DEMO_REPORT_ROUTES[0]
+  return (
+    DEMO_REPORT_ROUTES.find((route) => route.id === id) ?? DEMO_REPORT_ROUTES[0]
+  )
 }
 
 export function getDemoReportRouteByPath(path: string) {
   return DEMO_REPORT_ROUTES.find((route) => route.path === path)
 }
 
-export type FailureGate = "identity" | "mandate" | "policy" | "settlement" | "attestation"
+export type FailureGate =
+  "identity" | "mandate" | "policy" | "settlement" | "attestation"
 
 export function failureGateForReason(reason?: string): FailureGate | undefined {
   if (!reason) return undefined
@@ -58,4 +61,3 @@ export function failureGateForReason(reason?: string): FailureGate | undefined {
   if (reason.startsWith("policy_")) return "policy"
   return "settlement"
 }
-

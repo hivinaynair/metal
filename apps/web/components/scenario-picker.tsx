@@ -34,7 +34,7 @@ export function ScenarioPicker({
           </SelectTrigger>
           <SelectContent>
             {SCENARIOS.map((scenario, index) => {
-              const agent = demoAgents.find((a) => a.id === scenario.agentId)!
+              const agent = demoAgents.find((a) => a.id === scenario.agentName)!
               return (
                 <SelectItem key={scenario.slot} value={String(index)}>
                   <span className="flex items-center gap-2">
@@ -56,10 +56,10 @@ export function ScenarioPicker({
       </div>
 
       {/* Desktop */}
-      <div className="hidden sm:inline-flex w-fit max-w-full flex-wrap items-center gap-1 rounded-md border border-border bg-card p-1">
+      <div className="hidden w-fit max-w-full flex-wrap items-center gap-1 rounded-md border border-border bg-card p-1 sm:inline-flex">
         <span className="metal-eyebrow px-2">Scenario</span>
         {SCENARIOS.map((scenario, index) => {
-          const agent = demoAgents.find((a) => a.id === scenario.agentId)!
+          const agent = demoAgents.find((a) => a.id === scenario.agentName)!
           const selected = index === selectedIndex
           return (
             <Button
@@ -69,7 +69,7 @@ export function ScenarioPicker({
               disabled={loading}
               onClick={() => onSelect(index)}
               className={cn(
-                "justify-start gap-2 rounded-sm text-left items-center",
+                "items-center justify-start gap-2 rounded-sm text-left",
                 selected
                   ? "bg-muted text-foreground"
                   : "bg-transparent text-muted-foreground hover:text-foreground",

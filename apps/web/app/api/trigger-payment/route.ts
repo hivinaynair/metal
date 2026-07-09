@@ -10,14 +10,22 @@ import { env } from "@/env"
 export async function POST(request: Request) {
   let scenarioIndex = 0
   try {
-    const body = await request.json() as { scenarioIndex?: unknown }
-    if (typeof body.scenarioIndex === "number" && Number.isInteger(body.scenarioIndex)) {
-      scenarioIndex = Math.min(Math.max(body.scenarioIndex, 0), DEMO_SCENARIO_AGENTS.length - 1)
+    const body = (await request.json()) as { scenarioIndex?: unknown }
+    if (
+      typeof body.scenarioIndex === "number" &&
+      Number.isInteger(body.scenarioIndex)
+    ) {
+      scenarioIndex = Math.min(
+        Math.max(body.scenarioIndex, 0),
+        DEMO_SCENARIO_AGENTS.length - 1
+      )
     }
-  } catch { /* no body */ }
+  } catch {
+    /* no body */
+  }
 
-  const agentId = DEMO_SCENARIO_AGENTS[scenarioIndex]!
-  const route = getDemoReportRoute(DEMO_AGENT_ROUTE[agentId])
+  const agentName = DEMO_SCENARIO_AGENTS[scenarioIndex]!
+  const route = getDemoReportRoute(DEMO_AGENT_ROUTE[agentName])
   const targetUrl = `${new URL(request.url).origin}${route.path}`
 
   // Delegate payment + reasoning to the agent server
@@ -27,25 +35,33 @@ export async function POST(request: Request) {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        agentId,
+        agentName,
         targetUrl,
       }),
     })
   } catch (err) {
-    return new Response(`Agent server unreachable: ${String(err)}`, { status: 503 })
+    return new Response(`Agent server unreachable: ${String(err)}`, {
+      status: 503,
+    })
   }
 
   if (agentRes.status === 503) {
-    const errBody = await agentRes.json().catch(() => ({})) as { error?: string }
-    return new Response(errBody.error ?? "Agent bootstrap not run", { status: 503 })
+    const errBody = (await agentRes.json().catch(() => ({}))) as {
+      error?: string
+    }
+    return new Response(errBody.error ?? "Agent bootstrap not run", {
+      status: 503,
+    })
   }
 
   if (!agentRes.ok || !agentRes.body) {
-    return new Response(`Agent server error: ${agentRes.status}`, { status: 503 })
+    return new Response(`Agent server error: ${agentRes.status}`, {
+      status: 503,
+    })
   }
 
   // Web-side display metadata
-  const demoAgent = demoAgents.find((a) => a.id === agentId)
+  const demoAgent = demoAgents.find((a) => a.id === agentName)
   const slot = (["A", "B", "C", "D"] as const)[scenarioIndex]
 
   // Pipe SSE from agent → browser; enrich the done event with web-side metadata
@@ -70,7 +86,10 @@ export async function POST(request: Request) {
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue
           try {
-            const event = JSON.parse(line.slice(6)) as { type: string; result?: Record<string, unknown> }
+            const event = JSON.parse(line.slice(6)) as {
+              type: string
+              result?: Record<string, unknown>
+            }
             if (event.type === "token" || event.type === "gate") {
               await writer.write(enc.encode(line + "\n\n"))
             } else if (event.type === "done") {
@@ -81,17 +100,25 @@ export async function POST(request: Request) {
                 type: "done",
                 result: {
                   slot,
-                  agentKey: agentId,
+                  agentKey: agentName,
                   agent: demoAgent,
-                  route: { id: route.id, path: route.path, price: route.priceLabel },
+                  route: {
+                    id: route.id,
+                    path: route.path,
+                    price: route.priceLabel,
+                  },
                   mandateValid,
                   ...agentResult,
                   body: error ? { error } : undefined,
                 },
               }
-              await writer.write(enc.encode(`data: ${JSON.stringify(enriched)}\n\n`))
+              await writer.write(
+                enc.encode(`data: ${JSON.stringify(enriched)}\n\n`)
+              )
             }
-          } catch { /* malformed SSE line — skip */ }
+          } catch {
+            /* malformed SSE line — skip */
+          }
         }
       }
     } catch (err) {
@@ -106,7 +133,7 @@ export async function POST(request: Request) {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
+      Connection: "keep-alive",
     },
   })
 }

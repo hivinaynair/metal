@@ -1,19 +1,15 @@
+import { parseArgs } from "util"
 import { CdpClient } from "@coinbase/cdp-sdk"
 import { isAddress } from "viem"
 
-type BaseSepoliaToken = "eth" | "usdc" | "eurc" | "cbbtc"
+type BaseSepoliaToken = "eth" | "usdc"
 
-type CliOptions = {
-  address?: string
-  token?: string
-}
-
-const baseSepoliaTokens = ["eth", "usdc", "eurc", "cbbtc"] as const
+const baseSepoliaTokens: BaseSepoliaToken[] = ["eth", "usdc"] as const
 
 function usage() {
   console.log(`
 Usage:
-  bun scripts/fund-wallet.ts <evm-address> [--token eth|usdc|eurc|cbbtc]
+  bun scripts/fund-wallet.ts <evm-address> [--token eth|usdc]
 
 Examples:
   bun scripts/fund-wallet.ts 0x1234...abcd
@@ -21,50 +17,27 @@ Examples:
 `.trim())
 }
 
-function parseArgs(argv: string[]): CliOptions {
-  const options: CliOptions = {}
-
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i]
-
-    if(!arg) continue
-
-    if (arg === "--help" || arg === "-h") {
-      usage()
-      process.exit(0)
-    }
-
-    if (arg === "--token") {
-      options.token = argv[++i]?.toLowerCase()
-      continue
-    }
-
-    if (arg.startsWith("--token=")) {
-      options.token = arg.slice("--token=".length).toLowerCase()
-      continue
-    }
-
-    if (arg.startsWith("--")) {
-      throw new Error(`Unknown option: ${arg}`)
-    }
-
-    if (options.address) {
-      throw new Error(`Unexpected extra argument: ${arg}`)
-    }
-
-    options.address = arg
-  }
-
-  return options
-}
-
 function isBaseSepoliaToken(token: string): token is BaseSepoliaToken {
   return (baseSepoliaTokens as readonly string[]).includes(token)
 }
 
-const { address, token: requestedToken } = parseArgs(process.argv.slice(2))
+const { values, positionals } = parseArgs({
+  args: process.argv.slice(2),
+  options: {
+    token: { type: "string" },
+    help: { type: "boolean", short: "h" },
+  },
+  allowPositionals: true,
+})
 
-console.log(address, requestedToken)
+if (values.help) {
+  usage()
+  process.exit(0)
+}
+
+const address = positionals[0]
+const requestedToken = values.token?.toLowerCase()
+
 if (!address) {
   usage()
   process.exit(1)
@@ -86,7 +59,6 @@ const cdp = new CdpClient({
   apiKeyId: process.env.CDP_API_KEY_ID,
   apiKeySecret: process.env.CDP_API_KEY_SECRET,
   walletSecret: process.env.CDP_WALLET_SECRET,
-
 })
 
 const { transactionHash } = await cdp.evm.requestFaucet({

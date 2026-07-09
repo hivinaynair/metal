@@ -101,7 +101,8 @@
       "Bash(git remote:*)",
       "Bash(npx turbo:*)",
       "Bash(npx tsc:*)",
-      "Bash(open /tmp/mobile-pipeline-options.html)"
+      "Bash(open /tmp/mobile-pipeline-options.html)",
+      "Bash(bunx tsc:*)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",

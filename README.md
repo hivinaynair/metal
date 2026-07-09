@@ -86,9 +86,9 @@ ANTHROPIC_API_KEY=
 ATTESTATION_REGISTRY_ADDRESS=0xe81ea4bd57eb034047c8f0fb016d74485239d76d
 
 # URLs
-APP_URL=                     # base URL (used for ERC-8004 agentURI)
+APP_URL=                     # deployed web app (or http://localhost:3000)
 FACILITATOR_URL=             # deployed facilitator (or http://localhost:3001)
-AGENT_URL=                   # deployed agent server (or http://localhost:3002)
+AGENT_URL=                   # deployed agent server; used for ERC-8004 agentURI (or http://localhost:3002)
 
 # Storage
 UPSTASH_REDIS_REST_URL=

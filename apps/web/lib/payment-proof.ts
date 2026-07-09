@@ -23,7 +23,7 @@ export function buildProofBundle(
 
   return JSON.stringify(
     {
-      agentId: agent.id,
+      agentName: agent.id,
       payer: result?.payer ?? "pending run",
       agentURI: result?.agentUri ?? "pending run",
       route: route.path,

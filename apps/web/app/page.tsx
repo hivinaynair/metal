@@ -32,7 +32,7 @@ export default function Page() {
 
   const selectedScenario = SCENARIOS[selectedIndex]!
   const selectedAgent = demoAgents.find(
-    (agent) => agent.id === selectedScenario.agentId
+    (agent) => agent.id === selectedScenario.agentName
   )!
   const {
     activeStep,
@@ -106,7 +106,7 @@ export default function Page() {
               size="sm"
               onClick={startRun}
               disabled={loading}
-              className="h-8 px-3 text-xs border border-foreground bg-foreground text-background hover:bg-foreground/85"
+              className="h-8 border border-foreground bg-foreground px-3 text-xs text-background hover:bg-foreground/85"
             >
               {loading ? (
                 <>
@@ -124,7 +124,7 @@ export default function Page() {
         />
       </div>
 
-      <section className="grid grid-cols-1 min-w-0 items-stretch gap-4 pb-1 lg:grid-cols-[minmax(360px,1.05fr)_minmax(420px,1fr)_320px] lg:overflow-x-auto">
+      <section className="grid min-w-0 grid-cols-1 items-stretch gap-4 pb-1 lg:grid-cols-[minmax(360px,1.05fr)_minmax(420px,1fr)_320px] lg:overflow-x-auto">
         <DashboardPanel
           title="Decision log"
           icon={<MessageSquareText className="size-4" />}

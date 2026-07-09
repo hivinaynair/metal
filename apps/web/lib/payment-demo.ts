@@ -3,7 +3,7 @@ import type { DecisionProof } from "@workspace/shared/types"
 
 export const SCENARIOS = [
   {
-    agentId: "metal-agent-1",
+    agentName: "metal-agent-1",
     slot: "A",
     title: "Happy path",
     displayAgent: "Orion Pay",
@@ -11,7 +11,7 @@ export const SCENARIOS = [
     mandate: "ap2_9F21...Ae21",
   },
   {
-    agentId: "metal-agent-2",
+    agentName: "metal-agent-2",
     slot: "B",
     title: "Mandate exceeded",
     displayAgent: "Atlas Treasury",
@@ -19,7 +19,7 @@ export const SCENARIOS = [
     mandate: "ap2_C4b8...A1F0",
   },
   {
-    agentId: "metal-agent-3",
+    agentName: "metal-agent-3",
     slot: "C",
     title: "Policy exceeded",
     displayAgent: "Nova Fetch",
@@ -27,7 +27,7 @@ export const SCENARIOS = [
     mandate: "ap2_3af5...Ab12",
   },
   {
-    agentId: "metal-agent-ghost",
+    agentName: "metal-agent-ghost",
     slot: "D",
     title: "Unregistered agent",
     displayAgent: "Ghost Runner",

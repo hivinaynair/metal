@@ -1,7 +1,8 @@
 import { Hono } from "hono"
 import { serve } from "@hono/node-server"
+import { isAddress } from "viem"
 import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
-import { AgentId, type DecisionRecord } from "@workspace/shared/types"
+import { DemoAgentName, type DecisionRecord } from "@workspace/shared/types"
 import { getAp2CredentialForAgent } from "./credentials.js"
 import { validateRunRequest } from "./run-request.js"
 import { performX402Fetch } from "./tools.js"
@@ -10,12 +11,15 @@ import type { CdpClient } from "@coinbase/cdp-sdk"
 
 const PORT = Number(process.env.PORT ?? 3002)
 
+const AGENT_NAME = "Metal Agent"
+const AGENT_VERSION = "1.0.0"
+const AGENT_CAPABILITIES = ["payment", "settlement"]
 
-const AGENT_PROMPT: Record<AgentId, string> = {
-  [AgentId.AGENT_1]: `You are metal-agent-1, a financial agent on Base Sepolia. Call x402Fetch to fetch the settlement risk report and pay for it. Report the settlement tx hash.`,
-  [AgentId.AGENT_2]: `You are metal-agent-2, a financial agent on Base Sepolia. Call x402Fetch to fetch the premium report. Report exactly what error the facilitator returned.`,
-  [AgentId.AGENT_3]: `You are metal-agent-3, a financial agent on Base Sepolia. Call x402Fetch to fetch the premium report. Report exactly what error the facilitator returned.`,
-  [AgentId.GHOST]: `You are metal-agent-ghost on Base Sepolia. Call x402Fetch to fetch the settlement risk report. Report exactly what error the facilitator returned.`,
+const AGENT_PROMPT: Record<DemoAgentName, string> = {
+  [DemoAgentName.AGENT_1]: `You are metal-agent-1, a financial agent on Base Sepolia. Call x402Fetch to fetch the settlement risk report and pay for it. Report the settlement tx hash.`,
+  [DemoAgentName.AGENT_2]: `You are metal-agent-2, a financial agent on Base Sepolia. Call x402Fetch to fetch the premium report. Report exactly what error the facilitator returned.`,
+  [DemoAgentName.AGENT_3]: `You are metal-agent-3, a financial agent on Base Sepolia. Call x402Fetch to fetch the premium report. Report exactly what error the facilitator returned.`,
+  [DemoAgentName.GHOST]: `You are metal-agent-ghost on Base Sepolia. Call x402Fetch to fetch the settlement risk report. Report exactly what error the facilitator returned.`,
 }
 
 function errorFromBody(body: unknown): string | undefined {
@@ -26,6 +30,10 @@ function errorFromBody(body: unknown): string | undefined {
     if (typeof value === "string" && value.trim()) return value
   }
   return undefined
+}
+
+function agentMetadataUri(agentUrl: string, address: string): string {
+  return `${agentUrl.replace(/\/+$/, "")}/api/agent/${address}`
 }
 
 let _cdp: CdpClient | undefined
@@ -48,7 +56,7 @@ async function getDecisionRecord(
     payer: string
     settlementTxHash?: string
   },
-  retries = 5,
+  retries = 5
 ): Promise<DecisionRecord | undefined> {
   const baseUrl = process.env.FACILITATOR_URL?.replace(/\/+$/, "")
   if (!baseUrl) return undefined
@@ -61,7 +69,8 @@ async function getDecisionRecord(
         : `/decision-records/latest?payer=${encodeURIComponent(payer.toLowerCase())}`
     const response = await fetch(`${baseUrl}${path}`).catch(() => undefined)
     const body = response?.ok
-      ? await response.json().catch(() => undefined) as { decisionRecord?: DecisionRecord | null } | undefined
+      ? ((await response.json().catch(() => undefined)) as
+          { decisionRecord?: DecisionRecord | null } | undefined)
       : undefined
     if (body?.decisionRecord) return body.decisionRecord
     await new Promise((r) => setTimeout(r, 800))
@@ -73,14 +82,28 @@ const app = new Hono()
 
 app.get("/health", (c) => c.text("ok"))
 
+app.get("/api/agent/:address", (c) => {
+  const address = c.req.param("address")
+  if (!isAddress(address)) {
+    return c.json({ error: "invalid agent address" }, 400)
+  }
+
+  return c.json({
+    address,
+    name: AGENT_NAME,
+    version: AGENT_VERSION,
+    capabilities: AGENT_CAPABILITIES,
+  })
+})
+
 // Returns all agent addresses — used by demo:bootstrap to sign mandates
 app.get("/agents", async (c) => {
   const cdp = await getCdp()
   const agents = await Promise.all(
-    Object.values(AgentId).map(async (agentId) => {
-      const account = await cdp.evm.getOrCreateAccount({ name: agentId })
-      return { agentId, address: account.address as string }
-    }),
+    Object.values(DemoAgentName).map(async (agentName) => {
+      const account = await cdp.evm.getOrCreateAccount({ name: agentName })
+      return { agentName, address: account.address as string }
+    })
   )
   return c.json(agents)
 })
@@ -88,6 +111,7 @@ app.get("/agents", async (c) => {
 app.post("/run", async (c) => {
   const appUrl = process.env.APP_URL
   if (!appUrl) return c.json({ error: "Missing env var: APP_URL" }, 500)
+  const agentUrl = process.env.AGENT_URL ?? `http://localhost:${PORT}`
 
   const body = await c.req.json().catch(() => undefined)
   if (!body || typeof body !== "object") {
@@ -99,8 +123,10 @@ app.post("/run", async (c) => {
     return c.json({ error: validated.error }, 400)
   }
 
-  const { agentId, targetUrl } = validated.value
-  const account = await (await getCdp()).evm.getOrCreateAccount({ name: agentId })
+  const { agentName, targetUrl } = validated.value
+  const account = await (
+    await getCdp()
+  ).evm.getOrCreateAccount({ name: agentName })
   const credential = await getAp2CredentialForAgent(account.address)
   if (!credential) {
     return c.json({ error: "mandate_not_registered" }, 503)
@@ -121,10 +147,12 @@ app.post("/run", async (c) => {
       let responseError: string | undefined
 
       try {
-        send({ type: "token", text: `${AGENT_PROMPT[agentId]}\n` })
+        send({ type: "token", text: `${AGENT_PROMPT[agentName]}\n` })
         send({ type: "gate", step: 1 })
 
-        const r = await performX402Fetch(account, targetUrl, { mandateHeader: credential.header })
+        const r = await performX402Fetch(account, targetUrl, {
+          mandateHeader: credential.header,
+        })
         authorizationNonce = r.authorizationNonce
         settlementTxHash = r.txHash
         httpStatus = r.httpStatus
@@ -161,17 +189,25 @@ app.post("/run", async (c) => {
       send({
         type: "done",
         result: {
-          payer:            account.address,
-          agentUri:         `${appUrl}/api/agent/${account.address}`,
+          payer: account.address,
+          agentUri: agentMetadataUri(agentUrl, account.address),
           settlementTxHash,
-          settlementTxUrl:  settlementTxHash ? `${BASE_SEPOLIA_EXPLORER}/tx/${settlementTxHash}` : undefined,
+          settlementTxUrl: settlementTxHash
+            ? `${BASE_SEPOLIA_EXPLORER}/tx/${settlementTxHash}`
+            : undefined,
           attestationTxHash: attestationTxHash ?? undefined,
-          attestationTxUrl: attestationTxHash ? `${BASE_SEPOLIA_EXPLORER}/tx/${attestationTxHash}` : undefined,
+          attestationTxUrl: attestationTxHash
+            ? `${BASE_SEPOLIA_EXPLORER}/tx/${attestationTxHash}`
+            : undefined,
           httpStatus,
           error: responseError,
           authorizationNonce,
-          policyThreshold: policyMaxAmountUsdc ? `$${policyMaxAmountUsdc}` : undefined,
-          proofLookupError: decisionRecord ? undefined : "decision_record_not_found",
+          policyThreshold: policyMaxAmountUsdc
+            ? `$${policyMaxAmountUsdc}`
+            : undefined,
+          proofLookupError: decisionRecord
+            ? undefined
+            : "decision_record_not_found",
           decisionProof: decisionRecord,
         },
       })
@@ -184,7 +220,7 @@ app.post("/run", async (c) => {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
+      Connection: "keep-alive",
     },
   })
 })
