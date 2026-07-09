@@ -20,6 +20,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/node": "^26.1.0",
     "@workspace/typescript-config": "workspace:*",
     "drizzle-kit": "^0.31.10",
     "typescript": "^5"
