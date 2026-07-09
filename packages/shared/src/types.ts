@@ -64,3 +64,26 @@ export type DecisionRecord = DecisionProof & {
   amountUsdc: string
   identityStatus: IdentityStatus
 }
+
+export interface RawMandate {
+  agentId: string
+  domain: { name: string; version: string; chainId: number }
+  types: { MandatePayload: Array<{ name: string; type: string }> }
+  payload: {
+    agent: string
+    delegator: string
+    maxAmountUsdc: string
+    expiry: string
+    nonce: string
+  }
+  signature: string
+}
+
+export interface X402Challenge {
+  scheme?: string
+  network?: string
+  maxAmountRequired?: string
+  resource?: string
+  description?: string
+  error?: string
+}
