@@ -8,7 +8,7 @@ import {
 import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
 import { schema } from "@workspace/db"
 import type { DemoAgentName } from "@workspace/shared/types"
-import { AGENT_URL, NO_REGISTER, UNREGISTERED_AGENT_ID } from "./config.js"
+import { AGENT_URL, BOOTSTRAP_SECRET, NO_REGISTER, UNREGISTERED_AGENT_ID } from "./config.js"
 import type {
   AgentRow,
   BootstrapContext,
@@ -21,7 +21,9 @@ import type { AgentFromServer } from "./types.js"
 
 export async function fetchAgentList(): Promise<AgentFromServer[]> {
   console.log(`[bootstrap] Fetching agent addresses from ${AGENT_URL}/agents`)
-  const agentsRes = await fetch(`${AGENT_URL}/agents`)
+  const agentsRes = await fetch(`${AGENT_URL}/agents`, {
+    headers: BOOTSTRAP_SECRET ? { Authorization: `Bearer ${BOOTSTRAP_SECRET}` } : {},
+  })
   if (!agentsRes.ok) {
     throw new Error(
       `GET /agents failed: ${agentsRes.status} ${await agentsRes.text()}`

@@ -9,6 +9,7 @@ import {
   cleanRejectionReason,
   resultFailureStep,
 } from "@/lib/settlement-status"
+import type { TraceStep } from "@/components/trace-panel"
 
 function decisionStatus(
   step: number,
@@ -37,12 +38,16 @@ export function DecisionLog({
   activeStep,
   selectedAgent,
   selectedScenario,
+  traceSteps,
+  onStepClick,
 }: {
   result: TriggerResult | null
   running: boolean
   activeStep: number
   selectedAgent: DemoAgent
   selectedScenario: DemoScenario
+  traceSteps?: TraceStep[]
+  onStepClick?: (step: TraceStep) => void
 }) {
   const route = result?.route ?? fallbackRouteForAgent(selectedAgent)
   const rejectedReason = cleanRejectionReason(result?.body?.error)
@@ -109,14 +114,19 @@ export function DecisionLog({
         const rejected = status === "rejected"
         const runningStep = status === "running"
 
+        const traceStep = traceSteps?.find((s) => s.id === row.step)
+        const clickable = !!traceStep?.rawData
+
         return (
           <div
             key={row.label}
             className={cn(
-              "flex gap-3 rounded-sm border border-transparent px-2 py-1.5",
+              "flex gap-3 rounded-sm border border-transparent px-2 py-1.5 group",
               runningStep && "border-border bg-muted/30",
-              status === "skipped" && "opacity-45"
+              status === "skipped" && "opacity-45",
+              clickable && "cursor-pointer"
             )}
+            onClick={() => clickable && traceStep && onStepClick?.(traceStep)}
           >
             <span className="mt-0.5">
               {approved ? (
@@ -129,18 +139,25 @@ export function DecisionLog({
                 <span className="block size-4 rounded-full border border-border" />
               )}
             </span>
-            <span className="min-w-0">
-              <span
-                className={cn(
-                  "block text-sm font-medium",
-                  rejected && "text-destructive",
-                  !approved &&
-                    !rejected &&
-                    !runningStep &&
-                    "text-muted-foreground"
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1">
+                <span
+                  className={cn(
+                    "block text-sm font-medium",
+                    rejected && "text-destructive",
+                    !approved &&
+                      !rejected &&
+                      !runningStep &&
+                      "text-muted-foreground"
+                  )}
+                >
+                  {row.label}
+                </span>
+                {clickable && (
+                  <span className="text-xs text-muted-foreground/50 group-hover:text-primary transition-colors">
+                    view ↗
+                  </span>
                 )}
-              >
-                {row.label}
               </span>
               <span className="mt-0.5 block truncate font-mono text-xs text-muted-foreground">
                 {rejected && rejectedReason ? rejectedReason : row.detail}

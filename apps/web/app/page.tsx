@@ -10,7 +10,7 @@ import { PacketPanel } from "@/components/packet-panel"
 import { PageFrame, PageHead } from "@/components/page-chrome"
 import { ScenarioPicker } from "@/components/scenario-picker"
 import { SettlementScene } from "@/components/settlement-scene"
-import { TracePanel, buildTraceSteps } from "@/components/trace-panel"
+import { buildTraceSteps } from "@/components/trace-panel"
 import type { TraceStep } from "@/components/trace-panel"
 import { demoAgents } from "@/lib/demo-scenarios"
 import { buildProofBundle } from "@/lib/payment-proof"
@@ -130,13 +130,6 @@ export default function Page() {
 
       <GateDetailSheet step={activeGateStep} onClose={() => setActiveGateStep(null)} />
 
-      <DashboardPanel title="Trace" icon={<Zap className="size-4" />}>
-        <TracePanel
-          steps={buildTraceSteps(result, activeStep)}
-          onStepClick={setActiveGateStep}
-        />
-      </DashboardPanel>
-
       <section className="grid min-w-0 grid-cols-1 items-stretch gap-4 pb-1 lg:grid-cols-[minmax(360px,1.05fr)_minmax(420px,1fr)_320px] lg:overflow-x-auto">
         <DashboardPanel
           title="Decision log"
@@ -148,6 +141,8 @@ export default function Page() {
             activeStep={activeStep}
             selectedAgent={selectedAgent}
             selectedScenario={selectedScenario}
+            traceSteps={buildTraceSteps(result, activeStep)}
+            onStepClick={setActiveGateStep}
           />
         </DashboardPanel>
 

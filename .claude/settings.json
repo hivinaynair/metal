@@ -115,7 +115,17 @@
       "Bash(grep -E \"\\\\.\\(md|txt|yml|yaml\\)$\")",
       "Bash(pnpm --filter facilitator typecheck)",
       "Bash(bun --filter facilitator typecheck)",
-      "Bash(bun --filter @workspace/db db:push)"
+      "Bash(bun --filter @workspace/db db:push)",
+      "Bash(grep -E \"\\\\.tsx$\")",
+      "Bash(grep -n \"agentUri\\\\|agentMetadataUri\\\\|/api/agent/\" /Users/vinay/bare-metal/apps/web/lib/payment-demo.ts /Users/vinay/bare-metal/apps/web/lib/payment-proof.ts /Users/vinay/bare-metal/apps/web/app/api/agent/[address]/route.ts)",
+      "Bash(grep -n \"AGENT_ADMIN\\\\|ADMIN_SECRET\\\\|BOOTSTRAP_SECRET\" /Users/vinay/bare-metal/apps/agent/.env* /Users/vinay/bare-metal/scripts/demo-bootstrap/.env*)",
+      "Bash(pnpm --filter @workspace/shared tsc --noEmit)",
+      "Bash(bun --filter @workspace/shared tsc --noEmit)",
+      "Bash(pnpm --filter @workspace/agent tsc --noEmit)",
+      "Bash(bun x:*)",
+      "Bash(pnpm --filter @workspace/web tsc --noEmit)",
+      "Bash(bun --filter @workspace/web tsc --noEmit)",
+      "Bash(ls /Users/vinay/bare-metal/apps/web/components/trace-panel*)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",

@@ -6,6 +6,8 @@ import {
 } from "@workspace/shared/mandate-header"
 import type { MandateHeaderValue } from "@workspace/shared/mandate-header"
 
+type AgentCredential = { entry: MandateHeaderValue; header: string }
+
 function parseJsonObject(raw: string): Record<string, unknown> | undefined {
   try {
     const parsed = JSON.parse(raw) as unknown
@@ -13,6 +15,7 @@ function parseJsonObject(raw: string): Record<string, unknown> | undefined {
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       return parsed as Record<string, unknown>
     }
+    return undefined
   } catch {
     return undefined
   }
@@ -57,10 +60,7 @@ function parseMandateEntry(raw: unknown): MandateHeaderValue | undefined {
   return parseSerializedMandateHeader(raw)
 }
 
-export function getAp2CredentialForAgent(agentAddress: string): {
-  entry: MandateHeaderValue
-  header: string
-} | undefined {
+export function getAp2CredentialForAgent(agentAddress: string): AgentCredential | undefined {
   const normalised = agentAddress.toLowerCase()
   const file = readMandateFile()
   const raw = file[normalised]

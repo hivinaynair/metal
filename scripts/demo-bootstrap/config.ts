@@ -8,6 +8,7 @@ function requireEnv(name: string): string {
 }
 
 export const AGENT_URL = requireEnv("AGENT_URL")
+export const BOOTSTRAP_SECRET = process.env.BOOTSTRAP_SECRET
 export const FACILITATOR_URL = requireEnv("FACILITATOR_URL")
 export const DELEGATOR_KEY = requireEnv("DELEGATOR_PRIVATE_KEY") as Hex
 
