@@ -2,9 +2,9 @@ import { createPublicClient, createWalletClient, http } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import { baseSepolia } from "viem/chains"
 import { toFacilitatorEvmSigner } from "@x402/evm"
-import { env } from "./env.js"
+import { env } from "../env.js"
 
-export const account = privateKeyToAccount(env.FACILITATOR_PRIVATE_KEY)
+export const account = privateKeyToAccount(env.FACILITATOR_PRIVATE_KEY as `0x${string}`)
 
 export const publicClient = createPublicClient({
   chain: baseSepolia,

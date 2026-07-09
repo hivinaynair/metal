@@ -1,4 +1,4 @@
-import { env } from "./env.js"
+import { env } from "../env.js"
 
 let policyMaxAmountUsdc = Number(env.POLICY_MAX_AMOUNT_USDC)
 

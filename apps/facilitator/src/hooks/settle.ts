@@ -11,7 +11,7 @@ import { verifyDeps } from "../lib/deps.js"
 import { getPayerAddress, extractAuthNonce } from "../lib/mandate.js"
 import { getDb } from "../lib/db.js"
 import { requestCtx } from "../lib/request-context.js"
-import { env } from "../lib/env.js"
+import { env } from "../env.js"
 import { getPolicyMaxAtomic } from "../lib/policy-store.js"
 import type {
   FacilitatorSettleContext,
