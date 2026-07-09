@@ -4,12 +4,22 @@ import { CheckCircle, Circle, Loader2, XCircle } from "lucide-react"
 import { cn } from "@workspace/ui/lib/utils"
 import { Badge } from "@workspace/ui/components/badge"
 import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
+import type { RawMandate, X402Challenge } from "@workspace/shared/types"
 import { POLICY_MAX_AMOUNT_USDC } from "@/lib/demo-scenarios"
 import { settlementFailureStep } from "@/lib/settlement-status"
 
 const TRACE_STEP_COUNT = 6
 
 export type StepStatus = "pending" | "running" | "approved" | "rejected" | "skipped"
+
+export type GateRawData =
+  | { gate: "agent"; address: string; uri: string; capabilities: string[] }
+  | { gate: "x402"; challenge: X402Challenge }
+  | { gate: "erc8004"; address: string; agentId?: string; identityStatus?: number }
+  | { gate: "ap2"; mandate: RawMandate }
+  | { gate: "policy"; ceiling: string; payment: string; decision: string }
+  | { gate: "settlement"; txHash: string; txUrl: string }
+  | { gate: "attestation"; txHash: string; txUrl: string }
 
 export interface TraceStep {
   id: number
@@ -18,10 +28,12 @@ export interface TraceStep {
   detail?: string
   link?: { href: string; label: string }
   attestationLink?: { href: string; label: string }
+  rawData?: GateRawData
 }
 
 interface TracePanelProps {
   steps: TraceStep[]
+  onStepClick?: (step: TraceStep) => void
 }
 
 function StepIcon({ status }: { status: StepStatus }) {
@@ -32,11 +44,15 @@ function StepIcon({ status }: { status: StepStatus }) {
   return <Circle className="h-4 w-4 text-muted-foreground/40 shrink-0" />
 }
 
-export function TracePanel({ steps }: TracePanelProps) {
+export function TracePanel({ steps, onStepClick }: TracePanelProps) {
   return (
     <div className="flex flex-col gap-0">
       {steps.map((step, i) => (
-        <div key={step.id} className="flex gap-3">
+        <div
+          key={step.id}
+          className={cn("flex gap-3", step.rawData && "group cursor-pointer")}
+          onClick={() => step.rawData && onStepClick?.(step)}
+        >
           <div className="flex flex-col items-center">
             <div className="mt-1">
               <StepIcon status={step.status} />
@@ -57,6 +73,11 @@ export function TracePanel({ steps }: TracePanelProps) {
               )}>
                 {step.label}
               </span>
+              {step.rawData && (
+                <span className="text-xs text-muted-foreground/50 group-hover:text-primary transition-colors ml-1">
+                  view ↗
+                </span>
+              )}
               {step.status === "rejected" && (
                 <Badge variant="destructive" className="text-xs py-0">rejected</Badge>
               )}
