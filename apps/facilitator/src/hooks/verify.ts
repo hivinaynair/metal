@@ -20,5 +20,5 @@ export async function onBeforeVerify(
     { payer, amountAtomic: paymentAmountAtomic, authorizationNonce, resource: paymentPayload.resource },
     deps,
   )
-  if (!result.ok) return { abort: true, reason: result.reason }
+  if (result.ok === false) return { abort: true, reason: result.reason }
 }

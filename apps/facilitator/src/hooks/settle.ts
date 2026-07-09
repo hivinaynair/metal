@@ -35,7 +35,7 @@ export async function onBeforeSettle({
     { payer, amountAtomic: paymentAmountAtomic, authorizationNonce, resource: paymentPayload.resource },
     verifyDeps,
   )
-  if (!mandateResult.ok) return { abort: true, reason: mandateResult.reason }
+  if (mandateResult.ok === false) return { abort: true, reason: mandateResult.reason }
 
   // Check facilitator policy ceiling
   const policyMaxAtomic = getPolicyMaxAtomic()
