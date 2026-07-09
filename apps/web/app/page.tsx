@@ -160,7 +160,7 @@ export default function Page() {
             </pre>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Portable, on-chain-anchored evidence appears here after a run.
+              Portable decision evidence appears here after a run.
             </p>
           )}
         </DashboardPanel>

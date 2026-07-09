@@ -14,10 +14,10 @@ export function PacketPanel({
   const rows = [
     ["Amount", `${amount.replace("$", "")} USDC`],
     ["From", from],
-    ["To", "0xMetal…9E21"],
+    ["To", "configured payTo"],
     ["Mandate", mandate],
     ["Policy", policy],
-    ["Created", "14:23:10.912Z"],
+    ["Created", "after run"],
   ]
 
   return (

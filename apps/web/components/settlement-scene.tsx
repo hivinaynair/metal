@@ -294,8 +294,8 @@ export function SettlementScene({
   const packetLeft = packetPosition(activeStep, rejectedReason)
   const latestReasoning = agentReasoning?.replace(/\s+/g, " ").trim().slice(-100)
   const normalizedRoute = routeLabel
-    .replace("/api/settlement-risk-report", "GET /v1/market-data")
-    .replace("/api/premium-risk-report", "GET /v1/bulk-feed")
+    .replace("/api/settlement-risk-report", "Settlement risk report")
+    .replace("/api/premium-risk-report", "Premium risk report")
   const statusTone =
     agentStatus === "Trusted" || agentStatus === "approved"
       ? "bg-positive-surface text-positive"

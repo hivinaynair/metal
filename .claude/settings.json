@@ -111,7 +111,8 @@
       "Bash(ls /Users/vinay/bare-metal/.env*)",
       "Bash(ls /Users/vinay/bare-metal/apps/facilitator/.env*)",
       "Bash(ls /Users/vinay/bare-metal/packages/db/.env*)",
-      "Bash(bun pm:*)"
+      "Bash(bun pm:*)",
+      "Bash(grep -E \"\\\\.\\(md|txt|yml|yaml\\)$\")"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",

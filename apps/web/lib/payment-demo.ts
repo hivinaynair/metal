@@ -6,33 +6,33 @@ export const SCENARIOS = [
     agentName: "metal-agent-1",
     slot: "A",
     title: "Happy path",
-    displayAgent: "Orion Pay",
-    packetFrom: "0x9F21...Ae21",
-    mandate: "ap2_9F21...Ae21",
+    displayAgent: "metal-agent-1",
+    packetFrom: "agent wallet pending",
+    mandate: "AP2 credential",
   },
   {
     agentName: "metal-agent-2",
     slot: "B",
     title: "Mandate exceeded",
-    displayAgent: "Atlas Treasury",
-    packetFrom: "0xC4b8...A1F0",
-    mandate: "ap2_C4b8...A1F0",
+    displayAgent: "metal-agent-2",
+    packetFrom: "agent wallet pending",
+    mandate: "AP2 credential",
   },
   {
     agentName: "metal-agent-3",
     slot: "C",
     title: "Policy exceeded",
-    displayAgent: "Nova Fetch",
-    packetFrom: "0x3af5...Ab12",
-    mandate: "ap2_3af5...Ab12",
+    displayAgent: "metal-agent-3",
+    packetFrom: "agent wallet pending",
+    mandate: "AP2 credential",
   },
   {
     agentName: "metal-agent-ghost",
     slot: "D",
     title: "Unregistered agent",
-    displayAgent: "Ghost Runner",
-    packetFrom: "0x62c1...Gh09",
-    mandate: "ap2_none",
+    displayAgent: "metal-agent-ghost",
+    packetFrom: "agent wallet pending",
+    mandate: "AP2 credential",
   },
 ] as const
 
@@ -65,7 +65,7 @@ export function fallbackRouteForAgent(agent: DemoAgent) {
   return {
     id: premium ? "premium" : "basic",
     path: premium ? "/api/premium-risk-report" : "/api/settlement-risk-report",
-    price: agent.route.includes("$2") ? "$2.00" : "$0.50",
+    price: premium ? "$5.00" : "$0.50",
   }
 }
 

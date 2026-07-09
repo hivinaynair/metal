@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og"
 
 export const runtime = "edge"
-export const alt = "Metal"
+export const alt = "Bare Metal"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
@@ -45,7 +45,7 @@ export default function OgImage() {
               letterSpacing: "-2px",
             }}
           >
-            Metal
+            Bare Metal
           </div>
           <div
             style={{
@@ -53,7 +53,7 @@ export default function OgImage() {
               fontSize: 28,
             }}
           >
-            Global infrastructure for tokenized financial products
+            Unofficial Metal-inspired settlement rail demo
           </div>
         </div>
       </div>

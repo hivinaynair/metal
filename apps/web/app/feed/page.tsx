@@ -16,7 +16,7 @@ export default async function FeedPage() {
       <PageHead
         eyebrow="Compliance flight recorder"
         title="Every attempt, on the record"
-        question="Each row is a full lifecycle trace with on-chain proof: approvals and rejections alike."
+        question="Each row is a full lifecycle trace: approved settlements include on-chain proof, and rejections preserve the policy snapshot."
         right={
           <div className="metal-card flex items-center gap-4 px-4 py-3">
             <div>
@@ -33,7 +33,7 @@ export default async function FeedPage() {
           {rows.length === 0 ? (
             <div className="border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
               No transactions yet. Run the live rail to generate the first
-              attestation.
+              decision record.
             </div>
           ) : (
             <FeedTable rows={rows} agentNames={agentNames} />

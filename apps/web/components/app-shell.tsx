@@ -31,13 +31,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link href="/" className="flex items-center gap-2.5 border-0">
             <Image
               src="/logo-mark-light.svg"
-              alt="Metal"
+              alt="Bare Metal"
               width={28}
               height={28}
               className="size-7"
               priority
             />
-            <span className="font-serif text-[21px] tracking-tight">Metal</span>
+            <span className="font-serif text-[21px] tracking-tight">
+              Bare Metal
+            </span>
           </Link>
           <p className="mt-3.5 font-serif text-[15px] leading-tight text-text-secondary">
             Compliance before
@@ -97,7 +99,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center gap-3 border-b border-border bg-background/95 px-4 py-3 lg:hidden">
           <Link href="/" className="border-0 font-serif text-xl tracking-tight">
-            Metal
+            Bare Metal
           </Link>
           <nav className="ml-auto flex items-center gap-4 overflow-x-auto text-xs text-muted-foreground">
             {nav.slice(0, 4).map((item) => {

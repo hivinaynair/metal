@@ -5,27 +5,17 @@ import { ExactEvmScheme } from "@x402/evm/exact/server"
 import { env } from "@/env"
 import { getReportRoute, type ReportRouteId } from "@/lib/demo-scenarios"
 
-// Minimal custom client that forwards X-AP2-Mandate to the facilitator.
-// Falls back to the standard HTTPFacilitatorClient when no mandate is present.
-class MandateFacilitatorClient {
-  private inner: HTTPFacilitatorClient
-  private baseUrl: string
+function makeMandateClient(url: string, mandateJson: string | undefined) {
+  const inner = new HTTPFacilitatorClient({ url })
+  if (!mandateJson) return inner
+  const mandate = mandateJson
 
-  constructor(url: string, private mandateJson: string | undefined) {
-    this.inner = new HTTPFacilitatorClient({ url })
-    this.baseUrl = url.replace(/\/+$/, "")
-  }
+  const baseUrl = url.replace(/\/+$/, "")
 
-  async getSupported() {
-    return this.inner.getSupported()
-  }
-
-  private async call(path: "verify" | "settle", paymentPayload: unknown, paymentRequirements: unknown) {
-    const headers: Record<string, string> = { "Content-Type": "application/json" }
-    if (this.mandateJson) headers["X-AP2-Mandate"] = this.mandateJson
-    const response = await fetch(`${this.baseUrl}/${path}`, {
+  async function callWithMandate(path: "verify" | "settle", paymentPayload: unknown, paymentRequirements: unknown) {
+    const response = await fetch(`${baseUrl}/${path}`, {
       method: "POST",
-      headers,
+      headers: { "Content-Type": "application/json", "X-AP2-Mandate": mandate },
       body: JSON.stringify({
         x402Version: (paymentPayload as { x402Version?: number }).x402Version ?? 2,
         paymentPayload,
@@ -42,16 +32,12 @@ class MandateFacilitatorClient {
     return response.json()
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async verify(paymentPayload: any, paymentRequirements: any) {
-    if (!this.mandateJson) return this.inner.verify(paymentPayload, paymentRequirements)
-    return this.call("verify", paymentPayload, paymentRequirements)
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async settle(paymentPayload: any, paymentRequirements: any) {
-    if (!this.mandateJson) return this.inner.settle(paymentPayload, paymentRequirements)
-    return this.call("settle", paymentPayload, paymentRequirements)
+  return {
+    getSupported: () => inner.getSupported(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    verify: (paymentPayload: any, paymentRequirements: any) => callWithMandate("verify", paymentPayload, paymentRequirements),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    settle: (paymentPayload: any, paymentRequirements: any) => callWithMandate("settle", paymentPayload, paymentRequirements),
   }
 }
 
@@ -88,7 +74,7 @@ export function createRiskReportHandler(routeId: ReportRouteId) {
   return async (request: NextRequest) => {
     try {
       const mandateJson = request.headers.get("X-AP2-Mandate") ?? undefined
-      const facilitator = new MandateFacilitatorClient(env.FACILITATOR_URL, mandateJson)
+      const facilitator = makeMandateClient(env.FACILITATOR_URL, mandateJson)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const server = new x402ResourceServer(facilitator as any).register("eip155:84532", new ExactEvmScheme())
       await server.initialize()
