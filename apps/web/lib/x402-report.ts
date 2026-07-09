@@ -6,39 +6,16 @@ import { env } from "@/env"
 import { getReportRoute, type ReportRouteId } from "@/lib/demo-scenarios"
 
 function makeMandateClient(url: string, mandateJson: string | undefined) {
-  const inner = new HTTPFacilitatorClient({ url })
-  if (!mandateJson) return inner
-  const mandate = mandateJson
+  if (!mandateJson) return new HTTPFacilitatorClient({ url })
 
-  const baseUrl = url.replace(/\/+$/, "")
-
-  async function callWithMandate(path: "verify" | "settle", paymentPayload: unknown, paymentRequirements: unknown) {
-    const response = await fetch(`${baseUrl}/${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-AP2-Mandate": mandate },
-      body: JSON.stringify({
-        x402Version: (paymentPayload as { x402Version?: number }).x402Version ?? 2,
-        paymentPayload,
-        paymentRequirements,
-      }),
-    })
-    const contentType = response.headers.get("content-type") ?? ""
-    if (!contentType.includes("application/json")) {
-      const text = await response.text()
-      throw new Error(
-        `Facilitator ${path} returned ${response.status} ${response.statusText}: ${text.slice(0, 240) || "empty response"}`
-      )
-    }
-    return response.json()
-  }
-
-  return {
-    getSupported: () => inner.getSupported(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    verify: (paymentPayload: any, paymentRequirements: any) => callWithMandate("verify", paymentPayload, paymentRequirements),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    settle: (paymentPayload: any, paymentRequirements: any) => callWithMandate("settle", paymentPayload, paymentRequirements),
-  }
+  return new HTTPFacilitatorClient({
+    url,
+    createAuthHeaders: async () => ({
+      verify: { "X-AP2-Mandate": mandateJson },
+      settle: { "X-AP2-Mandate": mandateJson },
+      supported: {},
+    }),
+  })
 }
 
 export function createRiskReportHandler(routeId: ReportRouteId) {
