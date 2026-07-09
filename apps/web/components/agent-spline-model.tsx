@@ -35,7 +35,7 @@ export function AgentSplineModel({
 
   return (
     <div
-      className="absolute left-1/2 top-1/2 h-[300px] w-[200px] -translate-x-1/2 -translate-y-[50%] scale-50 md:scale-80 transition-opacity duration-700"
+      className="absolute left-1/2 top-1/2 h-[420px] w-[220px] -translate-x-1/2 -translate-y-[43%] transition-opacity duration-700"
       style={{ opacity: loaded ? 1 : 0 }}
     >
       <Spline

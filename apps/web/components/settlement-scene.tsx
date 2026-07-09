@@ -419,7 +419,7 @@ export function SettlementScene({
                 : "settlement-pipeline border-accent/50 shadow-rail-positive"
             )}
           >
-            <p className={cn("font-mono text-[7px] font-bold tracking-[0.18em] uppercase", rejected ? "text-destructive" : "text-accent")}>
+            <p className={cn("font-mono text-[8px] font-bold  uppercase", rejected ? "text-destructive" : "text-primary/80")}>
               Payment
             </p>
             <p className="mt-0.5 font-mono text-xs font-semibold text-white">{amountLabel}</p>
