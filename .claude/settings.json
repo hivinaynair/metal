@@ -112,7 +112,10 @@
       "Bash(ls /Users/vinay/bare-metal/apps/facilitator/.env*)",
       "Bash(ls /Users/vinay/bare-metal/packages/db/.env*)",
       "Bash(bun pm:*)",
-      "Bash(grep -E \"\\\\.\\(md|txt|yml|yaml\\)$\")"
+      "Bash(grep -E \"\\\\.\\(md|txt|yml|yaml\\)$\")",
+      "Bash(pnpm --filter facilitator typecheck)",
+      "Bash(bun --filter facilitator typecheck)",
+      "Bash(bun --filter @workspace/db db:push)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",

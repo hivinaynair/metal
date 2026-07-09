@@ -1,15 +1,15 @@
 import { keccak256 } from "viem"
+import type { PublicClient } from "viem"
 import { parseMandateHeader } from "@workspace/shared/mandate-header"
 import { lookupIdentity } from "@workspace/shared/identity"
 import { IdentityStatus, Decision } from "@workspace/shared/types"
+import { buildDecisionRecord } from "@workspace/shared/decision-record"
+import type { MandateHeaderValue } from "@workspace/shared/mandate-header"
+import { schema } from "@workspace/db"
 import { verifyMandateSignature, USDC_ATOMIC_FACTOR } from "./mandate.js"
 import { requestCtx } from "./request-context.js"
 import { getPolicyMaxAtomic } from "./policy-store.js"
-import { buildDecisionRecord } from "@workspace/shared/decision-record"
 import { getDb } from "./db.js"
-import { schema } from "@workspace/db"
-import type { MandateHeaderValue } from "@workspace/shared/mandate-header"
-import type { PublicClient } from "viem"
 
 export interface VerifyDeps {
   verifyMandateSignature: typeof verifyMandateSignature
@@ -37,7 +37,7 @@ export function buildVerifyRejectionPaymentHash({
   return keccak256(new TextEncoder().encode(hashSeed) as unknown as `0x${string}`)
 }
 
-async function recordRejection({
+export async function recordRejection({
   agentId,
   amountAtomic,
   authorizationNonce,
@@ -63,7 +63,7 @@ async function recordRejection({
     reason,
     resource,
   })
-  const policyMaxAmountUsdc = getPolicyMaxAtomic()
+  const policyMaxAtomic = await getPolicyMaxAtomic()
   const decisionRecord = buildDecisionRecord({
     agentId,
     amountAtomic,
@@ -73,7 +73,7 @@ async function recordRejection({
     payer,
     paymentHash,
     authorizationNonce,
-    policyMaxAtomic: policyMaxAmountUsdc,
+    policyMaxAtomic,
     resource,
     rejectionReason: reason,
   })
@@ -84,14 +84,14 @@ async function recordRejection({
       attestationTx: null,
       payerAddress: payer,
       amountUsdc: amountAtomic,
-      policyMaxAmountUsdc,
+      policyMaxAmountUsdc: policyMaxAtomic,
       decisionRecord,
       identityStatus,
       decision: Decision.Rejected,
       authorizationNonce: authorizationNonce ?? null,
     })
   } catch (err) {
-    console.error("[validateMandateForPayment] db insert failed:", err)
+    console.error("[recordRejection] db insert failed:", err)
   }
 }
 

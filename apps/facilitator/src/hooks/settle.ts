@@ -5,20 +5,20 @@ import { IdentityStatus, Decision } from "@workspace/shared/types"
 import { schema } from "@workspace/db"
 import { buildDecisionRecord } from "@workspace/shared/decision-record"
 import { parseMandateHeader } from "@workspace/shared/mandate-header"
+import type { SettleResponse } from "@x402/core/types"
+import type {
+  FacilitatorSettleContext,
+  FacilitatorSettleResultContext,
+  FacilitatorSettleFailureContext,
+} from "@x402/core/facilitator"
 import { walletClient, account } from "../lib/clients.js"
-import { validateMandateForPayment, buildVerifyRejectionPaymentHash } from "../lib/validate-mandate.js"
+import { validateMandateForPayment, recordRejection } from "../lib/validate-mandate.js"
 import { verifyDeps } from "../lib/deps.js"
 import { getPayerAddress, extractAuthNonce } from "../lib/mandate.js"
 import { getDb } from "../lib/db.js"
 import { requestCtx } from "../lib/request-context.js"
 import { env } from "../env.js"
 import { getPolicyMaxAtomic } from "../lib/policy-store.js"
-import type {
-  FacilitatorSettleContext,
-  FacilitatorSettleResultContext,
-  FacilitatorSettleFailureContext,
-} from "@x402/core/facilitator"
-import type { SettleResponse } from "@x402/core/types"
 
 export async function onBeforeSettle({
   paymentPayload,
@@ -38,45 +38,18 @@ export async function onBeforeSettle({
   if (mandateResult.ok === false) return { abort: true, reason: mandateResult.reason }
 
   // Check facilitator policy ceiling
-  const policyMaxAtomic = getPolicyMaxAtomic()
+  const policyMaxAtomic = await getPolicyMaxAtomic()
   if (paymentAmountAtomic > policyMaxAtomic) {
-    const { mandateEntry } = mandateResult
-    const paymentHash = buildVerifyRejectionPaymentHash({
+    await recordRejection({
+      agentId: mandateResult.mandateEntry.agentId,
       amountAtomic: paymentAmountAtomic,
       authorizationNonce,
+      identityStatus: IdentityStatus.Verified,
+      mandateEntry: mandateResult.mandateEntry,
       payer,
       reason: "policy_amount_exceeded",
       resource: paymentPayload.resource,
     })
-    const decisionRecord = buildDecisionRecord({
-      agentId: mandateEntry.agentId,
-      amountAtomic: paymentAmountAtomic,
-      decision: Decision.Rejected,
-      identityStatus: IdentityStatus.Verified,
-      mandate: mandateEntry.mandate,
-      payer,
-      paymentHash,
-      authorizationNonce: authorizationNonce ?? null,
-      policyMaxAtomic,
-      resource: paymentPayload.resource,
-      rejectionReason: "policy_amount_exceeded",
-    })
-    try {
-      await getDb().insert(schema.settlementAttestations).values({
-        paymentHash,
-        settlementTx: null,
-        attestationTx: null,
-        payerAddress: payer,
-        amountUsdc: paymentAmountAtomic,
-        policyMaxAmountUsdc: policyMaxAtomic,
-        decisionRecord,
-        identityStatus: IdentityStatus.Verified,
-        decision: Decision.Rejected,
-        authorizationNonce: authorizationNonce ?? null,
-      })
-    } catch (err) {
-      console.error("[onBeforeSettle] db insert failed:", err)
-    }
     return { abort: true, reason: "policy_amount_exceeded" }
   }
 }
@@ -91,7 +64,7 @@ export async function onAfterSettle({
   if (!payer) return
 
   const amountUsdcAtomic = BigInt(paymentPayload.accepted.amount)
-  const policyMaxAtomic = getPolicyMaxAtomic()
+  const policyMaxAtomic = await getPolicyMaxAtomic()
   const paymentHash = keccak256(result.transaction as `0x${string}`)
 
   const { mandateJson } = requestCtx.get()
@@ -153,8 +126,8 @@ export async function onSettleFailure({
   paymentPayload,
   requirements,
 }: FacilitatorSettleFailureContext): Promise<void | { recovered: true; result: SettleResponse }> {
-  const authNonce = extractAuthNonce(paymentPayload.payload)
-  if (!authNonce) return
+  const authorizationNonce = extractAuthNonce(paymentPayload.payload)
+  if (!authorizationNonce) return
 
   const db = getDb()
   try {
@@ -163,14 +136,14 @@ export async function onSettleFailure({
       .from(schema.settlementAttestations)
       .where(
         and(
-          eq(schema.settlementAttestations.authorizationNonce, authNonce),
+          eq(schema.settlementAttestations.authorizationNonce, authorizationNonce),
           eq(schema.settlementAttestations.decision, Decision.Approved),
         )
       )
       .limit(1)
 
     if (existing.length > 0 && existing[0]!.settlementTx) {
-      console.log("[onSettleFailure] duplicate detected, recovering:", authNonce)
+      console.log("[onSettleFailure] duplicate detected, recovering:", authorizationNonce)
       return {
         recovered: true,
         result: { success: true, transaction: existing[0]!.settlementTx, network: requirements.network },

@@ -1,15 +1,11 @@
 import { DEMO_POLICY_MAX_AMOUNT_USDC } from "@workspace/shared/demo"
-import { createEnv } from "@t3-oss/env-core"
 import { z } from "zod"
 
-
-export const env = createEnv({
-  server: {
-    FACILITATOR_PRIVATE_KEY: z.string().startsWith("0x") as z.ZodType<`0x${string}`>,
-    ATTESTATION_REGISTRY_ADDRESS: z.string().startsWith("0x") as z.ZodType<`0x${string}`>,
-    POLICY_MAX_AMOUNT_USDC: z.coerce.number().default(DEMO_POLICY_MAX_AMOUNT_USDC),
-    PORT: z.coerce.number().default(3001),
-  },
-  runtimeEnv: process.env,
-  emptyStringAsUndefined: true,
+const schema = z.object({
+  FACILITATOR_PRIVATE_KEY: z.custom<`0x${string}`>((v) => typeof v === "string" && v.startsWith("0x")),
+  ATTESTATION_REGISTRY_ADDRESS: z.custom<`0x${string}`>((v) => typeof v === "string" && v.startsWith("0x")),
+  POLICY_MAX_AMOUNT_USDC: z.coerce.number().default(DEMO_POLICY_MAX_AMOUNT_USDC),
+  PORT: z.coerce.number().default(3001),
 })
+
+export const env = schema.parse(process.env)

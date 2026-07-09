@@ -77,15 +77,15 @@ app.get("/decision-records/latest", async (c) => {
   return c.json({ decisionRecord: rows[0]?.decisionRecord ?? null })
 })
 
-app.get("/policy", (c) => c.json({ maxAmountUsdc: getPolicyMaxAmountUsdc() }))
+app.get("/policy", async (c) => c.json({ maxAmountUsdc: await getPolicyMaxAmountUsdc() }))
 
 app.post("/policy", async (c) => {
   const body = await c.req.json() as { maxAmountUsdc?: unknown }
   if (typeof body.maxAmountUsdc !== "number") {
     return c.json({ error: "maxAmountUsdc must be a number" }, 400)
   }
-  setPolicyMaxAmountUsdc(body.maxAmountUsdc)
-  return c.json({ maxAmountUsdc: getPolicyMaxAmountUsdc() })
+  await setPolicyMaxAmountUsdc(body.maxAmountUsdc)
+  return c.json({ maxAmountUsdc: await getPolicyMaxAmountUsdc() })
 })
 
 export default app
