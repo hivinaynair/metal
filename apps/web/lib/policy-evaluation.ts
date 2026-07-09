@@ -51,19 +51,19 @@ export function evaluatePolicy({
     }
   }
 
-  if (requireMandate && paymentAmount > agent.maxAmountUsdc) {
-    return {
-      pass: false,
-      rule: "mandateLimit",
-      reason: `${paymentAmount.toFixed(2)} USDC exceeds ${agent.maxAmountUsdc.toFixed(2)} USDC mandate.`,
-    }
-  }
-
   if (paymentAmount > maxAmountUsdc) {
     return {
       pass: false,
       rule: "maxAmountUsdc",
       reason: `${paymentAmount.toFixed(2)} USDC exceeds ${maxAmountUsdc.toFixed(2)} USDC policy limit.`,
+    }
+  }
+
+  if (requireMandate && paymentAmount > agent.maxAmountUsdc) {
+    return {
+      pass: false,
+      rule: "mandateLimit",
+      reason: `${paymentAmount.toFixed(2)} USDC exceeds ${agent.maxAmountUsdc.toFixed(2)} USDC mandate.`,
     }
   }
 
