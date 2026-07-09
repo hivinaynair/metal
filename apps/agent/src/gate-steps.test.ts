@@ -14,6 +14,7 @@ describe("gateStepsForResult", () => {
     expect(gateStepsForResult("mandate_amount_exceeded", undefined)).toEqual([2, 3])
     expect(gateStepsForResult("mandate_missing", undefined)).toEqual([2, 3])
     expect(gateStepsForResult("mandate_invalid", undefined)).toEqual([2, 3])
+    expect(gateStepsForResult("mandate_signature_invalid", undefined)).toEqual([2, 3])
     expect(gateStepsForResult("mandate_expired", undefined)).toEqual([2, 3])
   })
 

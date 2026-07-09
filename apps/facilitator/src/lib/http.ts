@@ -1,36 +1,29 @@
 import type { Context } from "hono"
+import { z } from "zod"
 
 export type JsonObject = Record<string, unknown>
 
+const JsonObjectSchema = z.record(z.unknown())
+
 export function isRecord(value: unknown): value is JsonObject {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
+  return JsonObjectSchema.safeParse(value).success
 }
 
 export async function readJsonObject(c: Context): Promise<JsonObject | Response> {
   try {
     const body = await c.req.json()
-    if (!isRecord(body)) return c.json({ error: "request body must be a JSON object" }, 400)
-    return body
+    const result = JsonObjectSchema.safeParse(body)
+    if (!result.success) return c.json({ error: "request body must be a JSON object" }, 400)
+    return result.data
   } catch {
     return c.json({ error: "invalid JSON body" }, 400)
   }
 }
 
-export function parseBigIntField(value: unknown, field: string): bigint | string {
-  if (typeof value !== "string" && typeof value !== "number" && typeof value !== "bigint") {
-    return `${field} must be an integer`
-  }
-  if (typeof value === "number" && !Number.isSafeInteger(value)) {
-    return `${field} must be a safe integer or integer string`
-  }
-  if (typeof value === "string" && !/^\d+$/.test(value)) {
-    return `${field} must be a non-negative integer`
-  }
+const BigIntSchema = z.coerce.bigint().nonnegative()
 
-  try {
-    const parsed = BigInt(value)
-    return parsed >= 0n ? parsed : `${field} must be non-negative`
-  } catch {
-    return `${field} must be an integer`
-  }
+export function parseBigIntField(value: unknown, field: string): bigint | string {
+  const result = BigIntSchema.safeParse(value)
+  if (!result.success) return `${field} must be a non-negative integer`
+  return result.data
 }

@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs"
 import { resolve } from "node:path"
+import { verifyTypedData } from "viem"
 import type { Address, Hex } from "viem"
 import type { MandatePayload } from "@workspace/shared/mandate"
 import {
@@ -47,19 +48,29 @@ export async function ensureMandate({
   onChainAgentId: bigint
 }): Promise<SignedMandateForBootstrap> {
   const file = readMandateFile()
+  const expectedPayload = newMandatePayload(address, delegator.address, agentName, onChainAgentId)
 
   if (file[addressLower]) {
     const entry = parseSerializedMandateHeader(file[addressLower])
-    if (entry) {
+    if (
+      entry &&
+      entry.agentId === onChainAgentId &&
+      entry.mandate.payload.agent.toLowerCase() === addressLower &&
+      entry.mandate.payload.delegator.toLowerCase() === delegator.address.toLowerCase() &&
+      entry.mandate.payload.maxAmountUsdc === expectedPayload.maxAmountUsdc &&
+      entry.mandate.payload.expiry >= BigInt(Math.floor(Date.now() / 1000)) &&
+      await verifyMandate(entry.mandate)
+    ) {
       console.log("[bootstrap]   Mandate already exists - rehydrating from file")
       return {
         payload: entry.mandate.payload,
         signature: entry.mandate.signature,
       }
     }
+    console.log("[bootstrap]   Existing mandate is stale or invalid - regenerating")
   }
 
-  const payload = newMandatePayload(address, delegator.address, agentName, onChainAgentId)
+  const payload = expectedPayload
   const signature = await delegator.signTypedData({
     domain: MANDATE_EIP712_DOMAIN,
     types: MANDATE_EIP712_TYPES,
@@ -76,6 +87,17 @@ export async function ensureMandate({
 
   console.log("[bootstrap]   Mandate signed and written to mandates.json")
   return { payload, signature }
+}
+
+function verifyMandate(mandate: { payload: MandatePayload; signature: Hex }) {
+  return verifyTypedData({
+    address: mandate.payload.delegator,
+    domain: MANDATE_EIP712_DOMAIN,
+    types: MANDATE_EIP712_TYPES,
+    primaryType: "MandatePayload",
+    message: mandate.payload,
+    signature: mandate.signature,
+  })
 }
 
 function newMandatePayload(
