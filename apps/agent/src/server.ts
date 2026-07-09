@@ -1,13 +1,13 @@
 import { Hono } from "hono"
 import { serve } from "@hono/node-server"
 import { isAddress } from "viem"
-import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
-import { DemoAgentName, type DecisionRecord } from "@workspace/shared/types"
+import { DemoAgentName } from "@workspace/shared/types"
+import type { RawMandate } from "@workspace/shared/types"
+import { MANDATE_EIP712_DOMAIN, MANDATE_EIP712_TYPES } from "@workspace/shared/mandate"
 import { getAp2CredentialForAgent } from "./credentials.js"
 import { validateRunRequest } from "./run-request.js"
-import { performX402Fetch } from "./tools.js"
-import { gateStepsForResult } from "./gate-steps.js"
-import type { CdpClient } from "@coinbase/cdp-sdk"
+import { getCdp } from "./cdp.js"
+import { buildRunStream } from "./run-stream.js"
 
 const PORT = Number(process.env.PORT ?? 3002)
 
@@ -15,89 +15,26 @@ const AGENT_NAME = "Metal Agent"
 const AGENT_VERSION = "1.0.0"
 const AGENT_CAPABILITIES = ["payment", "settlement"]
 
-const AGENT_PROMPT: Record<DemoAgentName, string> = {
-  [DemoAgentName.AGENT_1]: `You are metal-agent-1, a financial agent on Base Sepolia. Call x402Fetch to fetch the settlement risk report and pay for it. Report the settlement tx hash.`,
-  [DemoAgentName.AGENT_2]: `You are metal-agent-2, a financial agent on Base Sepolia. Call x402Fetch to fetch the premium report. Report exactly what error the facilitator returned.`,
-  [DemoAgentName.AGENT_3]: `You are metal-agent-3, a financial agent on Base Sepolia. Call x402Fetch to fetch the premium report. Report exactly what error the facilitator returned.`,
-  [DemoAgentName.GHOST]: `You are metal-agent-ghost on Base Sepolia. Call x402Fetch to fetch the settlement risk report. Report exactly what error the facilitator returned.`,
-}
-
-function errorFromBody(body: unknown): string | undefined {
-  if (!body || typeof body !== "object") return undefined
-  const record = body as Record<string, unknown>
-  for (const key of ["error", "reason", "message"]) {
-    const value = record[key]
-    if (typeof value === "string" && value.trim()) return value
-  }
-  return undefined
-}
-
-function agentMetadataUri(agentUrl: string, address: string): string {
-  return `${agentUrl.replace(/\/+$/, "")}/api/agent/${address}`
-}
-
-let _cdp: CdpClient | undefined
-async function getCdp() {
-  if (!_cdp) {
-    const { CdpClient } = await import("@coinbase/cdp-sdk")
-    _cdp = new CdpClient()
-  }
-  return _cdp
-}
-
-// Poll facilitator for its canonical decision record. The settlement hook can lag the x402 response.
-async function getDecisionRecord(
-  {
-    authorizationNonce,
-    payer,
-    settlementTxHash,
-  }: {
-    authorizationNonce?: string
-    payer: string
-    settlementTxHash?: string
-  },
-  retries = 5
-): Promise<DecisionRecord | undefined> {
-  const baseUrl = process.env.FACILITATOR_URL?.replace(/\/+$/, "")
-  if (!baseUrl) return undefined
-
-  for (let i = 0; i < retries; i++) {
-    const path = settlementTxHash
-      ? `/decision-records/by-settlement/${settlementTxHash}`
-      : authorizationNonce
-        ? `/decision-records/by-auth-nonce/${encodeURIComponent(authorizationNonce)}`
-        : `/decision-records/latest?payer=${encodeURIComponent(payer.toLowerCase())}`
-    const response = await fetch(`${baseUrl}${path}`).catch(() => undefined)
-    const body = response?.ok
-      ? ((await response.json().catch(() => undefined)) as
-          { decisionRecord?: DecisionRecord | null } | undefined)
-      : undefined
-    if (body?.decisionRecord) return body.decisionRecord
-    await new Promise((r) => setTimeout(r, 800))
-  }
-  return undefined
-}
-
 const app = new Hono()
 
 app.get("/health", (c) => c.text("ok"))
+app.get("/", (c) => c.text("ok"))
+
 
 app.get("/api/agent/:address", (c) => {
   const address = c.req.param("address")
   if (!isAddress(address)) {
     return c.json({ error: "invalid agent address" }, 400)
   }
-
-  return c.json({
-    address,
-    name: AGENT_NAME,
-    version: AGENT_VERSION,
-    capabilities: AGENT_CAPABILITIES,
-  })
+  return c.json({ address, name: AGENT_NAME, version: AGENT_VERSION, capabilities: AGENT_CAPABILITIES })
 })
 
 // Returns all agent addresses — used by demo:bootstrap to sign mandates
 app.get("/agents", async (c) => {
+  const secret = process.env.BOOTSTRAP_SECRET
+  if (secret && c.req.header("Authorization") !== `Bearer ${secret}`) {
+    return c.json({ error: "unauthorized" }, 401)
+  }
   const cdp = await getCdp()
   const agents = await Promise.all(
     Object.values(DemoAgentName).map(async (agentName) => {
@@ -114,109 +51,51 @@ app.post("/run", async (c) => {
   const agentUrl = process.env.AGENT_URL ?? `http://localhost:${PORT}`
 
   const body = await c.req.json().catch(() => undefined)
+
   if (!body || typeof body !== "object") {
     return c.json({ error: "JSON body is required" }, 400)
   }
 
   const validated = validateRunRequest(body, appUrl)
+
   if (validated.ok === false) {
     return c.json({ error: validated.error }, 400)
   }
 
   const { agentName, targetUrl } = validated.value
-  const account = await (
-    await getCdp()
-  ).evm.getOrCreateAccount({ name: agentName })
+
+  const cdp = await getCdp()
+  const account = await cdp.evm.getOrCreateAccount({ name: agentName })
   const credential = getAp2CredentialForAgent(account.address)
+  
   if (!credential) {
     return c.json({ error: "mandate_missing" }, 503)
   }
 
-  const stream = new ReadableStream({
-    async start(controller) {
-      const enc = new TextEncoder()
-      const send = (obj: unknown) =>
-        controller.enqueue(enc.encode(`data: ${JSON.stringify(obj)}\n\n`))
-
-      // Gate 0: agent identity resolved
-      send({ type: "gate", step: 0 })
-
-      let settlementTxHash: string | undefined
-      let authorizationNonce: string | undefined
-      let httpStatus: number | undefined
-      let responseError: string | undefined
-
-      try {
-        send({ type: "token", text: `${AGENT_PROMPT[agentName]}\n` })
-        send({ type: "gate", step: 1 })
-
-        const r = await performX402Fetch(account, targetUrl, {
-          mandateHeader: credential.header,
-        })
-        authorizationNonce = r.authorizationNonce
-        settlementTxHash = r.txHash
-        httpStatus = r.httpStatus
-        responseError = r.paymentRequiredError ?? errorFromBody(r.body)
-        if (!responseError && r.httpStatus >= 400) {
-          responseError = `http_${r.httpStatus}`
-        }
-      } catch (err) {
-        httpStatus = 500
-        responseError = err instanceof Error ? err.message : String(err)
-        send({ type: "token", text: `\n[Agent error: ${responseError}]` })
-      }
-
-      // Emit facilitator gate steps based on the settlement outcome.
-      // Paced at 120ms each so the UI animation has time to render each step.
-      for (const step of gateStepsForResult(responseError, settlementTxHash)) {
-        send({ type: "gate", step })
-        await new Promise((r) => setTimeout(r, 120))
-      }
-
-      const decisionRecord = await getDecisionRecord({
-        authorizationNonce,
-        payer: account.address,
-        settlementTxHash,
-      })
-      const attestationTxHash = decisionRecord?.attestationTxHash
-
-      // Step 6 (attestation) emitted here, not in gateStepsForResult, because it depends on async polling
-      if (!responseError && attestationTxHash) {
-        send({ type: "gate", step: 6 })
-      }
-      const policyMaxAmountUsdc = decisionRecord?.policy.maxAmountUsdc
-
-      send({
-        type: "done",
-        result: {
-          payer: account.address,
-          agentUri: agentMetadataUri(agentUrl, account.address),
-          settlementTxHash,
-          settlementTxUrl: settlementTxHash
-            ? `${BASE_SEPOLIA_EXPLORER}/tx/${settlementTxHash}`
-            : undefined,
-          attestationTxHash: attestationTxHash ?? undefined,
-          attestationTxUrl: attestationTxHash
-            ? `${BASE_SEPOLIA_EXPLORER}/tx/${attestationTxHash}`
-            : undefined,
-          httpStatus,
-          error: responseError,
-          authorizationNonce,
-          policyThreshold: policyMaxAmountUsdc
-            ? `$${policyMaxAmountUsdc}`
-            : undefined,
-          proofLookupError: decisionRecord
-            ? undefined
-            : "decision_record_not_found",
-          decisionProof: decisionRecord,
-        },
-      })
-
-      controller.close()
+  const rawMandate: RawMandate = {
+    agentId: credential.entry.agentId.toString(),
+    domain: {
+      name: MANDATE_EIP712_DOMAIN.name,
+      version: MANDATE_EIP712_DOMAIN.version,
+      chainId: Number(MANDATE_EIP712_DOMAIN.chainId),
     },
-  })
+    types: {
+      MandatePayload: MANDATE_EIP712_TYPES.MandatePayload.map((f) => ({
+        name: f.name,
+        type: f.type,
+      })),
+    },
+    payload: {
+      agent: credential.entry.mandate.payload.agent,
+      delegator: credential.entry.mandate.payload.delegator,
+      maxAmountUsdc: credential.entry.mandate.payload.maxAmountUsdc.toString(),
+      expiry: credential.entry.mandate.payload.expiry.toString(),
+      nonce: credential.entry.mandate.payload.nonce.toString(),
+    },
+    signature: credential.entry.mandate.signature,
+  }
 
-  return new Response(stream, {
+  return new Response(buildRunStream(account, credential, agentName, targetUrl, agentUrl, rawMandate), {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
