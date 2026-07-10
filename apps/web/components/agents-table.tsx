@@ -27,7 +27,7 @@ export type AgentsTableRow = {
   delegatorAddress: string
   maxAmountUsdc: string
   expiry: string
-  status: "Trusted" | "Mandate capped" | "Policy blocked" | "Expired mandate"
+  status: "Trusted" | "Mandate capped" | "Policy blocked" | "Expired mandate" | "Unregistered"
   registered: boolean
 }
 
@@ -39,6 +39,7 @@ const statusStyles: Record<AgentsTableRow["status"], string> = {
   "Mandate capped": "bg-warning-surface text-warning",
   "Policy blocked": "bg-negative-surface text-negative",
   "Expired mandate": "bg-warning-surface text-warning",
+  Unregistered: "bg-muted text-muted-foreground",
 }
 
 function shortAddress(address: string) {
@@ -91,7 +92,9 @@ function FilterSelect<T extends string>({
 
 function AgentIcon({ agent }: { agent: AgentsTableRow }) {
   const warning =
-    agent.status === "Policy blocked" || agent.status === "Expired mandate"
+    agent.status === "Policy blocked" ||
+    agent.status === "Expired mandate" ||
+    agent.status === "Unregistered"
 
   return (
     <span
