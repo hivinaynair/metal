@@ -1,13 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { ChevronRight } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
 import { PolicyConfigPanel } from "./policy-config-panel"
 import { PolicyProofPanel } from "./policy-proof-panel"
 import { PolicyTestPanel } from "./policy-test-panel"
-import { PolicyJson, cn } from "./policy-workbench-shared"
+import { cn } from "@workspace/ui/lib/utils"
+import { PolicyJson } from "./policy-workbench-shared"
 import {
   clampPolicyMax,
   evaluatePolicy,
@@ -38,41 +39,39 @@ export function PolicyWorkbench({
   )
   const [result, setResult] = useState<EvaluationResult | null>(null)
   const [showJson, setShowJson] = useState(false)
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">(
-    "idle"
-  )
+  const [isPending, startTransition] = useTransition()
+  const [saved, setSaved] = useState(false)
 
   const selectedAgent = agents.find((agent) => agent.address === agentAddress)
   const selectedResource = resources.find(
     (resource) => resource.id === resourceId
   )
 
-  const railScenarioIndex =
-    selectedResource?.id === "premium"
-      ? selectedAgent?.maxAmountUsdc &&
-        selectedAgent.maxAmountUsdc >= maxAmountUsdc
-        ? 2
-        : 1
-      : 0
+  let railScenarioIndex = 0
+  if (selectedResource?.id === "premium") {
+    railScenarioIndex =
+      selectedAgent?.maxAmountUsdc && selectedAgent.maxAmountUsdc >= maxAmountUsdc ? 2 : 1
+  }
 
   function setMax(value: number) {
     setMaxAmountUsdc(clampPolicyMax(value))
     setResult(null)
   }
 
-  async function savePolicy() {
-    setSaveState("saving")
-    try {
-      await fetch("/api/policy", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ maxAmountUsdc }),
-      })
-      setSaveState("saved")
-      setTimeout(() => setSaveState("idle"), 2000)
-    } catch {
-      setSaveState("idle")
-    }
+  function savePolicy() {
+    startTransition(async () => {
+      try {
+        await fetch("/api/policy", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ maxAmountUsdc }),
+        })
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2000)
+      } catch {
+        // no-op
+      }
+    })
   }
 
   function evaluate() {
@@ -108,7 +107,8 @@ export function PolicyWorkbench({
       <section className="grid gap-4 xl:grid-cols-2">
         <PolicyConfigPanel
           maxAmountUsdc={maxAmountUsdc}
-          saveState={saveState}
+          isPending={isPending}
+          saved={saved}
           onSetMax={setMax}
           onSavePolicy={savePolicy}
         />
@@ -144,7 +144,7 @@ export function PolicyWorkbench({
               />
               View policy.json
             </Button>
-            {showJson ? <PolicyJson maxAmountUsdc={maxAmountUsdc} /> : null}
+            {showJson && <PolicyJson maxAmountUsdc={maxAmountUsdc} />}
           </div>
         </div>
       </section>

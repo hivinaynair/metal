@@ -63,11 +63,11 @@ export interface TriggerResult {
 export type DemoScenario = (typeof SCENARIOS)[number]
 export type DemoAgent = (typeof demoAgents)[number]
 
+const FALLBACK_ROUTES = {
+  premium: { id: "premium", path: "/api/premium-risk-report", price: "$5.00" },
+  basic: { id: "basic", path: "/api/settlement-risk-report", price: "$0.20" },
+} as const
+
 export function fallbackRouteForAgent(agent: DemoAgent) {
-  const premium = agent.route.startsWith("Premium")
-  return {
-    id: premium ? "premium" : "basic",
-    path: premium ? "/api/premium-risk-report" : "/api/settlement-risk-report",
-    price: premium ? "$5.00" : "$0.20",
-  }
+  return FALLBACK_ROUTES[agent.route.startsWith("Premium") ? "premium" : "basic"]
 }

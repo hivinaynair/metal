@@ -113,7 +113,7 @@ export function AgentsTableBody({ agents }: { agents: AgentsTableRow[] }) {
       </table>
       {agents.length === 0 ? (
         <div className="px-3 py-12 text-center text-sm text-muted-foreground">
-          No agents match your filters.
+          No agents match your search.
         </div>
       ) : null}
     </div>

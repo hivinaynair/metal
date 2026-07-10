@@ -3,8 +3,8 @@ import { schema } from "@workspace/db"
 import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
 import { DEMO_POLICY_MAX_AMOUNT_USDC } from "@workspace/shared/demo"
 import { Decision } from "@workspace/shared/types"
-import { getDb } from "./db"
-import { publicClient } from "./viem-client"
+import { getDb } from "@/lib/db"
+import { publicClient } from "@/lib/viem-client"
 
 export interface AttestationRow {
   paymentHash: string

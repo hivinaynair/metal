@@ -18,6 +18,19 @@ function makeMandateClient(url: string, mandateJson: string | undefined) {
   })
 }
 
+const ROUTE_REPORT_DATA: Record<string, { exposureUsd: number; riskScore: number; factors: string[] }> = {
+  premium: {
+    exposureUsd: 875000,
+    riskScore: 0.91,
+    factors: ["Cross-border exposure", "Thin liquidity", "Sanctions review required"],
+  },
+  basic: {
+    exposureUsd: 142500,
+    riskScore: 0.67,
+    factors: ["High leverage", "Concentrated position", "Sector correlation"],
+  },
+}
+
 export function createRiskReportHandler(routeId: ReportRouteId) {
   const route = getReportRoute(routeId)
 
@@ -32,17 +45,13 @@ export function createRiskReportHandler(routeId: ReportRouteId) {
   }
 
   const innerHandler = async () => {
+    const reportData = ROUTE_REPORT_DATA[route.id] ?? ROUTE_REPORT_DATA.basic
     return NextResponse.json({
       generatedAt: new Date().toISOString(),
       report: route.title,
       counterparty: "Acme Settlement Corp",
-      exposureUsd: route.id === "premium" ? 875000 : 142500,
-      riskScore: route.id === "premium" ? 0.91 : 0.67,
+      ...reportData,
       riskLevel: route.riskLevel,
-      factors:
-        route.id === "premium"
-          ? ["Cross-border exposure", "Thin liquidity", "Sanctions review required"]
-          : ["High leverage", "Concentrated position", "Sector correlation"],
       recommendation: route.recommendation,
     })
   }

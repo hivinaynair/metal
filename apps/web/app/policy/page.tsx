@@ -1,67 +1,10 @@
-import { getAgentsWithMandates } from "@/lib/agents-data"
-import { getAttestations } from "@/lib/attestations"
-import { formatUsdc } from "@/lib/format"
+import { getAgentsWithMandates } from "@/server/agents"
+import { getAttestations } from "@/server/attestations"
+import { fetchPolicyMax } from "@/features/policy/server/queries"
+import { toPolicyAgent, toProofRun } from "@/features/policy/lib/transforms"
 import { reportRoutes } from "@/lib/demo-scenarios"
-import { env } from "@/env"
-import {
-  PolicyWorkbench,
-  type PolicyAgent,
-  type PolicyProofRun,
-  type PolicyResource,
-} from "@/features/policy/components/policy-workbench"
+import { PolicyWorkbench, type PolicyResource } from "@/features/policy/components/policy-workbench"
 import { PageFrame, PageHead } from "@/components/page-chrome"
-
-function toPolicyAgent(
-  agent: Awaited<ReturnType<typeof getAgentsWithMandates>>[number]
-): PolicyAgent {
-  const expirySeconds = agent.expiry !== null ? Number(agent.expiry) : 0
-
-  return {
-    address: agent.address,
-    name: agent.name,
-    maxAmountUsdc: agent.maxAmountUsdc !== null ? Number(agent.maxAmountUsdc) : 0,
-    delegatorAddress: agent.delegatorAddress ?? "—",
-    onChainTrusted: agent.onChainTrusted,
-    expiry:
-      expirySeconds > 0
-        ? new Date(expirySeconds * 1000).toISOString().slice(0, 10)
-        : "—",
-    expired: expirySeconds > 0 && expirySeconds * 1000 < Date.now(),
-  }
-}
-
-function toProofRun(
-  attestations: Awaited<ReturnType<typeof getAttestations>>
-): PolicyProofRun | null {
-  const blocked = attestations.find((attestation) => attestation.decision !== 0)
-  if (!blocked) return null
-
-  const amount = Number(formatUsdc(blocked.amountUsdc))
-  const policySnapshot = Number(formatUsdc(blocked.policyMaxAmountUsdc))
-  const failedRule =
-    blocked.identityStatus === 0
-      ? "requireIdentity"
-      : amount > policySnapshot
-        ? "maxAmountUsdc"
-        : "preSettlementPolicy"
-
-  return {
-    failedRule,
-    amount: `${amount.toFixed(2)} USDC`,
-    limit: `${policySnapshot.toFixed(2)} USDC`,
-    settlementTx: blocked.settlementTx || "none",
-  }
-}
-
-async function fetchPolicyMax(): Promise<number> {
-  try {
-    const res = await fetch(`${env.FACILITATOR_URL}/policy`, { cache: "no-store" })
-    const data = await res.json() as { maxAmountUsdc?: number }
-    return typeof data.maxAmountUsdc === "number" ? data.maxAmountUsdc : 2
-  } catch {
-    return 2
-  }
-}
 
 export default async function PolicyPage() {
   const [agents, attestations, policyMax] = await Promise.all([
@@ -83,12 +26,6 @@ export default async function PolicyPage() {
         eyebrow="Programmable controls"
         title="Compliance as executable logic"
         question="Change the active institution policy. The next payment must pass it before settlement."
-        right={
-          <div className="metal-card flex items-center gap-2 px-4 py-2 font-mono text-sm text-text-secondary">
-            <span className="size-2 rounded-full bg-positive" />
-            mode: strict
-          </div>
-        }
       />
 
       <PolicyWorkbench

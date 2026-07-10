@@ -139,13 +139,18 @@ export function buildTraceSteps(result: {
 } | null, animStep: number): TraceStep[] {
   if (!result) {
     // animating — show steps 1..animStep as running/approved
+    function animStatus(id: number): StepStatus {
+      if (animStep > id) return "approved"
+      if (animStep === id) return "running"
+      return "pending"
+    }
     return [
       { id: 0, label: "Agent", status: animStep > 0 ? "approved" : "pending" },
-      { id: 1, label: "x402", status: animStep > 1 ? "approved" : animStep === 1 ? "running" : "pending" },
-      { id: 2, label: "ERC-8004", status: animStep > 2 ? "approved" : animStep === 2 ? "running" : "pending" },
-      { id: 3, label: "AP2", status: animStep > 3 ? "approved" : animStep === 3 ? "running" : "pending" },
-      { id: 4, label: "Policy", status: animStep > 4 ? "approved" : animStep === 4 ? "running" : "pending" },
-      { id: 5, label: "Settlement", status: animStep > 5 ? "approved" : animStep === 5 ? "running" : "pending" },
+      { id: 1, label: "x402", status: animStatus(1) },
+      { id: 2, label: "ERC-8004", status: animStatus(2) },
+      { id: 3, label: "AP2", status: animStatus(3) },
+      { id: 4, label: "Policy", status: animStatus(4) },
+      { id: 5, label: "Settlement", status: animStatus(5) },
       { id: 6, label: "Attestation", status: animStep === 6 ? "running" : "pending" },
     ]
   }
@@ -248,7 +253,7 @@ export function buildTraceSteps(result: {
     {
       id: 6,
       label: "Attestation",
-      status: result.attestationTxHash ? "approved" : ok ? "approved" : "skipped",
+      status: result.attestationTxHash || ok ? "approved" : "skipped",
       detail: result.attestationTxHash
         ? `${result.attestationTxHash.slice(0, 10)}…`
         : undefined,

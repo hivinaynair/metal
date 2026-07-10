@@ -1,8 +1,8 @@
 import { schema } from "@workspace/db"
 import { lookupIdentity } from "@workspace/shared/identity"
 import { ERC8004_REGISTRY_ADDRESS } from "@workspace/shared/chains"
-import { getDb } from "./db"
-import { publicClient } from "./viem-client"
+import { getDb } from "@/lib/db"
+import { publicClient } from "@/lib/viem-client"
 
 export interface AgentWithMandate {
   address: string

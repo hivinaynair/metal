@@ -182,7 +182,7 @@ Approved settlements emit two transactions: the USDC transfer and the attestatio
 
 - [Bun](https://bun.sh) v1.3+
 - CDP API key (Coinbase Developer Platform, for agent wallets)
-- Neon Postgres + Upstash Redis
+- Neon Postgres
 
 ### Environment
 
@@ -209,8 +209,6 @@ FACILITATOR_URL=             # facilitator (or http://localhost:3001)
 AGENT_URL=                   # agent server (or http://localhost:3002)
 
 # Storage
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
 DATABASE_URL=                # Neon Postgres
 ```
 
@@ -269,5 +267,4 @@ bun --filter @workspace/scripts demo-bootstrap     # registers agents in ERC-800
 | Wallets | Coinbase CDP / AgentKit |
 | x402 | `@x402/evm`, `@x402/core`, `@x402/fetch`, `@x402/next` |
 | Database | Neon Postgres + Drizzle ORM |
-| Cache | Upstash Redis |
 | Monorepo | Turborepo |

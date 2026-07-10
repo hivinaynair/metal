@@ -1,7 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import { CheckCircle2, ChevronRight, FileText, X } from "lucide-react"
+import {
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  X,
+} from "lucide-react"
+import { parseAsInteger, useQueryState } from "nuqs"
+
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -15,7 +23,7 @@ import {
 import { cn } from "@workspace/ui/lib/utils"
 import { formatUsdc } from "@/lib/format"
 import { DetailSheet } from "./detail-sheet"
-import type { AttestationRow } from "@/lib/attestations"
+import type { AttestationRow } from "@/server/attestations"
 
 interface FeedTableProps {
   rows: AttestationRow[]
@@ -33,8 +41,11 @@ const filters: { id: Filter; label: string }[] = [
   { id: "rejected", label: "Blocked" },
 ]
 
+const PAGE_SIZE = 10
+
 export function FeedTable({ rows, agentNames = {} }: FeedTableProps) {
   const [filter, setFilter] = useState<Filter>("all")
+  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1))
   const [selected, setSelected] = useState<AttestationRow | null>(null)
 
   const filtered = rows.filter((r) => {
@@ -42,6 +53,20 @@ export function FeedTable({ rows, agentNames = {} }: FeedTableProps) {
     if (filter === "rejected") return r.decision !== DECISION_APPROVED
     return true
   })
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const currentPage = Math.min(Math.max(page, 1), totalPages)
+  const start = (currentPage - 1) * PAGE_SIZE
+  const pagedRows = filtered.slice(start, start + PAGE_SIZE)
+
+  function updateFilter(nextFilter: Filter) {
+    setFilter(nextFilter)
+    void setPage(1)
+  }
+
+  function updatePage(nextPage: number) {
+    void setPage(Math.min(Math.max(nextPage, 1), totalPages))
+  }
 
   function exportCsv() {
     const header = [
@@ -91,7 +116,7 @@ export function FeedTable({ rows, agentNames = {} }: FeedTableProps) {
               key={f.id}
               variant="ghost"
               size="sm"
-              onClick={() => setFilter(f.id)}
+              onClick={() => updateFilter(f.id)}
               className={cn(
                 "h-auto rounded-[2px] px-3 py-1.5 text-[12.5px] font-medium",
                 filter === f.id
@@ -139,7 +164,7 @@ export function FeedTable({ rows, agentNames = {} }: FeedTableProps) {
                 </TableCell>
               </TableRow>
             )}
-            {filtered.map((row) => {
+            {pagedRows.map((row) => {
               const approved = row.decision === DECISION_APPROVED
               const amountUsd = formatUsdc(row.amountUsdc)
               const agentName = agentNames[row.payer.toLowerCase()]
@@ -198,6 +223,58 @@ export function FeedTable({ rows, agentNames = {} }: FeedTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      {filtered.length > 0 ? (
+        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border pt-4 text-sm text-muted-foreground">
+          <span>
+            Showing{" "}
+            <span className="font-semibold text-foreground">
+              {start + 1}-{Math.min(start + PAGE_SIZE, filtered.length)}
+            </span>{" "}
+            of {filtered.length}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === 1}
+              className="gap-2 text-muted-foreground"
+              onClick={() => updatePage(currentPage - 1)}
+            >
+              <ChevronLeft className="size-4" />
+              Prev
+            </Button>
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+              (pageNumber) => (
+                <Button
+                  key={pageNumber}
+                  variant={pageNumber === currentPage ? "default" : "outline"}
+                  size="sm"
+                  className={cn(
+                    "min-w-10 px-3 font-mono",
+                    pageNumber === currentPage
+                      ? "bg-foreground text-background hover:bg-foreground/90"
+                      : "text-muted-foreground"
+                  )}
+                  onClick={() => updatePage(pageNumber)}
+                >
+                  {pageNumber}
+                </Button>
+              )
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === totalPages}
+              className="gap-2 text-foreground"
+              onClick={() => updatePage(currentPage + 1)}
+            >
+              Next
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <DetailSheet
         open={selected !== null}

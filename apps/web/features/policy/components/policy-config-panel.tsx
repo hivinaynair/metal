@@ -1,33 +1,28 @@
 "use client"
 
-import { Check, Minus, Save } from "lucide-react"
+import { Check, Minus, Plus, Save } from "lucide-react"
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Slider } from "@workspace/ui/components/slider"
-import {
-  FieldSelect,
-  PanelHead,
-  cn,
-} from "./policy-workbench-shared"
+import { cn } from "@workspace/ui/lib/utils"
+import { PanelHead } from "./policy-workbench-shared"
+
+const STATIC_RULES = ["ERC-8004 identity required", "AP2 mandate required"]
 
 export function PolicyConfigPanel({
   maxAmountUsdc,
-  saveState,
+  isPending,
+  saved,
   onSetMax,
   onSavePolicy,
 }: {
   maxAmountUsdc: number
-  saveState: "idle" | "saving" | "saved"
+  isPending: boolean
+  saved: boolean
   onSetMax: (value: number) => void
   onSavePolicy: () => void
 }) {
-  const activeRules = [
-    { label: `Max payment <= ${maxAmountUsdc.toFixed(2)} USDC` },
-    { label: "ERC-8004 identity required" },
-    { label: "AP2 mandate required" },
-  ]
-
   return (
     <div className="metal-card overflow-hidden p-0">
       <PanelHead
@@ -36,14 +31,6 @@ export function PolicyConfigPanel({
         right={<Badge variant="outline">Facilitator policy</Badge>}
       />
       <div className="grid gap-6 p-5">
-        <FieldSelect
-          label="Policy profile"
-          value="facilitator"
-          options={["facilitator"]}
-          getLabel={() => "Facilitator policy"}
-          onChange={() => undefined}
-        />
-
         <div className="rounded-sm border border-border bg-surface-inset p-5">
           <div className="mb-4 flex items-end justify-between gap-4">
             <span className="metal-eyebrow">Max transaction amount</span>
@@ -67,11 +54,9 @@ export function PolicyConfigPanel({
               max={25}
               step={0.1}
               value={[maxAmountUsdc]}
-              onValueChange={(nextValue) => {
-                const value = Array.isArray(nextValue)
-                  ? nextValue[0]
-                  : nextValue
-                if (typeof value === "number") onSetMax(value)
+              onValueChange={(values) => {
+                const v = Array.isArray(values) ? values[0] : values
+                if (v !== undefined) onSetMax(v)
               }}
               className="flex-1"
             />
@@ -80,7 +65,7 @@ export function PolicyConfigPanel({
               size="icon-sm"
               onClick={() => onSetMax(maxAmountUsdc + 0.1)}
             >
-              +
+              <Plus className="size-4" />
             </Button>
           </div>
           <div className="mt-4 grid grid-cols-5 gap-2">
@@ -105,27 +90,27 @@ export function PolicyConfigPanel({
         <div className="border-t border-border pt-5">
           <p className="metal-eyebrow">Active rules</p>
           <div className="mt-3 grid gap-2">
-            {activeRules.map((rule) => (
+            <div className="flex items-center gap-2 text-sm text-text-secondary">
+              <Check className="size-4 text-positive" />
+              {`Max payment <= ${maxAmountUsdc.toFixed(2)} USDC`}
+            </div>
+            {STATIC_RULES.map((rule) => (
               <div
-                key={rule.label}
+                key={rule}
                 className="flex items-center gap-2 text-sm text-text-secondary"
               >
                 <Check className="size-4 text-positive" />
-                {rule.label}
+                {rule}
               </div>
             ))}
           </div>
           <Button
             onClick={onSavePolicy}
-            disabled={saveState === "saving"}
+            disabled={isPending}
             className="mt-5 w-full"
           >
             <Save className="size-4" />
-            {saveState === "saved"
-              ? "Saved"
-              : saveState === "saving"
-                ? "Saving..."
-                : "Save policy"}
+            {saved ? "Saved" : isPending ? "Saving..." : "Save policy"}
           </Button>
         </div>
       </div>

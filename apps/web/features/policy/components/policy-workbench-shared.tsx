@@ -2,46 +2,6 @@
 
 import { Settings, Zap } from "lucide-react"
 
-import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@workspace/ui/components/native-select"
-import { cn } from "@workspace/ui/lib/utils"
-
-export function FieldSelect<T extends string>({
-  label,
-  value,
-  options,
-  getLabel = (option) => option,
-  onChange,
-  disabled,
-}: {
-  label: string
-  value: T
-  options: readonly T[]
-  getLabel?: (option: T) => string
-  onChange: (value: T) => void
-  disabled?: boolean
-}) {
-  return (
-    <label className="grid gap-2">
-      <span className="metal-eyebrow">{label}</span>
-      <NativeSelect
-        value={value}
-        onChange={(event) => onChange(event.target.value as T)}
-        disabled={disabled}
-        className="h-10 w-full rounded-sm border border-field-border bg-field px-4 transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20"
-      >
-        {options.map((option) => (
-          <NativeSelectOption key={option} value={option}>
-            {getLabel(option)}
-          </NativeSelectOption>
-        ))}
-      </NativeSelect>
-    </label>
-  )
-}
-
 export function PanelHead({
   icon,
   title,
@@ -81,5 +41,3 @@ export function PolicyJson({ maxAmountUsdc }: { maxAmountUsdc: number }) {
     </pre>
   )
 }
-
-export { cn }

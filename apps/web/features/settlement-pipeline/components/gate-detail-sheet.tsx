@@ -63,9 +63,13 @@ function X402Detail({ data }: { data: Extract<GateRawData, { gate: "x402" }> }) 
   )
 }
 
+const IDENTITY_STATUS_LABELS: Record<number, string> = {
+  1: "Verified",
+  2: "Flagged",
+}
+
 function Erc8004Detail({ data }: { data: Extract<GateRawData, { gate: "erc8004" }> }) {
-  const statusLabel =
-    data.identityStatus === 1 ? "Verified" : data.identityStatus === 2 ? "Flagged" : "Not Found"
+  const statusLabel = IDENTITY_STATUS_LABELS[data.identityStatus!] ?? "Not Found"
   return (
     <div className="flex flex-col gap-4">
       <Section title="Identity Registry Lookup">

@@ -30,6 +30,21 @@ interface SettlementSceneProps {
   action?: ReactNode
 }
 
+const SCENE_CLASSES = {
+  rejected: {
+    verticalBar: "bg-gradient-to-b from-destructive/80 to-destructive/20",
+    horizontalBar: "shadow-glow-negative bg-gradient-to-r from-destructive/90 to-destructive/20",
+    packet: "settlement-pipeline shadow-rail-negative border-destructive/50",
+    label: "text-destructive",
+  },
+  approved: {
+    verticalBar: "bg-gradient-to-b from-accent/80 to-accent/20",
+    horizontalBar: "shadow-glow-positive bg-gradient-to-r from-accent/90 to-accent/20",
+    packet: "settlement-pipeline shadow-rail-positive border-accent/50",
+    label: "text-primary/80",
+  },
+}
+
 function statusTone(agentStatus: string) {
   if (agentStatus === "Trusted" || agentStatus === "approved") {
     return "bg-positive-surface text-positive"
@@ -59,6 +74,8 @@ export function SettlementScene({
   const rejected =
     Boolean(rejectedReason) || (!running && !approved && activeStep > 0)
   const packetLeft = packetPosition(activeStep, rejectedReason)
+
+  const sceneClasses = SCENE_CLASSES[rejected ? "rejected" : "approved"]
   const latestReasoning = agentReasoning
     ?.replace(/\s+/g, " ")
     .trim()
@@ -109,9 +126,7 @@ export function SettlementScene({
           <motion.div
             className={cn(
               "absolute top-[28px] left-[38px] w-px origin-top",
-              rejected
-                ? "bg-gradient-to-b from-destructive/80 to-destructive/20"
-                : "bg-gradient-to-b from-accent/80 to-accent/20"
+              sceneClasses.verticalBar
             )}
             initial={false}
             animate={{ scaleY: Math.max(0, (activeStep - 1) / 5) }}
@@ -155,12 +170,7 @@ export function SettlementScene({
       <div className="relative hidden h-56 overflow-hidden px-6 sm:block">
         <div className="absolute top-[112px] right-4 left-[22%] h-px bg-white/[0.06]" />
         <motion.div
-          className={cn(
-            "absolute top-[112px] h-px",
-            rejected
-              ? "shadow-glow-negative bg-gradient-to-r from-destructive/90 to-destructive/20"
-              : "shadow-glow-positive bg-gradient-to-r from-accent/90 to-accent/20"
-          )}
+          className={cn("absolute top-[112px] h-px", sceneClasses.horizontalBar)}
           initial={false}
           animate={{ left: "22%", width: `${Math.max(0, packetLeft - 22)}%` }}
           transition={{ duration: 0.55, ease: [0.2, 0, 0, 1] }}
@@ -174,15 +184,13 @@ export function SettlementScene({
           <div
             className={cn(
               "rounded-[3px] border px-3 py-2 text-center backdrop-blur-md",
-              rejected
-                ? "settlement-pipeline shadow-rail-negative border-destructive/50"
-                : "settlement-pipeline shadow-rail-positive border-accent/50"
+              sceneClasses.packet
             )}
           >
             <p
               className={cn(
                 "font-mono text-[8px] font-bold uppercase",
-                rejected ? "text-destructive" : "text-primary/80"
+                sceneClasses.label
               )}
             >
               Payment
