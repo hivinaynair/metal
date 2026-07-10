@@ -137,7 +137,8 @@
       "Bash(mv components/agents-table-types.ts features/agents/components/)",
       "Bash(grep -r \"invalid_exact_evm_insufficient_balance\\\\|insufficient_balance\" /Users/vinay/bare-metal --include=*.ts -l)",
       "Bash(grep -r invalid_exact_evm_insufficient_balance /Users/vinay/bare-metal/node_modules/.bun/@x402+core@2.17.0 --include=*.ts -l)",
-      "Bash(grep -r \"ErrEip3009InsufficientBalance\\\\|InsufficientBalance\\\\|insufficient_balance\" /Users/vinay/bare-metal/node_modules/.bun/@x402+evm@2.17.0+1fb4c65d43e298b9/node_modules/@x402/evm/dist/cjs --include=*.js -l)"
+      "Bash(grep -r \"ErrEip3009InsufficientBalance\\\\|InsufficientBalance\\\\|insufficient_balance\" /Users/vinay/bare-metal/node_modules/.bun/@x402+evm@2.17.0+1fb4c65d43e298b9/node_modules/@x402/evm/dist/cjs --include=*.js -l)",
+      "Bash(grep -r \"settlement-risk-report\\\\|payTo\\\\|asset.*usdc\\\\|usdc.*asset\\\\|PaymentRequired\\\\|x402\" /Users/vinay/bare-metal/apps/web/src --include=*.ts -l)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",

@@ -16,7 +16,10 @@ describe("gateStepsForResult", () => {
     expect(gateStepsForResult("mandate_invalid", undefined)).toEqual([2, 3])
     expect(gateStepsForResult("mandate_signature_invalid", undefined)).toEqual([2, 3])
     expect(gateStepsForResult("mandate_expired", undefined)).toEqual([2, 3])
-    expect(gateStepsForResult("mandate_insufficient_balance", undefined)).toEqual([2, 3])
+  })
+
+  it("stops at the x402 gate for insufficient funds", () => {
+    expect(gateStepsForResult("insufficient_funds", undefined)).toEqual([])
   })
 
   it("stops at policy gate for policy_amount_exceeded", () => {

@@ -11,4 +11,9 @@ describe("settlement error mapping", () => {
     expect(isMandateFailure("mandate_scope_invalid")).toBe(true)
     expect(settlementFailureGate("mandate_scope_invalid")).toBe(3)
   })
+
+  it("maps x402 insufficient funds to the payment-submitted gate", () => {
+    expect(isMandateFailure("insufficient_funds")).toBe(false)
+    expect(settlementFailureGate("insufficient_funds")).toBe(1)
+  })
 })

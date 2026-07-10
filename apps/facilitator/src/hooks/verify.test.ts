@@ -46,7 +46,7 @@ function happyDeps(overrides: Partial<VerifyDeps> = {}): VerifyDeps {
     verifyMandateSignature: mock(async () => true),
     lookupIdentity: mock(async () => VALID_PROFILE),
     registryAddress: REGISTRY,
-    client: {} as any,
+    client: { readContract: mock(async () => 1000000000n) } as any,
     ...overrides,
   }
 }
@@ -141,6 +141,15 @@ describe("onBeforeVerify", () => {
       }))
     )
     expect(result).toEqual({ abort: true, reason: "identity_not_found" })
+  })
+
+  it("aborts with insufficient_funds when wallet balance is below payment amount", async () => {
+    const result = await withMandateHeader(() =>
+      onBeforeVerify(makeCtx("10000"), happyDeps({
+        client: { readContract: mock(async () => 9999n) } as any,
+      }))
+    )
+    expect(result).toEqual({ abort: true, reason: "insufficient_funds" })
   })
 
   it("returns undefined when all checks pass", async () => {

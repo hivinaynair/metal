@@ -170,7 +170,7 @@ describe("onBeforeSettle", () => {
     expect(first![0].paymentHash).toBe(second![0].paymentHash)
   })
 
-  it("aborts with mandate_insufficient_balance when wallet balance is below payment amount", async () => {
+  it("aborts with insufficient_funds when wallet balance is below payment amount", async () => {
     mockReadContract.mockImplementationOnce(async () => 500n) // 0.0005 USDC — less than 1000 atomic
     const result = await withMandateCtx(() =>
       onBeforeSettle({
@@ -178,7 +178,7 @@ describe("onBeforeSettle", () => {
         requirements: makeRequirements("1000") as any,
       })
     )
-    expect(result).toEqual({ abort: true, reason: "mandate_insufficient_balance" })
+    expect(result).toEqual({ abort: true, reason: "insufficient_funds" })
   })
 
   it("does not abort when wallet balance equals payment amount", async () => {
@@ -245,12 +245,23 @@ describe("onAfterSettle", () => {
     )
   })
 
-  it("returns early when result is not successful", async () => {
+  it("stores a rejected record when result is not successful", async () => {
     await onAfterSettle({
       paymentPayload: makePayload(AUTH_NONCE) as any,
-      result: { success: false, transaction: "", network: NETWORK },
+      result: { success: false, transaction: "", network: NETWORK, errorReason: "insufficient_funds" },
     })
-    expect(mockInsert).not.toHaveBeenCalled()
+    expect(mockInsertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settlementTx: null,
+        attestationTx: null,
+        authorizationNonce: AUTH_NONCE,
+        decision: Decision.Rejected,
+        decisionRecord: expect.objectContaining({
+          payer: PAYER,
+          rejectionReason: "insufficient_funds",
+        }),
+      })
+    )
   })
 
   it("stores rejected record when settlement receipt failed", async () => {

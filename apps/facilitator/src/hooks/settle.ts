@@ -48,6 +48,7 @@ export async function onBeforeSettle({
     args: [payer],
     authorizationList: undefined,
   })
+  console.log(`[onBeforeSettle] payer=${payer} balance=${balance} required=${paymentAmountAtomic}`)
   if (balance < paymentAmountAtomic) {
     await recordRejection({
       agentId: mandateResult.mandateEntry.agentId,
@@ -56,10 +57,10 @@ export async function onBeforeSettle({
       identityStatus: IdentityStatus.Verified,
       mandateEntry: mandateResult.mandateEntry,
       payer,
-      reason: "mandate_insufficient_balance",
+      reason: "insufficient_funds",
       resource: paymentPayload.resource,
     })
-    return { abort: true, reason: "mandate_insufficient_balance" }
+    return { abort: true, reason: "insufficient_funds" }
   }
 
   // Check facilitator policy ceiling

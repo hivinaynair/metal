@@ -26,10 +26,11 @@ export function isMandateFailure(error: unknown): boolean {
 
 /**
  * Returns the terminal gate step for a known facilitator rejection reason.
- * Gate numbering matches the settlement pipeline UI (2=identity, 3=AP2, 4=policy).
+ * Gate numbering matches the settlement pipeline UI.
  * Returns 0 for unknown errors or no error.
  */
 export function settlementFailureGate(error?: string | null): number {
+  if (error === "insufficient_funds") return GATE_STEP.PAYMENT_SUBMITTED
   if (error === "identity_not_found") return 2
   if (isMandateFailure(error)) return 3
   if (error === "policy_amount_exceeded") return 4
