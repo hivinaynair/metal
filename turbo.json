@@ -5,19 +5,23 @@
     "build": {
       "dependsOn": ["^build"],
       "env": [
-        "PAY_TO_ADDRESS",
-        "FACILITATOR_URL",
-        "FACILITATOR_PRIVATE_KEY",
+        "AGENT_URL",
+        "ANTHROPIC_API_KEY",
+        "APP_URL",
         "ATTESTATION_REGISTRY_ADDRESS",
-        "UPSTASH_REDIS_REST_URL",
-        "UPSTASH_REDIS_REST_TOKEN",
-        "DELEGATOR_PRIVATE_KEY",
+        "BOOTSTRAP_SECRET",
         "CDP_API_KEY_ID",
         "CDP_API_KEY_SECRET",
         "CDP_WALLET_SECRET",
-        "APP_URL",
-        "AGENT_URL",
-        "DATABASE_URL"
+        "DATABASE_URL",
+        "DELEGATOR_PRIVATE_KEY",
+        "FACILITATOR_PRIVATE_KEY",
+        "FACILITATOR_URL",
+        "MANDATE_FILE",
+        "MANDATES_JSON",
+        "PAY_TO_ADDRESS",
+        "POLICY_MAX_AMOUNT_USDC",
+        "PORT"
       ],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]

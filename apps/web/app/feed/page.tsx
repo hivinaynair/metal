@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { getAttestations } from "@/server/attestations"
 import { getAgentsWithMandates } from "@/server/agents"
 import { FeedTable } from "@/features/feed/components/feed-table"
@@ -36,7 +37,7 @@ export default async function FeedPage() {
               decision record.
             </div>
           ) : (
-            <FeedTable rows={rows} agentNames={agentNames} />
+            <Suspense><FeedTable rows={rows} agentNames={agentNames} /></Suspense>
           )}
         </CardContent>
       </Card>
