@@ -64,7 +64,7 @@ function withMandateHeader<T>(
 describe("onBeforeVerify", () => {
   it("builds deterministic rejection hashes from authorization nonce", () => {
     const input = {
-      amountAtomic: 500000n,
+      amountAtomic: 200000n,
       authorizationNonce: AUTH_NONCE,
       payer: PAYER,
       reason: "identity_not_found",
@@ -124,7 +124,7 @@ describe("onBeforeVerify", () => {
       payload: { ...VALID_MANDATE.payload, maxAmountUsdc: 0n, nonce: 0n },
     }
     const result = await withMandateHeader(() =>
-      onBeforeVerify(makeCtx("500000"), happyDeps({
+      onBeforeVerify(makeCtx("200000"), happyDeps({
         lookupIdentity: mock(async () => null),
       })),
       ghostMandate,

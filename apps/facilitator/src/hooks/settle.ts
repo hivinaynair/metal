@@ -83,7 +83,50 @@ export async function onAfterSettle({
   paymentPayload,
   result,
 }: FacilitatorSettleResultContext): Promise<void> {
-  if (!result.success || !result.transaction) return
+  if (!result.success) {
+    const payer = getPayerAddress(paymentPayload.payload)
+    if (!payer) return
+    const authorizationNonce = extractAuthNonce(paymentPayload.payload) ?? null
+    const amountUsdcAtomic = BigInt(paymentPayload.accepted.amount)
+    const { mandateJson } = requestCtx.get()
+    const mandateEntry = mandateJson ? parseMandateHeader(mandateJson) : undefined
+    const identityStatus = mandateEntry ? IdentityStatus.Verified : IdentityStatus.NotFound
+    const policyMaxAtomic = await getPolicyMaxAtomic()
+    const db = getDb()
+    const syntheticPaymentHash = keccak256(
+      `0x${Buffer.from(`failed:${authorizationNonce ?? payer}`).toString("hex")}` as `0x${string}`
+    )
+    const decisionRecord = buildDecisionRecord({
+      agentId: mandateEntry?.agentId,
+      amountAtomic: amountUsdcAtomic,
+      decision: Decision.Rejected,
+      identityStatus,
+      mandate: mandateEntry?.mandate,
+      payer,
+      authorizationNonce,
+      policyMaxAtomic,
+      resource: paymentPayload.resource,
+      rejectionReason: result.errorReason ?? "settlement_rejected",
+    })
+    try {
+      await db.insert(schema.settlementAttestations).values({
+        paymentHash: syntheticPaymentHash,
+        settlementTx: null,
+        attestationTx: null,
+        payerAddress: payer,
+        amountUsdc: amountUsdcAtomic,
+        policyMaxAmountUsdc: policyMaxAtomic,
+        decisionRecord,
+        identityStatus,
+        decision: Decision.Rejected,
+        authorizationNonce,
+      })
+    } catch (err) {
+      console.error("[onAfterSettle] db insert failed for settlement failure:", err)
+    }
+    return
+  }
+  if (!result.transaction) return
 
   const payer = getPayerAddress(paymentPayload.payload)
   if (!payer) return

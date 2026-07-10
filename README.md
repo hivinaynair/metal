@@ -109,10 +109,10 @@ Every rejection at gates 2–4 means funds never left the wallet. Approved settl
 
 | | Agent | Mandate limit | Route | Price | Fails at |
 |---|---|---|---|---|---|
-| **A** | metal-agent-1 | $1 | Basic report | $0.50 | approved, real USDC settlement |
+| **A** | metal-agent-1 | $1 | Basic report | $0.20 | approved, real USDC settlement |
 | **B** | metal-agent-2 | $1 | Premium report | $5.00 | Mandate ($5 > $1 limit) |
 | **C** | metal-agent-3 | $10 | Premium report | $5.00 | Policy ceiling ($5 > $2 ceiling) |
-| **D** | metal-agent-ghost | n/a | Basic report | $0.50 | Identity (not in ERC-8004 registry) |
+| **D** | metal-agent-ghost | n/a | Basic report | $0.20 | Identity (not in ERC-8004 registry) |
 
 Each uses a real CDP wallet. The Claude agent emits live status text before attempting payment, and the stream appears in the UI alongside the gate animations.
 
@@ -231,7 +231,7 @@ Agent wallets are created and funded via CDP on first request.
 
 ```bash
 bun --filter agent dev                   # interactive REPL
-bun --filter agent dev happy-path        # pays $0.50, prints reasoning + tx hashes
+bun --filter agent dev happy-path        # pays $0.20, prints reasoning + tx hashes
 bun --filter agent dev mandate-exceeded  # blocked at mandate gate
 bun --filter agent dev policy-exceeded   # blocked at policy ceiling
 bun --filter agent dev ghost             # blocked at identity gate

@@ -13,9 +13,9 @@ export const DEMO_REPORT_ROUTES = [
   {
     id: "basic",
     path: "/api/settlement-risk-report",
-    priceLabel: "$0.50",
-    price: "$0.50",
-    amountAtomic: "500000",
+    priceLabel: "$0.20",
+    price: "$0.20",
+    amountAtomic: "200000",
     title: "Settlement Risk Report",
     riskLevel: "MEDIUM",
     recommendation: "Reduce exposure by 20% before settlement window.",

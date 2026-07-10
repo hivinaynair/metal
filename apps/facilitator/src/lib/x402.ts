@@ -9,7 +9,7 @@ import { onBeforeSettle, onAfterSettle, onSettleFailure } from "../hooks/settle.
 export const facilitator = new x402Facilitator()
 
 facilitator
-  .register(BASE_SEPOLIA_CAIP2, new ExactEvmScheme(facilitatorSigner))
+  .register(BASE_SEPOLIA_CAIP2, new ExactEvmScheme(facilitatorSigner, { simulateInSettle: true }))
   .onBeforeVerify((ctx) => onBeforeVerify(ctx, verifyDeps))
   .onBeforeSettle(onBeforeSettle)
   .onAfterSettle(onAfterSettle)
