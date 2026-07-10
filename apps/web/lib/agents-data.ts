@@ -20,7 +20,8 @@ function getDb() {
   return _db
 }
 
-let _client: ReturnType<typeof createPublicClient> | undefined
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _client: any
 function getPublicClient() {
   if (!_client) {
     _client = createPublicClient({
@@ -34,7 +35,8 @@ function getPublicClient() {
 async function getOnChainTrusted(agentId: bigint, address: string): Promise<boolean> {
   try {
     const client = getPublicClient()
-    const profile = await lookupIdentity(agentId, ERC8004_REGISTRY_ADDRESS, client)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const profile = await lookupIdentity(agentId, ERC8004_REGISTRY_ADDRESS, client as any)
     if (!profile) return false
     return profile.wallet.toLowerCase() === address.toLowerCase()
   } catch {
