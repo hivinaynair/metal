@@ -46,6 +46,7 @@ export async function onBeforeSettle({
     abi: ERC20_BALANCE_ABI,
     functionName: "balanceOf",
     args: [payer],
+    authorizationList: undefined,
   })
   if (balance < paymentAmountAtomic) {
     await recordRejection({
