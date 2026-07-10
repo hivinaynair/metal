@@ -1,10 +1,10 @@
 import { desc } from "drizzle-orm"
-import { createPublicClient, http } from "viem"
-import { baseSepolia } from "viem/chains"
-import { createDb, schema } from "@workspace/db"
+import { schema } from "@workspace/db"
 import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
 import { DEMO_POLICY_MAX_AMOUNT_USDC } from "@workspace/shared/demo"
 import { Decision } from "@workspace/shared/types"
+import { getDb } from "./db"
+import { publicClient } from "./viem-client"
 
 export interface AttestationRow {
   paymentHash: string
@@ -32,18 +32,7 @@ interface AttestationDbRow {
   attestationTx: string | null
 }
 
-let _db: ReturnType<typeof createDb> | undefined
-function getDb() {
-  if (!_db) _db = createDb()
-  return _db
-}
-
 const DEFAULT_POLICY_MAX_ATOMIC = BigInt(Math.round(DEMO_POLICY_MAX_AMOUNT_USDC * 1_000_000))
-
-const publicClient = createPublicClient({
-  chain: baseSepolia,
-  transport: http(),
-})
 
 async function decisionWithReceiptStatus(row: AttestationDbRow) {
   if (row.decision !== Decision.Approved || !row.settlementTx) return row.decision

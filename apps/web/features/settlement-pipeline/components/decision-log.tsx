@@ -3,8 +3,8 @@
 import { CheckCircle2, XCircle, Zap } from "lucide-react"
 
 import { cn } from "@workspace/ui/lib/utils"
-import type { DemoAgent, DemoScenario, TriggerResult } from "@/lib/payment-demo"
-import { fallbackRouteForAgent } from "@/lib/payment-demo"
+import type { DemoAgent, DemoScenario, TriggerResult } from "../lib/payment-demo"
+import { fallbackRouteForAgent } from "../lib/payment-demo"
 import {
   cleanRejectionReason,
   resultFailureStep,

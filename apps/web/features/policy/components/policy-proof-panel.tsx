@@ -6,7 +6,7 @@ import { ArrowRight, ShieldCheck } from "lucide-react"
 import { Badge } from "@workspace/ui/components/badge"
 import { buttonVariants } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
-import type { PolicyProofRun } from "@/lib/policy-evaluation"
+import type { PolicyProofRun } from "../lib/policy-evaluation"
 
 function ProofStat({
   label,

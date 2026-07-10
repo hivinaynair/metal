@@ -1,8 +1,8 @@
-import { createPublicClient, http } from "viem"
-import { baseSepolia } from "viem/chains"
-import { createDb, schema } from "@workspace/db"
+import { schema } from "@workspace/db"
 import { lookupIdentity } from "@workspace/shared/identity"
 import { ERC8004_REGISTRY_ADDRESS } from "@workspace/shared/chains"
+import { getDb } from "./db"
+import { publicClient } from "./viem-client"
 
 export interface AgentWithMandate {
   address: string
@@ -14,29 +14,9 @@ export interface AgentWithMandate {
   onChainTrusted: boolean
 }
 
-let _db: ReturnType<typeof createDb> | undefined
-function getDb() {
-  if (!_db) _db = createDb()
-  return _db
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _client: any
-function getPublicClient() {
-  if (!_client) {
-    _client = createPublicClient({
-      chain: baseSepolia,
-      transport: http("https://sepolia.base.org"),
-    })
-  }
-  return _client
-}
-
 async function getOnChainTrusted(agentId: bigint, address: string): Promise<boolean> {
   try {
-    const client = getPublicClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const profile = await lookupIdentity(agentId, ERC8004_REGISTRY_ADDRESS, client as any)
+    const profile = await lookupIdentity(agentId, ERC8004_REGISTRY_ADDRESS, publicClient)
     if (!profile) return false
     return profile.wallet.toLowerCase() === address.toLowerCase()
   } catch {

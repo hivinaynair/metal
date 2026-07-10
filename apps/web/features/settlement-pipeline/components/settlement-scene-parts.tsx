@@ -1,20 +1,42 @@
 "use client"
 
 import { useState } from "react"
-import { Bot, Check, Coins, FileText, LinkIcon, Lock, Settings, ShieldCheck, X, Zap } from "lucide-react"
+import {
+  Bot,
+  Check,
+  Coins,
+  FileText,
+  LinkIcon,
+  Lock,
+  Settings,
+  ShieldCheck,
+  X,
+  Zap,
+} from "lucide-react"
 
 import { cn } from "@workspace/ui/lib/utils"
-import { AgentSplineModel } from "@/components/agent-spline-model"
+import { AgentSplineModel } from "./agent-spline-model"
 import { settlementFailureStep } from "@/lib/settlement-status"
-import type { GateState } from "@/components/settlement-scene"
+
+export type GateState = "idle" | "running" | "approved" | "rejected" | "skipped"
 
 export const settlementGates = [
   { key: "challenge", label: "x402", name: "x402 Challenge", icon: Zap },
-  { key: "identity", label: "ERC-8004", name: "ERC-8004 Identity", icon: ShieldCheck },
+  {
+    key: "identity",
+    label: "ERC-8004",
+    name: "ERC-8004 Identity",
+    icon: ShieldCheck,
+  },
   { key: "mandate", label: "AP2", name: "AP2 Mandate", icon: FileText },
   { key: "policy", label: "Policy", name: "Policy Check", icon: Settings },
   { key: "settlement", label: "Settlement", name: "Settlement", icon: Coins },
-  { key: "attestation", label: "Attestation", name: "Attestation", icon: LinkIcon },
+  {
+    key: "attestation",
+    label: "Attestation",
+    name: "Attestation",
+    icon: LinkIcon,
+  },
 ] as const
 
 const stops = [17, 31, 44, 57, 70, 83, 95]
@@ -88,7 +110,7 @@ export function GateModule({
 
   const flangeClass = cn(
     "settlement-flange absolute -right-2 -left-2 h-[5px] rounded-[2px] border",
-    active && "border-accent/20 shadow-glow-positive",
+    active && "shadow-glow-positive border-accent/20",
     blocked && "border-destructive/20",
     !active && !blocked && "border-white/[0.05]"
   )
@@ -113,8 +135,8 @@ export function GateModule({
         <div
           className={cn(
             "settlement-gate relative flex h-14 w-9 items-center justify-center rounded-[3px] border",
-            active && "border-accent/25 shadow-glow-positive",
-            blocked && "border-destructive/25 shadow-glow-negative",
+            active && "shadow-glow-positive border-accent/25",
+            blocked && "shadow-glow-negative border-destructive/25",
             !active && !blocked && "border-white/[0.06]"
           )}
         >
@@ -138,8 +160,8 @@ export function GateModule({
             className={cn(
               "absolute -top-2 -right-2 grid size-[18px] place-items-center rounded-full border-2 border-surface-sunken",
               state === "approved"
-                ? "bg-positive shadow-glow-positive"
-                : "bg-destructive shadow-glow-negative"
+                ? "shadow-glow-positive bg-positive"
+                : "shadow-glow-negative bg-destructive"
             )}
           >
             {state === "approved" ? (
@@ -149,7 +171,9 @@ export function GateModule({
             )}
           </span>
         )}
-        {skipped && <Lock className="absolute -top-2 -right-2 size-3 text-white/20" />}
+        {skipped && (
+          <Lock className="absolute -top-2 -right-2 size-3 text-white/20" />
+        )}
       </div>
     </div>
   )

@@ -8,7 +8,7 @@ import {
   type PolicyAgent,
   type PolicyProofRun,
   type PolicyResource,
-} from "@/components/policy-workbench"
+} from "@/features/policy/components/policy-workbench"
 import { PageFrame, PageHead } from "@/components/page-chrome"
 
 function toPolicyAgent(

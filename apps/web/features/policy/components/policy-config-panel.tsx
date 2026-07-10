@@ -5,7 +5,11 @@ import { Check, Minus, Save } from "lucide-react"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Slider } from "@workspace/ui/components/slider"
-import { FieldSelect, PanelHead, cn } from "@/components/policy-workbench-shared"
+import {
+  FieldSelect,
+  PanelHead,
+  cn,
+} from "./policy-workbench-shared"
 
 export function PolicyConfigPanel({
   maxAmountUsdc,
@@ -64,7 +68,9 @@ export function PolicyConfigPanel({
               step={0.1}
               value={[maxAmountUsdc]}
               onValueChange={(nextValue) => {
-                const value = Array.isArray(nextValue) ? nextValue[0] : nextValue
+                const value = Array.isArray(nextValue)
+                  ? nextValue[0]
+                  : nextValue
                 if (typeof value === "number") onSetMax(value)
               }}
               className="flex-1"

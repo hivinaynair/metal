@@ -30,7 +30,7 @@ export function FieldSelect<T extends string>({
         value={value}
         onChange={(event) => onChange(event.target.value as T)}
         disabled={disabled}
-        className="h-10 w-full rounded-sm border border-field-border bg-field px-4 transition-colors focus-within:border-ring focus-within:ring-ring/20 focus-within:ring-2"
+        className="h-10 w-full rounded-sm border border-field-border bg-field px-4 transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20"
       >
         {options.map((option) => (
           <NativeSelectOption key={option} value={option}>

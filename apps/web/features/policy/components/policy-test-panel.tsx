@@ -5,12 +5,16 @@ import { ArrowRight, Check, Minus, Zap } from "lucide-react"
 
 import { Button, buttonVariants } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
-import { FieldSelect, PanelHead, cn } from "@/components/policy-workbench-shared"
+import {
+  FieldSelect,
+  PanelHead,
+  cn,
+} from "./policy-workbench-shared"
 import type {
   EvaluationResult,
   PolicyAgent,
   PolicyResource,
-} from "@/lib/policy-evaluation"
+} from "../lib/policy-evaluation"
 
 function EvaluationResultCard({ result }: { result: EvaluationResult }) {
   return (
@@ -129,7 +133,7 @@ export function PolicyTestPanel({
           />
           <label className="grid gap-2">
             <span className="metal-eyebrow">Amount</span>
-            <span className="flex h-10 items-center gap-2 rounded-sm border border-field-border bg-field px-4 focus-within:border-ring focus-within:ring-ring/20 focus-within:ring-2">
+            <span className="flex h-10 items-center gap-2 rounded-sm border border-field-border bg-field px-4 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
               <span className="font-mono text-muted-foreground">$</span>
               <Input
                 value={amount}

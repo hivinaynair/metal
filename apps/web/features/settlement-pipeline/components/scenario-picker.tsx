@@ -9,7 +9,7 @@ import {
 } from "@workspace/ui/components/select"
 import { cn } from "@workspace/ui/lib/utils"
 import { demoAgents } from "@/lib/demo-scenarios"
-import { SCENARIOS } from "@/lib/payment-demo"
+import { SCENARIOS } from "../lib/payment-demo"
 
 export function ScenarioPicker({
   selectedIndex,

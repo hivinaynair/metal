@@ -1,5 +1,5 @@
-import type { DemoAgent, TriggerResult } from "@/lib/payment-demo"
-import { fallbackRouteForAgent } from "@/lib/payment-demo"
+import type { DemoAgent, TriggerResult } from "./payment-demo"
+import { fallbackRouteForAgent } from "./payment-demo"
 import { cleanRejectionReason } from "@/lib/settlement-status"
 
 export function buildProofBundle(

@@ -3,23 +3,23 @@
 import { useMemo, useState } from "react"
 import { Copy, ExternalLink, MessageSquareText, Play, Wallet, Zap } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
-import { DashboardPanel } from "@/components/dashboard-panel"
-import { DecisionLog } from "@/components/decision-log"
-import { GateDetailSheet } from "@/components/gate-detail-sheet"
-import { PacketPanel } from "@/components/packet-panel"
+import { DashboardPanel } from "@/features/settlement-pipeline/components/dashboard-panel"
+import { DecisionLog } from "@/features/settlement-pipeline/components/decision-log"
+import { GateDetailSheet } from "@/features/settlement-pipeline/components/gate-detail-sheet"
+import { PacketPanel } from "@/features/settlement-pipeline/components/packet-panel"
 import { PageFrame, PageHead } from "@/components/page-chrome"
-import { ScenarioPicker } from "@/components/scenario-picker"
-import { SettlementScene } from "@/components/settlement-scene"
+import { ScenarioPicker } from "@/features/settlement-pipeline/components/scenario-picker"
+import { SettlementScene } from "@/features/settlement-pipeline/components/settlement-scene"
 import { buildTraceSteps } from "@/components/trace-panel"
 import type { TraceStep } from "@/components/trace-panel"
 import { demoAgents } from "@/lib/demo-scenarios"
-import { buildProofBundle } from "@/lib/payment-proof"
+import { shortAddress } from "@/lib/format"
+import { buildProofBundle } from "@/features/settlement-pipeline/lib/payment-proof"
 import {
   fallbackRouteForAgent,
   SCENARIOS,
-  shortAddress,
-} from "@/lib/payment-demo"
-import { usePaymentRun } from "@/lib/use-payment-run"
+} from "@/features/settlement-pipeline/lib/payment-demo"
+import { usePaymentRun } from "@/features/settlement-pipeline/lib/use-payment-run"
 
 export default function Page() {
   const [selectedIndex, setSelectedIndex] = useState(() => {

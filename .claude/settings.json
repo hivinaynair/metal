@@ -129,7 +129,12 @@
       "Bash(pnpm install:*)",
       "Bash(git -C /Users/vinay/bare-metal diff b079d06ee237c1f41f50c94b1cf9f28c69ed8930..03f5969 -- bun.lock)",
       "Bash(git -C . log b079d06ee237c1f41f50c94b1cf9f28c69ed8930..03f5969 --oneline)",
-      "WebFetch(domain:docs.x402.org)"
+      "WebFetch(domain:docs.x402.org)",
+      "Bash(mv components/agents-table.tsx features/agents/components/)",
+      "Bash(mv components/agents-table-body.tsx features/agents/components/)",
+      "Bash(mv components/agents-table-controls.tsx features/agents/components/)",
+      "Bash(mv components/agents-table-pagination.tsx features/agents/components/)",
+      "Bash(mv components/agents-table-types.ts features/agents/components/)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",

@@ -2,8 +2,8 @@
 
 import { useState } from "react"
 
-import type { DemoAgent, DemoScenario, TriggerResult } from "@/lib/payment-demo"
-import { fallbackRouteForAgent } from "@/lib/payment-demo"
+import type { DemoAgent, DemoScenario, TriggerResult } from "./payment-demo"
+import { fallbackRouteForAgent } from "./payment-demo"
 import { resultFailureStep } from "@/lib/settlement-status"
 
 export function usePaymentRun({

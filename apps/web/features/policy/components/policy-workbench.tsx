@@ -4,10 +4,10 @@ import { useState } from "react"
 import { ChevronRight } from "lucide-react"
 
 import { Button } from "@workspace/ui/components/button"
-import { PolicyConfigPanel } from "@/components/policy-config-panel"
-import { PolicyProofPanel } from "@/components/policy-proof-panel"
-import { PolicyTestPanel } from "@/components/policy-test-panel"
-import { PolicyJson, cn } from "@/components/policy-workbench-shared"
+import { PolicyConfigPanel } from "./policy-config-panel"
+import { PolicyProofPanel } from "./policy-proof-panel"
+import { PolicyTestPanel } from "./policy-test-panel"
+import { PolicyJson, cn } from "./policy-workbench-shared"
 import {
   clampPolicyMax,
   evaluatePolicy,
@@ -15,7 +15,7 @@ import {
   type PolicyAgent,
   type PolicyProofRun,
   type PolicyResource,
-} from "@/lib/policy-evaluation"
+} from "../lib/policy-evaluation"
 
 export type { PolicyAgent, PolicyProofRun, PolicyResource }
 
@@ -38,7 +38,9 @@ export function PolicyWorkbench({
   )
   const [result, setResult] = useState<EvaluationResult | null>(null)
   const [showJson, setShowJson] = useState(false)
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle")
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">(
+    "idle"
+  )
 
   const selectedAgent = agents.find((agent) => agent.address === agentAddress)
   const selectedResource = resources.find(

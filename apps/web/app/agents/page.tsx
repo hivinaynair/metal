@@ -1,7 +1,24 @@
 import { getAgentsWithMandates } from "@/lib/agents-data"
 import { POLICY_MAX_AMOUNT_USDC } from "@/lib/demo-scenarios"
-import { AgentsTable, type AgentsTableRow } from "@/components/agents-table"
+import { AgentsTable, type AgentsTableRow } from "@/features/agents/components/agents-table"
 import { PageFrame, PageHead } from "@/components/page-chrome"
+
+function deriveAgentStatus({
+  onChainTrusted,
+  maxAmountUsdc,
+  expired,
+}: {
+  onChainTrusted: boolean
+  maxAmountUsdc: number | null
+  expired: boolean
+}): AgentsTableRow["status"] {
+  if (!onChainTrusted) return "Unregistered"
+  if (maxAmountUsdc === null) return "Trusted"
+  if (expired) return "Expired mandate"
+  if (maxAmountUsdc < POLICY_MAX_AMOUNT_USDC) return "Mandate capped"
+  if (maxAmountUsdc > POLICY_MAX_AMOUNT_USDC) return "Policy blocked"
+  return "Trusted"
+}
 
 function toAgentsTableRow(
   agent: Awaited<ReturnType<typeof getAgentsWithMandates>>[number]
@@ -10,18 +27,7 @@ function toAgentsTableRow(
   const expirySeconds = agent.expiry !== null ? Number(agent.expiry) : 0
   const expired = expirySeconds > 0 && expirySeconds * 1000 < Date.now()
 
-  let status: AgentsTableRow["status"] = "Trusted"
-  if (!agent.onChainTrusted) {
-    status = "Unregistered"
-  } else if (maxAmountUsdc === null) {
-    status = "Trusted"
-  } else if (expired) {
-    status = "Expired mandate"
-  } else if (maxAmountUsdc < POLICY_MAX_AMOUNT_USDC) {
-    status = "Mandate capped"
-  } else if (maxAmountUsdc > POLICY_MAX_AMOUNT_USDC) {
-    status = "Policy blocked"
-  }
+  const status = deriveAgentStatus({ onChainTrusted: agent.onChainTrusted, maxAmountUsdc, expired })
 
   return {
     address: agent.address,

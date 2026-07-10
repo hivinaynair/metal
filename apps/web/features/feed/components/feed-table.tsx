@@ -14,7 +14,7 @@ import {
 } from "@workspace/ui/components/table"
 import { cn } from "@workspace/ui/lib/utils"
 import { formatUsdc } from "@/lib/format"
-import { DetailSheet } from "@/components/detail-sheet"
+import { DetailSheet } from "./detail-sheet"
 import type { AttestationRow } from "@/lib/attestations"
 
 interface FeedTableProps {

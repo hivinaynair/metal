@@ -1,6 +1,6 @@
 import { getAttestations } from "@/lib/attestations"
 import { getAgentsWithMandates } from "@/lib/agents-data"
-import { FeedTable } from "@/components/feed-table"
+import { FeedTable } from "@/features/feed/components/feed-table"
 import { PageFrame, PageHead } from "@/components/page-chrome"
 import { Badge } from "@workspace/ui/components/badge"
 import { Card, CardContent } from "@workspace/ui/components/card"
