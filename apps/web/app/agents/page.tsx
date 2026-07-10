@@ -11,7 +11,9 @@ function toAgentsTableRow(
   const expired = expirySeconds > 0 && expirySeconds * 1000 < Date.now()
 
   let status: AgentsTableRow["status"] = "Trusted"
-  if (maxAmountUsdc === null) {
+  if (!agent.onChainTrusted) {
+    status = "Unregistered"
+  } else if (maxAmountUsdc === null) {
     status = "Trusted"
   } else if (expired) {
     status = "Expired mandate"
@@ -33,7 +35,7 @@ function toAgentsTableRow(
         ? new Date(expirySeconds * 1000).toISOString().slice(0, 10)
         : "—",
     status,
-    registered: true,
+    registered: agent.onChainTrusted,
   }
 }
 
