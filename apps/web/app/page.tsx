@@ -98,7 +98,6 @@ export default function Page() {
           routeLabel={
             result?.route.path ?? fallbackRouteForAgent(selectedAgent).path
           }
-          mandateLimit={selectedAgent.mandateLimit}
           activeStep={activeStep}
           running={loading}
           approved={Boolean(approved)}
@@ -198,6 +197,7 @@ export default function Page() {
             }
             mandate={selectedScenario.mandate}
             policy="pol_9f8a…d21b"
+            completedAt={result?.completedAt}
           />
         </DashboardPanel>
       </section>

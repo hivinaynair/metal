@@ -9,6 +9,7 @@ const agent: PolicyAgent = {
   delegatorAddress: "0xdelegator",
   expiry: "2099-01-01",
   expired: false,
+  onChainTrusted: true,
 }
 
 describe("evaluatePolicy", () => {
@@ -18,7 +19,6 @@ describe("evaluatePolicy", () => {
         agent,
         amount: "3.00",
         maxAmountUsdc: 1,
-        requireMandate: true,
       })
     ).toEqual({
       pass: false,
@@ -33,12 +33,25 @@ describe("evaluatePolicy", () => {
         agent,
         amount: "0.50",
         maxAmountUsdc: 1,
-        requireMandate: true,
       })
     ).toEqual({
       pass: false,
       rule: "mandateLimit",
       reason: "0.50 USDC exceeds 0.00 USDC mandate.",
+    })
+  })
+
+  it("reports identity before policy and mandate checks", () => {
+    expect(
+      evaluatePolicy({
+        agent: { ...agent, onChainTrusted: false },
+        amount: "0.50",
+        maxAmountUsdc: 1,
+      })
+    ).toEqual({
+      pass: false,
+      rule: "requireIdentity",
+      reason: "Agent is not registered in ERC-8004.",
     })
   })
 })

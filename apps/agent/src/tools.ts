@@ -64,11 +64,14 @@ export async function performX402Fetch(
       if (header) {
         try {
           const decoded = decodePaymentRequiredHeader(header) as Record<string, unknown>
+          const resource = decoded.resource
           x402Challenge = {
             scheme: decoded.scheme as string | undefined,
             network: decoded.network as string | undefined,
             maxAmountRequired: decoded.maxAmountRequired as string | undefined,
-            resource: decoded.resource as string | undefined,
+            resource: typeof resource === "object" && resource !== null
+              ? ((resource as Record<string, unknown>).url as string | undefined)
+              : resource as string | undefined,
             description: decoded.description as string | undefined,
           }
         } catch { /* ignore decode errors */ }

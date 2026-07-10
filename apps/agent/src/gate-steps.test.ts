@@ -16,6 +16,7 @@ describe("gateStepsForResult", () => {
     expect(gateStepsForResult("mandate_invalid", undefined)).toEqual([2, 3])
     expect(gateStepsForResult("mandate_signature_invalid", undefined)).toEqual([2, 3])
     expect(gateStepsForResult("mandate_expired", undefined)).toEqual([2, 3])
+    expect(gateStepsForResult("mandate_insufficient_balance", undefined)).toEqual([2, 3])
   })
 
   it("stops at policy gate for policy_amount_exceeded", () => {
@@ -25,6 +26,8 @@ describe("gateStepsForResult", () => {
   it("stops at settlement gate for invalid_exact_evm errors", () => {
     expect(gateStepsForResult("invalid_exact_evm_insufficient_balance", undefined)).toEqual([2, 3, 4, 5])
     expect(gateStepsForResult("invalid_exact_evm_some_other_error", undefined)).toEqual([2, 3, 4, 5])
+    expect(gateStepsForResult("settlement_transaction_failed", undefined)).toEqual([2, 3, 4, 5])
+    expect(gateStepsForResult("settlement_receipt_unconfirmed", undefined)).toEqual([2, 3, 4, 5])
   })
 
   it("emits no gates for unknown errors", () => {

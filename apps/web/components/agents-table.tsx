@@ -16,6 +16,7 @@ import {
   NativeSelectOption,
 } from "@workspace/ui/components/native-select"
 import { cn } from "@workspace/ui/lib/utils"
+import { truncateAddress } from "@/lib/format"
 
 const PAGE_SIZE = 6
 
@@ -40,11 +41,6 @@ const statusStyles: Record<AgentsTableRow["status"], string> = {
   "Policy blocked": "bg-negative-surface text-negative",
   "Expired mandate": "bg-warning-surface text-warning",
   Unregistered: "bg-muted text-muted-foreground",
-}
-
-function shortAddress(address: string) {
-  if (!address.startsWith("0x") || address.length < 12) return address
-  return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
 function StatusPill({ status }: { status: AgentsTableRow["status"] }) {
@@ -247,13 +243,13 @@ export function AgentsTable({ agents }: { agents: AgentsTableRow[] }) {
                     </div>
                   </td>
                   <td className="px-3 py-4 font-mono text-muted-foreground">
-                    {shortAddress(agent.address)}
+                    {truncateAddress(agent.address)}
                   </td>
                   <td className="px-3 py-4 font-mono text-muted-foreground">
                     {agent.erc8004}
                   </td>
                   <td className="px-3 py-4 font-mono text-muted-foreground">
-                    {shortAddress(agent.delegatorAddress)}
+                    {truncateAddress(agent.delegatorAddress)}
                   </td>
                   <td className="px-3 py-4 text-right font-mono text-foreground">
                     {agent.maxAmountUsdc}

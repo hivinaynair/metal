@@ -21,6 +21,7 @@ function toPolicyAgent(
     name: agent.name,
     maxAmountUsdc: agent.maxAmountUsdc !== null ? Number(agent.maxAmountUsdc) : 0,
     delegatorAddress: agent.delegatorAddress ?? "—",
+    onChainTrusted: agent.onChainTrusted,
     expiry:
       expirySeconds > 0
         ? new Date(expirySeconds * 1000).toISOString().slice(0, 10)

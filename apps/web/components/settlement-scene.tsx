@@ -40,7 +40,6 @@ interface SettlementSceneProps {
   agentReasoning?: string
   amountLabel: string
   routeLabel: string
-  mandateLimit: string
   activeStep: number
   running: boolean
   approved: boolean
@@ -85,12 +84,8 @@ function packetPosition(activeStep: number, rejectedReason?: string) {
 
 function AgentActor({
   reasoning,
-  active,
-  blocked,
 }: {
   reasoning?: string
-  active: boolean
-  blocked: boolean
 }) {
   const [robotLoaded, setRobotLoaded] = useState(false)
   const latestReasoning = reasoning?.replace(/\s+/g, " ").trim().slice(-100)
@@ -106,7 +101,7 @@ function AgentActor({
         </p>
       </div>
       <div className="relative h-full w-full translate-x-4 overflow-visible">
-        <AgentSplineModel active={active} blocked={blocked} onLoad={() => setRobotLoaded(true)} />
+        <AgentSplineModel onLoad={() => setRobotLoaded(true)} />
       </div>
     </div>
   )
@@ -303,11 +298,6 @@ export function SettlementScene({
         ? "bg-negative-surface text-negative"
         : "bg-warning-surface text-warning"
 
-  // Track fill: fraction of connections complete (5 gaps between 6 dots)
-  // activeStep=0 → 0%, activeStep=1 → 0% (first gate running, no gap lit),
-  // activeStep=2 → 20%, …, activeStep=6 → 100%
-  const trackFill = `${Math.max(0, (activeStep - 1) / 5) * 100}%`
-
   return (
     <section className="settlement-pipeline settlement-pipeline-shadow overflow-hidden rounded-sm border border-accent/10 text-foreground sm:min-w-[620px]">
 
@@ -335,7 +325,7 @@ export function SettlementScene({
         {/* Spline robot with purple glow + reasoning bubble */}
         <div className="relative h-44 overflow-hidden border-b border-accent/[0.07]">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_65%,rgba(124,106,247,0.18)_0%,transparent_70%)]" />
-          <AgentSplineModel active={activeStep > 0} blocked={rejected} />
+          <AgentSplineModel />
           <div className="absolute bottom-3 left-3 right-3 rounded-md border border-white/[0.1] bg-black/55 px-3 py-2 backdrop-blur-md">
             <p className="font-mono text-[9px] leading-[1.45] text-white/70">
               {latestReasoning || "Im ready to make the payment!"}
@@ -426,7 +416,7 @@ export function SettlementScene({
           </div>
         </motion.div>
         <div className="relative z-10 flex h-full w-full">
-          <AgentActor reasoning={agentReasoning} active={activeStep > 0} blocked={rejected} />
+          <AgentActor reasoning={agentReasoning} />
           <div className="flex min-w-0 flex-1 pl-10">
             {gates.map((gate, index) => (
               <GateModule

@@ -5,19 +5,25 @@ export function PacketPanel({
   from,
   mandate,
   policy,
+  completedAt,
 }: {
   amount: string
   from: string
   mandate: string
   policy: string
+  completedAt?: string
 }) {
+  const createdLabel = completedAt
+    ? new Date(completedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    : "after run"
+
   const rows = [
     ["Amount", `${amount.replace("$", "")} USDC`],
     ["From", from],
     ["To", "configured payTo"],
     ["Mandate", mandate],
     ["Policy", policy],
-    ["Created", "after run"],
+    ["Created", createdLabel],
   ]
 
   return (

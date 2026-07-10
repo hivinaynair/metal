@@ -80,7 +80,7 @@ export function usePaymentRun({
             ) {
               setAnimStep(event.step)
             } else if (event.type === "done" && event.result) {
-              setResult(event.result)
+              setResult({ ...event.result, completedAt: new Date().toISOString() })
               setLoading(false)
             }
           } catch {

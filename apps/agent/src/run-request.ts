@@ -19,7 +19,9 @@ const runRequestSchema = z.object({
   agentName: z.nativeEnum(DemoAgentName, {
     message: "agentName must be a known demo agent",
   }),
-  targetUrl: z.string().url("targetUrl must be a valid URL"),
+  targetUrl: z
+    .string({ required_error: "targetUrl is required" })
+    .url("targetUrl must be a valid URL"),
 })
 
 export function validateRunRequest(

@@ -5,6 +5,7 @@ export type PolicyAgent = {
   delegatorAddress: string
   expiry: string
   expired: boolean
+  onChainTrusted: boolean
 }
 
 export type PolicyResource = {
@@ -33,17 +34,23 @@ export function evaluatePolicy({
   agent,
   amount,
   maxAmountUsdc,
-  requireMandate,
 }: {
   agent: PolicyAgent
   amount: string
   maxAmountUsdc: number
-  requireMandate: boolean
 }): EvaluationResult {
   const parsedAmount = Number.parseFloat(amount)
   const paymentAmount = Number.isFinite(parsedAmount) ? parsedAmount : 0
 
-  if (requireMandate && agent.expired) {
+  if (!agent.onChainTrusted) {
+    return {
+      pass: false,
+      rule: "requireIdentity",
+      reason: "Agent is not registered in ERC-8004.",
+    }
+  }
+
+  if (agent.expired) {
     return {
       pass: false,
       rule: "requireMandate",
@@ -59,7 +66,7 @@ export function evaluatePolicy({
     }
   }
 
-  if (requireMandate && paymentAmount > agent.maxAmountUsdc) {
+  if (paymentAmount > agent.maxAmountUsdc) {
     return {
       pass: false,
       rule: "mandateLimit",

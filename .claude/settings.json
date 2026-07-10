@@ -125,7 +125,11 @@
       "Bash(bun x:*)",
       "Bash(pnpm --filter @workspace/web tsc --noEmit)",
       "Bash(bun --filter @workspace/web tsc --noEmit)",
-      "Bash(ls /Users/vinay/bare-metal/apps/web/components/trace-panel*)"
+      "Bash(ls /Users/vinay/bare-metal/apps/web/components/trace-panel*)",
+      "Bash(pnpm install:*)",
+      "Bash(git -C /Users/vinay/bare-metal diff b079d06ee237c1f41f50c94b1cf9f28c69ed8930..03f5969 -- bun.lock)",
+      "Bash(git -C . log b079d06ee237c1f41f50c94b1cf9f28c69ed8930..03f5969 --oneline)",
+      "WebFetch(domain:docs.x402.org)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",

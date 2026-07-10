@@ -201,7 +201,7 @@ export function buildTraceSteps(result: {
         gate: "erc8004" as const,
         address: result.payer,
         agentId: result.decisionProof?.agentId,
-        identityStatus: result.decisionProof?.identityStatus,
+        identityStatus: result.decisionProof?.identityStatus ?? (stepStatus(2) === "approved" ? 1 : 0),
       } : undefined,
     },
     {

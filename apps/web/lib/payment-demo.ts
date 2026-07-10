@@ -56,6 +56,7 @@ export interface TriggerResult {
   decisionProof?: DecisionProof
   rawMandate?: RawMandate
   x402Challenge?: X402Challenge
+  completedAt?: string
   body?: { error?: string }
 }
 

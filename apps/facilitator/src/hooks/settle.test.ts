@@ -8,26 +8,33 @@ import { requestCtx } from "../lib/request-context.js"
 // ── Provide DATABASE_URL so getDb() lazy init doesn't throw ────────────────
 process.env.DATABASE_URL = "postgresql://fake"
 process.env.POLICY_MAX_AMOUNT_USDC = "10"
+process.env.FACILITATOR_PRIVATE_KEY = "0x0000000000000000000000000000000000000000000000000000000000000001"
+process.env.ATTESTATION_REGISTRY_ADDRESS = "0x0000000000000000000000000000000000000001"
 
 // ── Mock the DB module before importing settle ──────────────────────────────
 const mockInsertValues = mock(async () => {})
 const mockInsert = mock(() => ({ values: mockInsertValues }))
 
 const mockSelectLimit = mock(async () => [])
+const mockPolicyLimit = mock(async () => [{ policyMaxAmountUsdc: "10" }])
 const mockSelect = mock(() => ({
-  from: () => ({ where: () => ({ limit: mockSelectLimit }) }),
+  from: () => ({ where: () => ({ limit: mockSelectLimit }), limit: mockPolicyLimit }),
 }))
 
 mock.module("@workspace/db", () => ({
   createDb: () => ({ select: mockSelect, insert: mockInsert }),
   schema: {
     settlementAttestations: { authorizationNonce: "authorization_nonce", decision: "decision" },
+    facilitatorConfig: {},
   },
 }))
 
 const mockWriteContract = mock(async () => "0xattesttx")
+const mockWaitForTransactionReceipt = mock(async () => ({ status: "success" }))
+const mockReadContract = mock(async () => 1000000000n) // 1000 USDC — sufficient by default
 mock.module("../lib/clients.js", () => ({
   walletClient: { writeContract: mockWriteContract },
+  publicClient: { waitForTransactionReceipt: mockWaitForTransactionReceipt, readContract: mockReadContract },
   account: "0xaccount",
 }))
 
@@ -64,11 +71,15 @@ mock.module("../lib/deps.js", () => ({
   },
 }))
 
-mock.module("../lib/env.js", () => ({
+mock.module("../env.js", () => ({
   env: { POLICY_MAX_AMOUNT_USDC: "10", ATTESTATION_REGISTRY_ADDRESS: "0xreg" },
 }))
 
-mock.module("@workspace/shared/abis", () => ({ ATTESTATION_REGISTRY_ABI: [] }))
+mock.module("@workspace/shared/abis", () => ({
+  ATTESTATION_REGISTRY_ABI: [],
+  BASE_SEPOLIA_USDC_ADDRESS: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+  ERC20_BALANCE_ABI: [],
+}))
 mock.module("drizzle-orm", () => ({
   and: mock((...args: unknown[]) => args),
   eq: mock((a: unknown, b: unknown) => [a, b]),
@@ -103,10 +114,16 @@ beforeEach(() => {
   mockInsert.mockClear()
   mockInsertValues.mockClear()
   mockSelectLimit.mockClear()
+  mockPolicyLimit.mockClear()
   mockWriteContract.mockClear()
+  mockWaitForTransactionReceipt.mockClear()
+  mockReadContract.mockClear()
   mockVerifyMandateSig.mockClear()
   mockLookupIdentity.mockClear()
   mockSelectLimit.mockImplementation(async () => [])
+  mockPolicyLimit.mockImplementation(async () => [{ policyMaxAmountUsdc: "10" }])
+  mockWaitForTransactionReceipt.mockImplementation(async () => ({ status: "success" }))
+  mockReadContract.mockImplementation(async () => 1000000000n)
   mockVerifyMandateSig.mockImplementation(async () => true)
   mockLookupIdentity.mockImplementation(async () => VALID_PROFILE)
 })
@@ -151,6 +168,28 @@ describe("onBeforeSettle", () => {
     expect(mockInsertValues).toHaveBeenCalledTimes(2)
     const [first, second] = mockInsertValues.mock.calls
     expect(first![0].paymentHash).toBe(second![0].paymentHash)
+  })
+
+  it("aborts with mandate_insufficient_balance when wallet balance is below payment amount", async () => {
+    mockReadContract.mockImplementationOnce(async () => 500n) // 0.0005 USDC — less than 1000 atomic
+    const result = await withMandateCtx(() =>
+      onBeforeSettle({
+        paymentPayload: makePayload(AUTH_NONCE) as any,
+        requirements: makeRequirements("1000") as any,
+      })
+    )
+    expect(result).toEqual({ abort: true, reason: "mandate_insufficient_balance" })
+  })
+
+  it("does not abort when wallet balance equals payment amount", async () => {
+    mockReadContract.mockImplementationOnce(async () => 1000n) // exactly 1000 atomic
+    const result = await withMandateCtx(() =>
+      onBeforeSettle({
+        paymentPayload: makePayload(AUTH_NONCE) as any,
+        requirements: makeRequirements("1000") as any,
+      })
+    )
+    expect(result).toBeUndefined()
   })
 
   it("stores authorizationNonce on policy rejection", async () => {
@@ -212,6 +251,54 @@ describe("onAfterSettle", () => {
       result: { success: false, transaction: "", network: NETWORK },
     })
     expect(mockInsert).not.toHaveBeenCalled()
+  })
+
+  it("stores rejected record when settlement receipt failed", async () => {
+    mockWaitForTransactionReceipt.mockImplementationOnce(async () => ({ status: "reverted" }))
+
+    await onAfterSettle({
+      paymentPayload: makePayload(AUTH_NONCE) as any,
+      result: { success: true, transaction: SETTLEMENT_TX, network: NETWORK },
+    })
+
+    expect(mockWriteContract).not.toHaveBeenCalled()
+    expect(mockInsertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settlementTx: SETTLEMENT_TX,
+        attestationTx: null,
+        authorizationNonce: AUTH_NONCE,
+        decision: Decision.Rejected,
+        decisionRecord: expect.objectContaining({
+          payer: PAYER,
+          rejectionReason: "settlement_transaction_failed",
+          settlementTxHash: SETTLEMENT_TX,
+        }),
+      })
+    )
+  })
+
+  it("stores rejected record when settlement receipt cannot be confirmed", async () => {
+    mockWaitForTransactionReceipt.mockRejectedValueOnce(new Error("receipt unavailable"))
+
+    await onAfterSettle({
+      paymentPayload: makePayload(AUTH_NONCE) as any,
+      result: { success: true, transaction: SETTLEMENT_TX, network: NETWORK },
+    })
+
+    expect(mockWriteContract).not.toHaveBeenCalled()
+    expect(mockInsertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settlementTx: SETTLEMENT_TX,
+        attestationTx: null,
+        authorizationNonce: AUTH_NONCE,
+        decision: Decision.Rejected,
+        decisionRecord: expect.objectContaining({
+          payer: PAYER,
+          rejectionReason: "settlement_receipt_unconfirmed",
+          settlementTxHash: SETTLEMENT_TX,
+        }),
+      })
+    )
   })
 })
 

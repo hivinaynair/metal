@@ -73,12 +73,18 @@ export function buildRunStream(
         send({ type: "token", text: `\n[Agent error: ${responseError}]` })
       }
 
-      // Start polling in parallel with gate animations (settlement hook can lag the x402 response)
+      // Start polling early; the settlement hook can lag the x402 response.
       const decisionRecordPromise = getDecisionRecord({
         authorizationNonce,
         payer: account.address,
         settlementTxHash,
       })
+      const decisionRecord = await decisionRecordPromise
+
+      if (!responseError && decisionRecord?.policy.decision === "rejected") {
+        responseError = decisionRecord.rejectionReason ?? "settlement_rejected"
+        if (!httpStatus || httpStatus < 400) httpStatus = 402
+      }
 
       // Paced at 120ms each so the UI animation has time to render each step
       for (const step of gateStepsForResult(responseError, settlementTxHash)) {
@@ -86,8 +92,6 @@ export function buildRunStream(
         send({ type: "gate", step })
         await new Promise((r) => setTimeout(r, 120))
       }
-
-      const decisionRecord = await decisionRecordPromise
 
       // Step 6 (attestation) depends on async polling, not included in gateStepsForResult
       if (!responseError && decisionRecord?.attestationTxHash) {

@@ -1,7 +1,10 @@
 import { desc } from "drizzle-orm"
+import { createPublicClient, http } from "viem"
+import { baseSepolia } from "viem/chains"
 import { createDb, schema } from "@workspace/db"
 import { BASE_SEPOLIA_EXPLORER } from "@workspace/shared/chains"
 import { DEMO_POLICY_MAX_AMOUNT_USDC } from "@workspace/shared/demo"
+import { Decision } from "@workspace/shared/types"
 
 export interface AttestationRow {
   paymentHash: string
@@ -36,6 +39,23 @@ function getDb() {
 }
 
 const DEFAULT_POLICY_MAX_ATOMIC = BigInt(Math.round(DEMO_POLICY_MAX_AMOUNT_USDC * 1_000_000))
+
+const publicClient = createPublicClient({
+  chain: baseSepolia,
+  transport: http(),
+})
+
+async function decisionWithReceiptStatus(row: AttestationDbRow) {
+  if (row.decision !== Decision.Approved || !row.settlementTx) return row.decision
+  try {
+    const receipt = await publicClient.getTransactionReceipt({
+      hash: row.settlementTx as `0x${string}`,
+    })
+    return receipt.status === "success" ? row.decision : Decision.Rejected
+  } catch {
+    return row.decision
+  }
+}
 
 export async function getAttestations(): Promise<AttestationRow[]> {
   const db = getDb()
@@ -72,13 +92,13 @@ export async function getAttestations(): Promise<AttestationRow[]> {
       .limit(50)
   }
 
-  return rows.map((row) => ({
+  return Promise.all(rows.map(async (row) => ({
     paymentHash: row.paymentHash,
     payer: row.payerAddress,
     amountUsdc: row.amountUsdc,
     policyMaxAmountUsdc: row.policyMaxAmountUsdc ?? DEFAULT_POLICY_MAX_ATOMIC,
     identityStatus: row.identityStatus,
-    decision: row.decision,
+    decision: await decisionWithReceiptStatus(row),
     timestamp: Math.floor(row.createdAt.getTime() / 1000),
     settlementTx: row.settlementTx,
     settlementTxUrl: row.settlementTx
@@ -88,5 +108,5 @@ export async function getAttestations(): Promise<AttestationRow[]> {
     attestationTxUrl: row.attestationTx
       ? `${BASE_SEPOLIA_EXPLORER}/tx/${row.attestationTx}`
       : "",
-  }))
+  })))
 }

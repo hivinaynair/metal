@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import {
   ArrowRight,
   Check,
@@ -21,7 +21,6 @@ import {
   NativeSelectOption,
 } from "@workspace/ui/components/native-select"
 import { Slider } from "@workspace/ui/components/slider"
-import { Switch } from "@workspace/ui/components/switch"
 import { cn } from "@workspace/ui/lib/utils"
 import {
   clampPolicyMax,
@@ -88,23 +87,6 @@ function PanelHead({
   )
 }
 
-function RuleRow({
-  label,
-  checked,
-  onCheckedChange,
-}: {
-  label: string
-  checked: boolean
-  onCheckedChange: (value: boolean) => void
-}) {
-  return (
-    <label className="flex items-center gap-3 py-2.5 text-sm text-text-secondary">
-      <Switch checked={checked} onCheckedChange={onCheckedChange} />
-      {label}
-    </label>
-  )
-}
-
 function ProofStat({
   label,
   children,
@@ -133,22 +115,15 @@ function ProofStat({
 
 function PolicyJson({
   maxAmountUsdc,
-  requireIdentity,
-  requireMandate,
-  settleOnPass,
 }: {
   maxAmountUsdc: number
-  requireIdentity: boolean
-  requireMandate: boolean
-  settleOnPass: boolean
 }) {
   const json = JSON.stringify(
     {
       mode: "strict",
       maxAmountUsdc,
-      requireIdentity: requireIdentity ? "ERC-8004" : false,
-      requireMandate,
-      settleOnPassOnly: settleOnPass,
+      requireIdentity: "ERC-8004",
+      requireMandate: "AP2",
       attestationRequired: true,
     },
     null,
@@ -174,9 +149,6 @@ export function PolicyWorkbench({
   proofRun: PolicyProofRun | null
 }) {
   const [maxAmountUsdc, setMaxAmountUsdc] = useState(initialMaxAmountUsdc)
-  const [requireIdentity, setRequireIdentity] = useState(true)
-  const [requireMandate, setRequireMandate] = useState(true)
-  const [settleOnPass, setSettleOnPass] = useState(true)
   const [agentAddress, setAgentAddress] = useState(agents[0]?.address ?? "")
   const [resourceId, setResourceId] = useState(resources[0]?.id ?? "")
   const [amount, setAmount] = useState(
@@ -197,11 +169,9 @@ export function PolicyWorkbench({
   const activeRules = [
     {
       label: `Max payment <= ${maxAmountUsdc.toFixed(2)} USDC`,
-      enabled: true,
     },
-    { label: "Agent identity required", enabled: requireIdentity },
-    { label: "Valid mandate required", enabled: requireMandate },
-    { label: "Settlement only after all checks pass", enabled: settleOnPass },
+    { label: "ERC-8004 identity required" },
+    { label: "AP2 mandate required" },
   ]
 
   const canEvaluate = Boolean(selectedAgent)
@@ -212,8 +182,6 @@ export function PolicyWorkbench({
         ? 2
         : 1
       : 0
-
-  const proof = useMemo(() => proofRun, [proofRun])
 
   function setMax(value: number) {
     setMaxAmountUsdc(clampPolicyMax(value))
@@ -242,7 +210,6 @@ export function PolicyWorkbench({
         agent: selectedAgent,
         amount,
         maxAmountUsdc,
-        requireMandate,
       })
     )
   }
@@ -323,34 +290,13 @@ export function PolicyWorkbench({
               </div>
             </div>
 
-            <div>
-              <RuleRow
-                label="Require ERC-8004 identity"
-                checked={requireIdentity}
-                onCheckedChange={setRequireIdentity}
-              />
-              <RuleRow
-                label="Require AP2 mandate"
-                checked={requireMandate}
-                onCheckedChange={setRequireMandate}
-              />
-              <RuleRow
-                label="Settle only on pass"
-                checked={settleOnPass}
-                onCheckedChange={setSettleOnPass}
-              />
-            </div>
-
             <div className="border-t border-border pt-5">
               <p className="metal-eyebrow">Active rules</p>
               <div className="mt-3 grid gap-2">
                 {activeRules.map((rule) => (
                   <div
                     key={rule.label}
-                    className={cn(
-                      "flex items-center gap-2 text-sm text-text-secondary",
-                      !rule.enabled && "opacity-40"
-                    )}
+                    className="flex items-center gap-2 text-sm text-text-secondary"
                   >
                     <Check className="size-4 text-positive" />
                     {rule.label}
@@ -531,9 +477,6 @@ export function PolicyWorkbench({
             {showJson ? (
               <PolicyJson
                 maxAmountUsdc={maxAmountUsdc}
-                requireIdentity={requireIdentity}
-                requireMandate={requireMandate}
-                settleOnPass={settleOnPass}
               />
             ) : null}
           </div>
@@ -554,7 +497,7 @@ export function PolicyWorkbench({
               </b>
             </p>
           </div>
-          {proof ? (
+          {proofRun ? (
             <div className="flex flex-wrap items-center gap-7">
               <ProofStat label="Status">
                 <Badge variant="destructive">
@@ -563,11 +506,11 @@ export function PolicyWorkbench({
                 </Badge>
               </ProofStat>
               <ProofStat label="Failed rule" danger>
-                {proof.failedRule}
+                {proofRun.failedRule}
               </ProofStat>
-              <ProofStat label="Amount">{proof.amount}</ProofStat>
-              <ProofStat label="Limit">{proof.limit}</ProofStat>
-              <ProofStat label="Settlement tx">{proof.settlementTx}</ProofStat>
+              <ProofStat label="Amount">{proofRun.amount}</ProofStat>
+              <ProofStat label="Limit">{proofRun.limit}</ProofStat>
+              <ProofStat label="Settlement tx">{proofRun.settlementTx}</ProofStat>
               <Link
                 href="/feed"
                 className={cn(
