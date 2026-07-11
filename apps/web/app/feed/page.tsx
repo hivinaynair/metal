@@ -1,3 +1,5 @@
+export const revalidate = 5
+
 import { Suspense } from "react"
 import { getAttestations } from "@/server/attestations"
 import { getAgentsWithMandates } from "@/server/agents"

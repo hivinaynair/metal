@@ -139,7 +139,9 @@
       "Bash(grep -r invalid_exact_evm_insufficient_balance /Users/vinay/bare-metal/node_modules/.bun/@x402+core@2.17.0 --include=*.ts -l)",
       "Bash(grep -r \"ErrEip3009InsufficientBalance\\\\|InsufficientBalance\\\\|insufficient_balance\" /Users/vinay/bare-metal/node_modules/.bun/@x402+evm@2.17.0+1fb4c65d43e298b9/node_modules/@x402/evm/dist/cjs --include=*.js -l)",
       "Bash(grep -r \"settlement-risk-report\\\\|payTo\\\\|asset.*usdc\\\\|usdc.*asset\\\\|PaymentRequired\\\\|x402\" /Users/vinay/bare-metal/apps/web/src --include=*.ts -l)",
-      "Bash(grep -r useState /Users/vinay/bare-metal/apps/web/features /Users/vinay/bare-metal/apps/web/app --include=*.tsx --include=*.ts)"
+      "Bash(grep -r useState /Users/vinay/bare-metal/apps/web/features /Users/vinay/bare-metal/apps/web/app --include=*.tsx --include=*.ts)",
+      "Bash(wc -l /Users/vinay/bare-metal/apps/*/src/**/*.ts)",
+      "Bash(grep -r \"transactions\\\\|feed\\\\|activity\" /Users/vinay/code/bridge-v2/src/app --include=*.tsx -l)"
     ],
     "additionalDirectories": [
       "/Users/vinay/bare-metal",
