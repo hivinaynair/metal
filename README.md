@@ -30,18 +30,24 @@ Every gate is a hard block, not a soft warning. The first failure aborts settlem
 
 ```mermaid
 flowchart TD
-    Browser["Browser · Click Run → SSE stream → live gate animations"]
+    Browser["Browser\nClick Run → SSE stream → live gate animations"]
+
     WebApp["Web App :3000 · Next.js"]
+
     Agent["Agent Server :3002 · Bun/Hono\nCDP wallet · AP2 credential · Claude"]
-    Facilitator["Facilitator :3001 · Bun/Hono"]
-    Chain["Base Sepolia"]
+
+    Facilitator["Facilitator :3001 · Bun/Hono\nIdentity · Mandate · Policy · Settlement · Attestation"]
+
+    Chain["Base Sepolia\nUSDC transfer + Attested event"]
 
     Browser -- "POST /trigger-payment" --> WebApp
-    WebApp -. "SSE stream (enriched)" .-> Browser
-    WebApp -- "POST /run" --> Agent
-    Agent -- "GET /api/report\n+ X-AP2-Mandate\n+ x402 payment sig" --> WebApp
-    WebApp -- "verify() · settle()" --> Facilitator
-    Facilitator -- "USDC transfer · attest()" --> Chain
+    WebApp -- "① POST /run" --> Agent
+    Agent -- "② GET /api/report" --> WebApp
+    WebApp -- "③ 402 + price" --> Agent
+    Agent -- "④ retry with payment\n+ X-AP2-Mandate" --> WebApp
+    WebApp -- "⑤ verify() → settle()" --> Facilitator
+    Facilitator -- "⑥ USDC transfer · attest()" --> Chain
+    WebApp -. "SSE stream" .-> Browser
 ```
 
 ---
