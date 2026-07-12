@@ -28,53 +28,20 @@ Every gate is a hard block, not a soft warning. The first failure aborts settlem
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  Browser                                                                │
-│  Click "Run" → SSE stream → live gate animations + reasoning + tx links │
-└────────────────────────────┬────────────────────────────────────────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  Agent Server   │  Bun / Hono
-                    │  :3002          │
-                    │                 │  ① Load CDP wallet
-                    │                 │  ② Load AP2 credential
-                    │                 │  ③ Claude reasons aloud
-                    │                 │  ④ performX402Fetch()
-                    └────────┬────────┘
-                             │  X-AP2-Mandate header + x402 payment sig
-                             │
-                    ┌────────▼────────┐
-                    │  Web App        │  Next.js / Vercel
-                    │  :3000          │
-                    │                 │  x402 middleware intercepts request
-                    │                 │  → calls facilitator.verify()
-                    │                 │  → calls facilitator.settle()
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  Facilitator    │  Bun / Hono
-                    │  :3001          │
-                    │                 │
-                    │  /verify        │
-                    │  ① AP2 mandate present?
-                    │  ② ERC-8004 identity valid?
-                    │  ③ EIP-712 sig + expiry + limit?
-                    │  ④ Below policy ceiling?
-                    │    ↳ first failure → abort, log
-                    │                 │
-                    │  /settle        │
-                    │  ⑤ USDC transfer (Base Sepolia)
-                    │  ⑥ AttestationRegistry.attest()
-                    │  ⑦ Persist DecisionRecord → Postgres
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  Base Sepolia   │
-                    │                 │
-                    │  USDC transfer  │
-                    │  Attested event │  ← tamper-evident on-chain record
-                    └─────────────────┘
+```mermaid
+flowchart TD
+    Browser["Browser · Click Run → SSE stream → live gate animations"]
+    WebApp["Web App :3000 · Next.js"]
+    Agent["Agent Server :3002 · Bun/Hono\nCDP wallet · AP2 credential · Claude"]
+    Facilitator["Facilitator :3001 · Bun/Hono"]
+    Chain["Base Sepolia"]
+
+    Browser -- "POST /trigger-payment" --> WebApp
+    WebApp -. "SSE stream (enriched)" .-> Browser
+    WebApp -- "POST /run" --> Agent
+    Agent -- "GET /api/report\n+ X-AP2-Mandate\n+ x402 payment sig" --> WebApp
+    WebApp -- "verify() · settle()" --> Facilitator
+    Facilitator -- "USDC transfer · attest()" --> Chain
 ```
 
 ---
@@ -92,8 +59,9 @@ Every gate is a hard block, not a soft warning. The first failure aborts settlem
        │                      ↳ fail: identity_not_found
   [3] Mandate check ───────── EIP-712 signature verify + expiry + amount limit
        │                      ↳ fail: mandate_missing / mandate_invalid / mandate_expired / mandate_amount_exceeded
-  [4] Policy check ────────── Amount ≤ POLICY_MAX_AMOUNT_USDC ceiling
-       │                      ↳ fail: policy_amount_exceeded
+  [4] Policy check ────────── checkPolicy
+       │                      ↳ pass: policy met → proceed to settlement
+       │                      ↳ fail: policy_rejected
   [5] Settlement ──────────── USDC transfer on Base Sepolia
        │
   [6] Attestation ─────────── AttestationRegistry.attest() + Postgres log
@@ -225,16 +193,7 @@ bun dev        # starts web + facilitator + agent server via Turborepo
 
 Agent wallets are created and funded via CDP on first request.
 
-### CLI agent
 
-```bash
-bun --filter agent dev                   # interactive REPL
-bun --filter agent dev happy-path        # pays $0.20, prints reasoning + tx hashes
-bun --filter agent dev mandate-exceeded  # blocked at mandate gate
-bun --filter agent dev policy-exceeded   # blocked at policy ceiling
-bun --filter agent dev ghost             # blocked at identity gate
-bun --filter agent dev serve             # HTTP server mode (used by web console)
-```
 
 ### Deploy contracts
 
